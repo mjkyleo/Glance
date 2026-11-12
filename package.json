@@ -1,0 +1,59 @@
+{
+  "name": "glance",
+  "version": "1.0.5",
+  "description": "A simple vocabulary learning app.",
+  "main": "main.js",
+  "scripts": {
+    "start": "node scripts/dev-start.js",
+    "start:win": "if not exist \"%APPDATA%\\glance\" mkdir \"%APPDATA%\\glance\" & electron . --no-sandbox",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.glance.app",
+    "productName": "Glance",
+    "publish": {
+      "provider": "github",
+      "owner": "mjkyleo",
+      "repo": "Glance"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/electron-builder/**/*",
+      "assets/**"
+    ],
+    "extraResources": [
+      { "from": "assets/words.tsv",        "to": "words.tsv" },
+      { "from": "assets/sample_en_zh.tsv", "to": "sample_en_zh.tsv" }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "appx"
+      ],
+      "icon": "assets/icons/app-icon.ico",
+      "artifactName": "glance-setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": true,
+      "icon": "assets/icons/app-icon.icns",
+      "artifactName": "glance-setup-${version}.${ext}"
+    },
+    "appx": {
+      "displayName": "Glance",
+      "publisherDisplayName": "whiw",
+      "identityName": "whiw.MyVocabulary",
+      "publisher": "CN=4175687F-AEEF-4269-BC40-B06FFFB51FD0",
+      "backgroundColor": "#ffffff"
+    }
+  },
+  "keywords": [],
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.1",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  }
+}

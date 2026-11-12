@@ -1,0 +1,341 @@
+const { ipcRenderer } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+
+ 
+
+window.addEventListener('DOMContentLoaded', async () => {
+  // DOM Elements
+
+  const container = document.querySelector('.container');  // ★ 新增
+  const wordEl = document.getElementById('word');
+  const meaningEl = document.getElementById('meaning');
+  const exampleEl = document.getElementById('example');
+  const learnedCheckbox = document.getElementById('learned-checkbox');
+  const loadButton = document.getElementById('load-button');
+  const prevButton = document.getElementById('prev-button');
+  const nextButton = document.getElementById('next-button');
+  const modeButton = document.getElementById('mode-button');
+  const editButton = document.getElementById('edit-button');
+  const settingsButton = document.getElementById('settings-button');
+  const helpButton = document.getElementById('help-button');
+  const speakButton = document.getElementById('speak-button');
+ 
+
+
+  // 获取 userData 路径（主进程没有 handler 时回退到 __dirname）
+  let userDataPath = __dirname;
+  try {
+    const p = await ipcRenderer.invoke('get-userData-path');
+    if (p) userDataPath = p;
+  } catch (_) { /* fallback to __dirname */ }
+  const learnedWordsPath = path.join(userDataPath, 'learned.json');
+
+  // State
+  let words = [];
+  let learnedWords = new Set();
+  let currentFilePath = null;
+  let currentIndex = 0;
+  let timer = null;
+  let settings = {};
+  let isHovered = false;
+
+  
+  if (speakButton) speakButton.addEventListener('click', () => {
+  if (words.length > 0) TTS.speak(words[currentIndex].word);
+});
+
+  
+ 
+
+  // --- SETTINGS ---
+
+async function initialize() {
+  loadLearnedWords();
+  const initialSettings = await ipcRenderer.invoke('get-settings');
+  await applySettings(initialSettings);
+
+  const lastPath = initialSettings.lastFilePath;
+  if (lastPath && fs.existsSync(lastPath)) {
+    try {
+      const content = fs.readFileSync(lastPath, 'utf-8');
+      currentFilePath = lastPath;
+      loadAndFilterWords(content);
+    } catch (e) {
+      console.error('Auto-load last file failed:', e);
+    }
+  }
+}
+
+
+  async function applySettings(newSettings) {
+    settings = newSettings || {};
+    document.body.style.setProperty('--font-family', settings.fontFamily || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif");
+    document.body.style.setProperty('--font-size', `${settings.fontSize ?? 24}px`);
+    document.body.style.setProperty('--word-color', settings.wordColor || '#61afef');
+    document.body.style.setProperty('--font-color', settings.fontColor || '#abb2bf');
+    document.body.style.setProperty('--example-color', settings.exampleColor || '#c8ccd4');
+    resetTimer(); // 重置计时器
+  }
+
+  // --- DATA HANDLING ---
+  function loadLearnedWords() {
+    try {
+      if (fs.existsSync(learnedWordsPath)) {
+        learnedWords = new Set(JSON.parse(fs.readFileSync(learnedWordsPath, 'utf-8')));
+      }
+    } catch (error) {
+      console.error('Error loading learned words:', error);
+      learnedWords = new Set();
+    }
+  }
+
+  function saveLearnedWords() {
+    try {
+      fs.writeFileSync(learnedWordsPath, JSON.stringify(Array.from(learnedWords), null, 2));
+      //ipcRenderer.send('learned-words-updated');
+    } catch (error) {
+      console.error('Error saving learned words:', error);
+    }
+  }
+
+  // --- UI & WORD DISPLAY ---
+  function displayWord() {
+    if (words.length === 0) {
+      wordEl.textContent = 'All Done!';
+      meaningEl.textContent = 'Load a new file or restart.';
+      if (exampleEl) exampleEl.style.display = '';
+      if (timer) clearInterval(timer);
+      if (speakButton) speakButton.disabled = true; 
+      return;
+    }
+    const current = words[currentIndex];
+    wordEl.textContent = current.word;
+    meaningEl.textContent = current.meaning;
+
+    if (exampleEl) {
+      if (current.example && current.example.length > 0) {
+        exampleEl.textContent = current.example;
+        exampleEl.style.display = '';
+      } else {
+        exampleEl.textContent = '';
+        exampleEl.style.display = 'none';
+      }
+    }
+    learnedCheckbox.checked = false;
+    if (speakButton) speakButton.disabled = false; 
+  }
+
+  function resetTimer() {
+    if (timer) clearInterval(timer);
+    const sec = Number(settings.timerSeconds || 10);
+    if (words.length > 0 && sec > 0 && !isHovered) {
+      timer = setInterval(showNextWord, sec * 1000);
+    }
+  }
+
+  function showNextWord() {
+    if (words.length === 0) return;
+    currentIndex = (currentIndex + 1) % words.length;
+    displayWord();
+    resetTimer();
+  }
+
+  function showPrevWord() {
+    if (words.length === 0) return;
+    currentIndex = (currentIndex - 1 + words.length) % words.length;
+    displayWord();
+    resetTimer();
+  }
+
+  function loadAndFilterWords(fileContent) {
+    const allWords = fileContent
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#'))
+    .map(line => {
+      // 单词 ↹ 释义 [↹ 例句]（第 3 列可选）
+      const parts = line.split('\t');
+      const word = (parts[0] || '').trim();
+      const meaning = (parts[1] || '').trim();
+      const example = (parts[2] || '').trim(); // 没有就是空字符串
+      return { word, meaning, example };
+    });
+
+  loadLearnedWords();
+  words = allWords.filter(w => w.word && !learnedWords.has(w.word));
+
+  editButton.disabled = false;
+  if (words.length > 0) {
+    currentIndex = 0;
+    displayWord();
+    resetTimer();
+  } else {
+    wordEl.textContent = 'All learned!';
+    meaningEl.textContent = 'Every word in this file is learned.';
+    exampleEl.style.display = 'none';
+    if (timer) clearInterval(timer);
+  }
+}
+
+  // --- EVENT LISTENERS ---
+  loadButton.addEventListener('click', async () => {
+    const result = await ipcRenderer.invoke('dialog:openFile');
+    if (!result || !result.filePath) return;
+
+    currentFilePath = result.filePath;
+    loadAndFilterWords(result.content);
+
+    ipcRenderer.send('set-last-file', currentFilePath);
+  });
+
+  learnedCheckbox.addEventListener('change', () => {
+    if (learnedCheckbox.checked && words.length > 0) {
+      const learnedWord = words[currentIndex].word;
+      learnedWords.add(learnedWord);
+      saveLearnedWords();
+
+      words.splice(currentIndex, 1);
+      if (currentIndex >= words.length) currentIndex = 0;
+
+      displayWord();
+      resetTimer();
+    }
+  });
+
+  prevButton.addEventListener('click', showPrevWord);
+  nextButton.addEventListener('click', showNextWord);
+
+  // Hide/Show: 只保留 单词/释义/Show
+  modeButton.addEventListener('click', () => {
+    const isHidden = document.body.classList.toggle('ui-hidden');
+    modeButton.textContent = isHidden ? 'Show' : 'Hide';
+  });
+
+  editButton.addEventListener('click', () => {
+    if (currentFilePath) ipcRenderer.send('edit-file', currentFilePath);
+  });
+
+  settingsButton.addEventListener('click', () => ipcRenderer.send('open-settings-window'));
+  helpButton.addEventListener('click', () => ipcRenderer.send('open-about-window'));
+
+  ipcRenderer.on('settings-updated', (_evt, newSettings) => applySettings(newSettings));
+  ipcRenderer.on('reload-words', () => {
+    if (currentFilePath) {
+      const fileContent = fs.readFileSync(currentFilePath, 'utf-8');
+      loadAndFilterWords(fileContent);
+    }
+  });
+
+ // --- MOUSE HOVER HANDLING ---
+// --- MOUSE HOVER HANDLING (REWRITE) ---
+function checkHoverState() {
+  const hovered = document.body.matches(':hover');  
+
+  if (hovered && !isHovered) {
+    
+    isHovered = true;
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  } else if (!hovered && isHovered) {
+    
+    isHovered = false;
+    resetTimer();
+  }
+}
+
+// 定期检测 hover 状态（每 300ms）
+setInterval(checkHoverState, 300);
+
+  // --- INITIALIZATION ---
+  initialize()
+
+  const TTS = (() => {
+    let voices = [];
+    function refreshVoices() { voices = window.speechSynthesis.getVoices() || []; }
+    refreshVoices();
+    if ('onvoiceschanged' in window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = refreshVoices;
+    }
+
+    function pickVoice(bcp47) {
+      if (!bcp47) return null;
+      const lc = bcp47.toLowerCase();
+      const exact = voices.find(v => v.lang && v.lang.toLowerCase() === lc);
+      if (exact) return exact;
+       console.log(lc);
+       if (lc.startsWith('zh')) {
+        v = voices.find(v => v.name && v.name.toLowerCase().includes('chinese (simplified'));
+    if (v) return v;
+  }
+
+      const pre = lc.split('-')[0];
+      const loose = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(pre));
+      return loose || null;
+    }
+
+    let speaking = false;
+    function speak(text, opts = {}) {
+    if (!text) return;
+    const lang2 = (settings && settings.ttsLang) ? settings.ttsLang : 'en-US';
+    const rate  = Number(settings?.ttsRate ?? 1.0); // 设置里没有就用 1.0
+    const pitch = Number(opts.pitch ?? 1.0);
+    const volume = Number(opts.volume ?? 1.0);
+    const onend = opts.onend;
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang2;
+    console.log(u.lang);
+    const v = pickVoice(u.lang);
+    if (v) u.voice = v;
+    u.rate = rate; u.pitch = pitch; u.volume = volume;
+
+    u.onstart = () => {
+      speaking = true;
+    };
+    u.onend = () => { speaking = false; onend && onend();  };
+    u.onerror = () => { speaking = false; onend && onend();  };
+
+    // 连点同一个单词时避免重复朗读
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+    function stop(){ window.speechSynthesis.cancel(); speaking = false; }
+    function isSpeaking(){ return speaking; }
+
+    return { speak, stop, isSpeaking };
+  })();
+
+  // ===== 语言检测（简单规则 + 兜底） =====
+  function detectByScript(text){
+    if (/[\u3040-\u30ff]/.test(text)) return 'ja-JP';        // 平假名/片假名
+    if (/[\u4e00-\u9fff]/.test(text)) return 'zh';          // 汉字 → 按中文处理
+    if (/[А-Яа-яЁё]/.test(text)) return 'ru-RU';             // 西里尔字母
+    if (/[א-ת]/.test(text)) return 'he-IL';                  // 希伯来文
+    if (/[أ-ي]/.test(text)) return 'ar-SA';                  // 阿拉伯文
+    if (/[ก-๙]/.test(text)) return 'th-TH';                  // 泰文
+    if (/[ह-ॿ]/.test(text)) return 'hi-IN';                  // 天城文（印地语等）
+    return null; // 拉丁字母等
+  }
+
+  // 取设置里的 TTS 默认值（没有就兜底）
+  function getTtsConfig() {
+    // 设置窗口没存 ttsLang / ttsRate 时只用兜底值
+    try { return JSON.parse(localStorage.getItem('myvocab.tts') || '{}'); }
+    catch { return {}; }
+  }
+
+  function guessSpeakLang(text) {
+    // 1) 能按文字系统确定就用它
+    const byScript = detectByScript(text);
+    if (byScript) return byScript;
+
+    // 2) 拉丁字母：按设置里的默认朗读语言（没有就用 en-US）
+    const cfg = getTtsConfig();
+    return cfg.ttsLang || 'en-US';
+  }
+});
