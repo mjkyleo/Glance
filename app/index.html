@@ -21,72 +21,276 @@
         </span>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" id="lib-button" type="button" title="选择词库" aria-label="选择词库">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 4h7a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H4V4Zm16 0h-7a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5H20V4Z"/></svg>
-        </button>
-        <button class="icon-btn" id="shuffle-button" type="button" title="乱序" aria-label="乱序">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17 3l4 4-4 4V8h-2.2l-2.3 3.2-1.5-2.1L13.4 6H17V3ZM3 6h4.3l8 11H21v-3l4 4-4 4v-3h-6.7l-8-11H3V6Zm0 11h4.3l2.2-3.1 1.5 2.1L8.3 19H3v-2Z"/></svg>
-        </button>
-        <button class="icon-btn" id="overlay-button" type="button" title="悬浮窗" aria-label="悬浮窗">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-3H5a2 2 0 0 1-2-2V5Zm11 5v7h5v-7h-5Z"/></svg>
+        <button class="icon-btn" id="settings-button" type="button" title="设置" aria-label="设置">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm9.4-2c0-.5-.4-.9-.9-1l-1.6-.3a7 7 0 0 0-.6-1.4l.9-1.3a1 1 0 0 0-.1-1.3l-1.4-1.4a1 1 0 0 0-1.3-.1l-1.3.9a7 7 0 0 0-1.4-.6L13.4 3a1 1 0 0 0-1-.8h-2a1 1 0 0 0-1 .8l-.3 1.6a7 7 0 0 0-1.4.6l-1.3-.9a1 1 0 0 0-1.3.1L3.7 5.8a1 1 0 0 0-.1 1.3l.9 1.3a7 7 0 0 0-.6 1.4L2.3 10a1 1 0 0 0-.8 1v2c0 .5.4.9.8 1l1.6.3c.2.5.4 1 .6 1.4l-.9 1.3a1 1 0 0 0 .1 1.3l1.4 1.4c.4.4 1 .4 1.3.1l1.3-.9c.4.2.9.4 1.4.6l.3 1.6c.1.5.5.8 1 .8h2c.5 0 .9-.4 1-.8l.3-1.6a7 7 0 0 0 1.4-.6l1.3.9c.4.3 1 .2 1.3-.1l1.4-1.4a1 1 0 0 0 .1-1.3l-.9-1.3c.2-.4.4-.9.6-1.4l1.6-.3c.5-.1.9-.5.9-1v-2Z"/></svg>
         </button>
       </div>
     </header>
 
-    <div class="mode-switch" role="tablist" aria-label="模式">
-      <button class="mode-btn active" id="mode-study" type="button" role="tab" aria-selected="true">学习</button>
-      <button class="mode-btn" id="mode-quiz" type="button" role="tab" aria-selected="false">测试</button>
-    </div>
-
-    <main class="study" id="study-view">
-      <section class="word-block">
-        <div class="word-row">
-          <h1 class="word" id="word">Glance</h1>
-          <button class="speak-btn" id="speak-button" type="button" title="朗读 (S)" aria-label="朗读">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
-          </button>
+    <main class="view" id="view-study">
+      <div class="plan-bar" id="plan-bar">
+        <div class="plan-stats">
+          <span class="plan-chip"><b id="plan-new">0/0</b> 新词</span>
+          <span class="plan-chip"><b id="plan-review">0</b> 复习</span>
+          <span class="plan-chip">🔥 <b id="plan-streak">0</b> 天</span>
         </div>
-        <div class="phonetic" id="phonetic"></div>
-        <div class="morphemes" id="morphemes"></div>
-      </section>
-
-      <section class="cards" id="cards"></section>
-    </main>
-
-    <main class="study" id="quiz-view" hidden>
-      <section class="word-block">
-        <span class="quiz-badge">预览 · 测试功能开发中</span>
-        <div class="word-row">
-          <h1 class="word" id="quiz-word">Glance</h1>
-        </div>
-        <div class="phonetic" id="quiz-phonetic"></div>
-        <div class="quiz-question">选择正确的释义</div>
-      </section>
-      <section class="quiz-options" id="quiz-options"></section>
-      <button class="quiz-submit" id="quiz-submit" type="button" disabled>提交答案</button>
-    </main>
-
-    <footer class="app-footer" id="app-footer">
-      <button class="nav-btn" id="prev-button" type="button" title="上一个 (←)">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M15 5l-7 7 7 7 1.4-1.4L10.8 12l5.6-5.6L15 5Z"/></svg>
-        <span>上一个</span>
-      </button>
-      <div class="progress">
-        <div class="progress-text" id="progress-text"></div>
-        <div class="bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="bar"><div class="progress-fill" id="plan-fill"></div></div>
       </div>
-      <button class="nav-btn learned" id="learned-button" type="button" title="已掌握 (L)">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.4-1.4L9 16.2Z"/></svg>
-        <span>已掌握</span>
+
+      <div class="mode-switch" role="tablist" aria-label="模式">
+        <button class="mode-btn active" id="mode-study" type="button" role="tab" aria-selected="true">学习</button>
+        <button class="mode-btn" id="mode-quiz" type="button" role="tab" aria-selected="false">测试</button>
+      </div>
+
+      <div class="scroll" id="study-panel">
+        <section class="word-block">
+          <div class="word-top">
+            <span class="word-badge" id="word-badge">新词</span>
+            <span class="word-due" id="word-due"></span>
+          </div>
+          <div class="word-row">
+            <h1 class="word" id="word">Glance</h1>
+            <button class="speak-btn" id="speak-button" type="button" title="朗读 (S)" aria-label="朗读">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
+            </button>
+          </div>
+          <div class="phonetic" id="phonetic"></div>
+          <div class="morphemes" id="morphemes"></div>
+        </section>
+        <section class="cards" id="cards"></section>
+      </div>
+
+      <div class="scroll empty-state" id="study-empty" hidden>
+        <div class="empty-emoji" aria-hidden="true">🎉</div>
+        <h2 class="empty-title" id="empty-title">今日任务已完成</h2>
+        <p class="empty-sub" id="empty-sub"></p>
+        <div class="empty-stats" id="empty-stats"></div>
+        <button class="btn-primary" id="continue-button" type="button">继续学习</button>
+      </div>
+
+      <div class="scroll" id="quiz-panel" hidden>
+        <div class="quiz-head">
+          <span class="quiz-score" id="quiz-score">0 / 0</span>
+          <span class="quiz-progress" id="quiz-progress"></span>
+        </div>
+        <section class="word-block">
+          <div class="word-row">
+            <h1 class="word" id="quiz-word">Glance</h1>
+            <button class="speak-btn" id="quiz-speak" type="button" title="朗读" aria-label="朗读">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
+            </button>
+          </div>
+          <div class="phonetic" id="quiz-phonetic"></div>
+          <div class="quiz-question">选择正确的释义</div>
+        </section>
+        <section class="quiz-options" id="quiz-options"></section>
+        <div class="quiz-feedback" id="quiz-feedback" hidden></div>
+        <div class="quiz-actions">
+          <button class="btn-ghost" id="quiz-retry" type="button">重练错题</button>
+          <button class="btn-primary" id="quiz-next" type="button" hidden>下一题</button>
+        </div>
+      </div>
+
+      <footer class="grade-footer" id="grade-footer">
+        <button class="grade-btn forgot" id="grade-forgot" type="button" title="忘记 (1)">
+          <span class="grade-emoji">😵</span><span class="grade-label">忘记</span>
+        </button>
+        <button class="grade-btn fuzzy" id="grade-fuzzy" type="button" title="模糊 (2)">
+          <span class="grade-emoji">🤔</span><span class="grade-label">模糊</span>
+        </button>
+        <button class="grade-btn know" id="grade-know" type="button" title="认识 (3)">
+          <span class="grade-emoji">😎</span><span class="grade-label">认识</span>
+        </button>
+      </footer>
+      <div class="session-info" id="session-info"></div>
+    </main>
+
+    <main class="view" id="view-roots" hidden>
+      <div class="mode-switch" role="tablist">
+        <button class="mode-btn active" id="roots-tab-roots" type="button" role="tab" aria-selected="true">词根</button>
+        <button class="mode-btn" id="roots-tab-affixes" type="button" role="tab" aria-selected="false">词缀</button>
+      </div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 2a8 8 0 1 0 4.9 14.3l5 5 1.4-1.4-5-5A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></svg>
+        <input type="search" id="roots-search" placeholder="搜索词根 / 释义" autocomplete="off" />
+      </div>
+      <div class="scroll" id="roots-list"></div>
+      <div id="affix-panel" hidden>
+        <div class="chip-row" id="affix-filter">
+          <button class="chip active" data-k="all" type="button">全部</button>
+          <button class="chip" data-k="prefix" type="button">前缀</button>
+          <button class="chip" data-k="suffix" type="button">后缀</button>
+        </div>
+        <div class="scroll" id="affix-list"></div>
+      </div>
+    </main>
+
+    <main class="view" id="view-search" hidden>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 2a8 8 0 1 0 4.9 14.3l5 5 1.4-1.4-5-5A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></svg>
+        <input type="search" id="search-input" placeholder="查单词 / 词根 / 词缀" autocomplete="off" />
+        <button class="search-clear" id="search-clear" type="button" aria-label="清空" hidden>✕</button>
+      </div>
+      <div class="scroll" id="search-scroll">
+        <section id="search-results"></section>
+        <section class="block" id="history-block">
+          <div class="block-head"><h3>查词历史</h3><button class="link-btn" id="history-clear" type="button">清空</button></div>
+          <div class="chip-row" id="history-list"></div>
+        </section>
+        <section class="block" id="fav-block">
+          <div class="block-head">
+            <h3>生词本 <span class="count-pill" id="fav-count">0</span></h3>
+            <button class="link-btn" id="fav-add-group" type="button">+ 分组</button>
+          </div>
+          <div class="chip-row" id="fav-groups"></div>
+          <div id="fav-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <main class="view" id="view-stats" hidden>
+      <div class="scroll" id="stats-scroll">
+        <div class="stat-grid" id="stats-today"></div>
+        <section class="panel">
+          <div class="panel-head"><h3>打卡日历</h3><span class="streak-pill" id="stats-streak">连续 0 天</span></div>
+          <div class="calendar" id="calendar"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>掌握分布</h3><span class="panel-sub" id="mastery-total"></span></div>
+          <div id="mastery-chart"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>记忆持久度</h3><span class="panel-sub">复习盒分布</span></div>
+          <div id="retention-chart"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>学习趋势</h3><span class="panel-sub">近 14 天</span></div>
+          <div id="trend-chart"></div>
+          <div class="viz-legend"><span><i class="sw" style="background:var(--accent)"></i>新学</span><span><i class="sw" style="background:var(--green)"></i>复习</span></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>每日记录</h3></div>
+          <div id="stats-history"></div>
+        </section>
+      </div>
+    </main>
+
+    <main class="view" id="view-books" hidden>
+      <div class="scroll" id="books-scroll">
+        <section class="active-book" id="active-book"></section>
+        <section class="panel">
+          <div class="panel-head"><h3>每日计划</h3></div>
+          <div class="plan-fields">
+            <label class="field"><span>每日新词</span><input type="number" id="plan-new-input" min="0" max="200" step="5" /></label>
+            <label class="field"><span>复习上限</span><input type="number" id="plan-review-input" min="0" max="500" step="10" /></label>
+          </div>
+          <p class="field-hint">复习上限 0 表示不限。已掌握的词会自动减少出现。</p>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>选择词书</h3><button class="link-btn" id="import-book" type="button">导入自定义</button></div>
+          <div id="books-list"></div>
+        </section>
+        <section class="panel" id="custom-books-panel" hidden>
+          <div class="panel-head"><h3>自定义词书</h3></div>
+          <div id="custom-books-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <nav class="tabbar" id="tabbar">
+      <button class="tab active" data-view="study" type="button" aria-label="学习">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3Zm-7 9.2v4L12 20l7-3.8v-4L12 16l-7-3.8Z"/></svg>
+        <span>学习</span>
       </button>
-      <button class="nav-btn primary" id="next-button" type="button" title="下一个 (→ / 空格)">
-        <span>下一个</span>
-        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 5l7 7-7 7-1.4-1.4L13.2 12 7.6 6.4 9 5Z"/></svg>
+      <button class="tab" data-view="roots" type="button" aria-label="词根">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2a3 3 0 0 0-1 5.8V10H7a3 3 0 0 0-3 3v1.2a3 3 0 1 0 2 0V13a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.2a3 3 0 1 0 2 0V13a3 3 0 0 0-3-3h-4V7.8A3 3 0 0 0 12 2Z"/></svg>
+        <span>词根</span>
       </button>
-    </footer>
+      <button class="tab" data-view="search" type="button" aria-label="查词">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M10 2a8 8 0 1 0 4.9 14.3l5 5 1.4-1.4-5-5A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></svg>
+        <span>查词</span>
+      </button>
+      <button class="tab" data-view="stats" type="button" aria-label="统计">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 20h16v2H4v-2Zm2-8h3v7H6v-7Zm5-6h3v13h-3V6Zm5 3h3v10h-3V9Z"/></svg>
+        <span>统计</span>
+      </button>
+      <button class="tab" data-view="books" type="button" aria-label="词书">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 4h7a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H4V4Zm16 0h-7a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5H20V4Z"/></svg>
+        <span>词书</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+
+  <div class="sheet" id="family-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title" id="family-title">词根家族</h2><p class="sheet-sub" id="family-meta"></p></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body" id="family-words"></div>
+    <div class="sheet-foot"><button class="btn-primary" id="family-add-all" type="button">整族加入学习</button></div>
+  </div>
+
+  <div class="sheet" id="word-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title" id="word-sheet-title">单词</h2><p class="sheet-sub" id="word-sheet-sub"></p></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body" id="word-sheet-body"></div>
+    <div class="sheet-foot">
+      <button class="btn-ghost" id="word-fav-toggle" type="button">☆ 收藏</button>
+      <button class="btn-primary" id="word-study-btn" type="button">学习这个词</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="affix-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title" id="affix-title">词缀</h2><p class="sheet-sub" id="affix-meta"></p></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body" id="affix-body"></div>
+  </div>
+
+  <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title">设置</h2></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <section class="set-group">
+        <h4>每日计划</h4>
+        <label class="field"><span>每日新词</span><input type="number" id="set-new" min="0" max="200" step="5" /></label>
+        <label class="field"><span>复习上限（0=不限）</span><input type="number" id="set-review" min="0" max="500" step="10" /></label>
+      </section>
+      <section class="set-group">
+        <h4>发音</h4>
+        <label class="field"><span>语速 <b id="set-rate-val">1.0</b></span><input type="range" id="set-rate" min="0.5" max="1.5" step="0.1" /></label>
+        <label class="field"><span>语言</span>
+          <select id="set-lang"><option value="">自动</option><option value="en-US">英语 (美)</option><option value="en-GB">英语 (英)</option><option value="zh-CN">中文</option></select>
+        </label>
+        <button class="btn-ghost" id="set-test-speak" type="button">试听 hello</button>
+      </section>
+      <section class="set-group">
+        <h4>学习卡片</h4>
+        <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
+      </section>
+      <section class="set-group">
+        <h4>数据</h4>
+        <button class="btn-ghost danger" id="reset-progress" type="button">重置学习进度</button>
+        <p class="field-hint" id="about-info">Glance · 词根背单词</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>正在加载词库…</p>
   </div>
 
   <script src="js/platform.js"></script>
+  <script src="js/srs.js"></script>
+  <script src="js/store.js"></script>
   <script src="js/library.js"></script>
   <script src="js/app.js"></script>
 </body>

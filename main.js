@@ -379,6 +379,23 @@ ipcMain.handle('get-userData-path', () => app.getPath('userData'));
 ipcMain.handle('get-bundled-library', () =>
   fs.readFileSync(path.join(__dirname, 'app', 'data', 'cet6.json'), 'utf-8'));
 
+// 学习主窗口：索引化数据集（考纲/词根家族/词条详情/词缀）
+ipcMain.handle('get-dataset', () => {
+  const dir = path.join(__dirname, 'app', 'data');
+  const read = name => {
+    try { return JSON.parse(fs.readFileSync(path.join(dir, name), 'utf-8')); }
+    catch { return null; }
+  };
+  return {
+    meta: read('meta.json'),
+    exams: read('exams.json'),
+    roots: read('roots.json'),
+    roottrees: read('roottrees.json'),
+    words: read('words.json'),
+    affixes: read('affixes.json')
+  };
+});
+
 // 提供自动加载用的路径
 ipcMain.handle('get-default-words-path', () => {
   const p = path.join(app.getPath('userData'), seedName);
