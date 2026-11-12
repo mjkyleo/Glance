@@ -267,11 +267,10 @@ setInterval(checkHoverState, 300);
       const lc = bcp47.toLowerCase();
       const exact = voices.find(v => v.lang && v.lang.toLowerCase() === lc);
       if (exact) return exact;
-       console.log(lc);
-       if (lc.startsWith('zh')) {
-        v = voices.find(v => v.name && v.name.toLowerCase().includes('chinese (simplified'));
-    if (v) return v;
-  }
+      if (lc.startsWith('zh')) {
+        const v = voices.find(v => v.name && v.name.toLowerCase().includes('chinese (simplified'));
+        if (v) return v;
+      }
 
       const pre = lc.split('-')[0];
       const loose = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(pre));
@@ -289,7 +288,6 @@ setInterval(checkHoverState, 300);
 
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang2;
-    console.log(u.lang);
     const v = pickVoice(u.lang);
     if (v) u.voice = v;
     u.rate = rate; u.pitch = pitch; u.volume = volume;
@@ -309,33 +307,4 @@ setInterval(checkHoverState, 300);
 
     return { speak, stop, isSpeaking };
   })();
-
-  // ===== 语言检测（简单规则 + 兜底） =====
-  function detectByScript(text){
-    if (/[\u3040-\u30ff]/.test(text)) return 'ja-JP';        // 平假名/片假名
-    if (/[\u4e00-\u9fff]/.test(text)) return 'zh';          // 汉字 → 按中文处理
-    if (/[А-Яа-яЁё]/.test(text)) return 'ru-RU';             // 西里尔字母
-    if (/[א-ת]/.test(text)) return 'he-IL';                  // 希伯来文
-    if (/[أ-ي]/.test(text)) return 'ar-SA';                  // 阿拉伯文
-    if (/[ก-๙]/.test(text)) return 'th-TH';                  // 泰文
-    if (/[ह-ॿ]/.test(text)) return 'hi-IN';                  // 天城文（印地语等）
-    return null; // 拉丁字母等
-  }
-
-  // 取设置里的 TTS 默认值（没有就兜底）
-  function getTtsConfig() {
-    // 设置窗口没存 ttsLang / ttsRate 时只用兜底值
-    try { return JSON.parse(localStorage.getItem('myvocab.tts') || '{}'); }
-    catch { return {}; }
-  }
-
-  function guessSpeakLang(text) {
-    // 1) 能按文字系统确定就用它
-    const byScript = detectByScript(text);
-    if (byScript) return byScript;
-
-    // 2) 拉丁字母：按设置里的默认朗读语言（没有就用 en-US）
-    const cfg = getTtsConfig();
-    return cfg.ttsLang || 'en-US';
-  }
 });

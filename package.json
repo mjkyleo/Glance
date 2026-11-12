@@ -27,8 +27,7 @@
     ],
     "win": {
       "target": [
-        "nsis",
-        "appx"
+        "nsis"
       ],
       "icon": "assets/icons/app-icon.ico",
       "artifactName": "glance-setup-${version}.${ext}"
@@ -38,13 +37,6 @@
       "hardenedRuntime": true,
       "icon": "assets/icons/app-icon.icns",
       "artifactName": "glance-setup-${version}.${ext}"
-    },
-    "appx": {
-      "displayName": "Glance",
-      "publisherDisplayName": "whiw",
-      "identityName": "whiw.MyVocabulary",
-      "publisher": "CN=4175687F-AEEF-4269-BC40-B06FFFB51FD0",
-      "backgroundColor": "#ffffff"
     }
   },
   "keywords": [],

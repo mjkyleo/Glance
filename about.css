@@ -23,12 +23,6 @@ h1 {
     color: #111;
 }
 
-.author {
-    margin: 5px 0 0;
-    color: #555;
-    font-style: italic;
-}
-
 .section {
     margin-bottom: 20px;
 }
@@ -41,34 +35,6 @@ h1 {
 
 ol {
     padding-left: 20px;
-}
-
-.support-section {
-    text-align: center;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-}
-
-.support-buttons button {
-    background-color: #0070ba;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    margin: 5px;
-    transition: background-color 0.2s;
-}
-
-.support-buttons button#patreon-btn {
-    background-color: #f96854;
-}
-
-.support-buttons button:hover {
-    opacity: 0.9;
 }
 
 .win-close{

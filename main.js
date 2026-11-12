@@ -6,16 +6,6 @@ const { spawn } = require('child_process');
 const { globalShortcut } = require('electron');
 
 
-const isWindowsStore = !!process.windowsStore;   // Microsoft Store 安装版为 true
-const isMas         = process.mas === true;      // Mac App Store 构建为 true
-const isStoreBuild  = isWindowsStore || isMas;   // 商店渠道统一标记
-
-if (isStoreBuild) {
-
-
-}
-else {
-
 autoUpdater.on("checking-for-update", () => console.log("Checking for update..."));
 autoUpdater.on("update-available", (info) => console.log("Update available:", info));
 autoUpdater.on("update-not-available", (info) => console.log("No update available:", info));
@@ -53,12 +43,6 @@ autoUpdater.on('update-downloaded', (info) => {
     autoUpdater.quitAndInstall();
   }
 });
-
-
-}
-
-
-
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
