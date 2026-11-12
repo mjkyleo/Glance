@@ -66,6 +66,7 @@ function loadSettings() {
     autoSpeak: false,
     ttsRate: 1.0,
     ttsLang: '',
+    bgOpacity: 0.9,
     lastFilePath: null
   };
 }

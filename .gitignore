@@ -12,3 +12,7 @@ settings.json
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Scratch / logs
+.scratch/
+debug.log

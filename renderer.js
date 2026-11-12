@@ -84,6 +84,7 @@ async function initialize() {
     document.body.style.setProperty('--word-color', settings.wordColor || '#61afef');
     document.body.style.setProperty('--font-color', settings.fontColor || '#abb2bf');
     document.body.style.setProperty('--example-color', settings.exampleColor || '#c8ccd4');
+    document.body.style.setProperty('--bg-alpha', String(settings.bgOpacity ?? 0.9));
     resetTimer(); // 重置计时器
   }
 
@@ -291,10 +292,14 @@ async function initialize() {
   quizButton.addEventListener('click', toggleQuiz);
   wordArea.addEventListener('click', revealMeaning);
 
-  // Hide/Show: 只保留 单词/释义/Show
-  modeButton.addEventListener('click', () => {
+  // Hide/Show: 隐藏后只剩文字；双击或按 H 恢复
+  function toggleHide() {
     const isHidden = document.body.classList.toggle('ui-hidden');
     modeButton.textContent = isHidden ? 'Show' : 'Hide';
+  }
+  modeButton.addEventListener('click', toggleHide);
+  document.body.addEventListener('dblclick', () => {
+    if (document.body.classList.contains('ui-hidden')) toggleHide();
   });
 
   editButton.addEventListener('click', () => {
@@ -317,7 +322,7 @@ async function initialize() {
       case 'l': case 'L': markCurrentLearned(); break;
       case 'q': case 'Q': toggleQuiz(); break;
       case 'x': case 'X': toggleShuffle(); break;
-      case 'h': case 'H': modeButton.click(); break;
+      case 'h': case 'H': toggleHide(); break;
     }
   });
 

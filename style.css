@@ -5,9 +5,10 @@ body {
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --example-color: #c8ccd4;
   --accent: #61afef;
+  --bg-alpha: 0.9;
 
   font-family: var(--font-family);
-  background-color: rgba(40, 44, 52, 0.9);
+  background-color: rgba(40, 44, 52, var(--bg-alpha));
   backdrop-filter: blur(6px);
   color: var(--font-color);
   margin: 0;
@@ -202,11 +203,14 @@ body {
   transition: width .3s ease;
 }
 
-/* === Hide 模式: 只保留 单词/释义/Show === */
+/* === Hide 模式: 只保留文字；透明度调高即纯文字悬浮 === */
+.ui-hidden {
+  backdrop-filter: none;
+}
 .ui-hidden .top-controls,
 .ui-hidden .nav-button,
-.ui-hidden .learned-control,
+.ui-hidden .controls-bottom,
 .ui-hidden .progress-bar,
-.ui-hidden .buttons-right .control-button:not(#mode-button) {
+.ui-hidden .buttons-right .control-button {
   display: none !important;
 }

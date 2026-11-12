@@ -29,6 +29,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   const wordColorInput  = document.getElementById('word-color-input');
   const fontColorInput  = document.getElementById('font-color-input');
   const exampleColorInput = document.getElementById('example-color-input');
+  const bgOpacityInput  = document.getElementById('bg-opacity');
+  const bgOpacityValue  = document.getElementById('bg-opacity-value');
   const timerInput      = document.getElementById('timer-input');
   const autoSpeakInput  = document.getElementById('auto-speak');
   const ttsRateInput    = document.getElementById('tts-rate');
@@ -56,6 +58,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       wordColor: 'Word Color',
       fontColor: 'Meaning Color',
       exampleColor: 'Example Color',
+      bgOpacity: 'Background Opacity',
       timer: 'Word Interval (seconds)',
       autoSpeak: 'Auto Speak',
       speechRate: 'Speech Rate',
@@ -78,6 +81,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       wordColor: '单词颜色',
       fontColor: '释义颜色',
       exampleColor: '例句颜色',
+      bgOpacity: '背景不透明度',
       timer: '切换间隔(秒)',
       autoSpeak: '自动朗读',
       speechRate: '朗读语速',
@@ -126,6 +130,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     labelWordColor.textContent  = tr.wordColor;
     labelFontColor.textContent  = tr.fontColor;
     labelExampleColor.textContent = tr.exampleColor;
+    document.getElementById('bg-opacity-label').textContent = tr.bgOpacity;
     labelTimer.textContent      = tr.timer;
     document.querySelector('label[for="auto-speak"]').textContent = tr.autoSpeak;
     document.getElementById('tts-rate-label').textContent = tr.speechRate;
@@ -150,6 +155,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   wordColorInput.value  = settings.wordColor || '#61afef';
   fontColorInput.value  = settings.fontColor || '#abb2bf';
   exampleColorInput.value = settings.exampleColor || '#c8ccd4';
+  bgOpacityInput.value  = Math.round((settings.bgOpacity ?? 0.9) * 100);
+  bgOpacityValue.textContent = `${bgOpacityInput.value}%`;
   timerInput.value      = Number(settings.timerSeconds ?? 10);
   autoSpeakInput.checked = !!settings.autoSpeak;
   ttsRateInput.value    = Number(settings.ttsRate ?? 1.0);
@@ -200,6 +207,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       wordColor: wordColorInput.value,
       fontColor: fontColorInput.value,
       exampleColor: exampleColorInput.value,
+      bgOpacity: Number(bgOpacityInput.value) / 100,
       timerSeconds: parseInt(timerInput.value, 10),
       autoSpeak: autoSpeakInput.checked,
       ttsRate: Number(ttsRateInput.value),
@@ -312,6 +320,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   // ▼ 语速滑块实时更新数值
   ttsRateInput?.addEventListener('input', () => {
     ttsRateValue.textContent = `${Number(ttsRateInput.value).toFixed(1)}×`;
+  });
+
+  // ▼ 背景不透明度滑块实时更新数值
+  bgOpacityInput?.addEventListener('input', () => {
+    bgOpacityValue.textContent = `${bgOpacityInput.value}%`;
   });
 
   // ▼ Chromium 语音列表加载完成事件
