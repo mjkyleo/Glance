@@ -255,6 +255,7 @@ input, select { font-family: inherit; }
 .panel-head h3 { font-size: 15px; font-weight: 700; }
 .panel-sub { font-size: 12px; color: var(--text-3); }
 .field-hint { font-size: 12px; color: var(--text-3); margin: 0; line-height: 1.5; }
+.fsrs-note { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 
 /* ---------- list rows ---------- */
 .row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: var(--r-sm); box-shadow: var(--shadow-card); padding: 13px 15px; cursor: pointer; transition: transform .12s ease, background .16s ease; border: none; width: 100%; text-align: left; color: inherit; }
@@ -326,6 +327,7 @@ input, select { font-family: inherit; }
 .active-book .ab-nums { display: flex; justify-content: space-between; font-size: 12px; margin-top: 7px; opacity: 0.9; font-variant-numeric: tabular-nums; }
 .plan-fields { display: flex; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; font-size: 13px; color: var(--text-2); }
+.field[hidden] { display: none; }
 .field span { font-weight: 500; }
 .field input, .field select { height: 42px; border: none; border-radius: 11px; background: var(--fill); color: var(--text); padding: 0 12px; font-size: 15px; outline: none; width: 100%; }
 .field input[type="range"] { padding: 0; height: 30px; background: none; accent-color: var(--accent); }
@@ -431,3 +433,36 @@ input, select { font-family: inherit; }
 .day-words { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 12px; }
 .btn-ghost.active { background: var(--accent); color: var(--accent-fg); }
 button:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------- AI explanations ---------- */
+.ai-section { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow-card); padding: 15px 16px 16px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--hairline); }
+.ai-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ai-section-title { font-size: 15px; font-weight: 700; color: var(--purple); }
+.ai-section-meta { font-size: 11px; color: var(--text-3); }
+.ai-section-body { display: flex; flex-direction: column; gap: 12px; }
+.ai-placeholder { font-size: 13px; color: var(--text-3); line-height: 1.6; margin: 0; }
+.ai-error { font-size: 13px; color: var(--red-fg); line-height: 1.6; margin: 0; }
+.ai-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ai-actions .btn-primary, .ai-actions .btn-ghost { height: 40px; }
+.ai-block { display: flex; flex-direction: column; gap: 6px; }
+.ai-block-title { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
+.ai-text { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0; }
+.ai-meanings { display: flex; flex-direction: column; gap: 6px; }
+.ai-meaning { display: flex; gap: 8px; align-items: baseline; font-size: 14px; line-height: 1.5; }
+.ai-pos { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--purple); font-style: italic; }
+.ai-meaning-text { color: var(--text); }
+.ai-morphemes { display: flex; flex-direction: column; gap: 6px; }
+.ai-morph { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
+.ai-morph-part { font-weight: 700; color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.ai-morph-type { flex: 0 0 auto; font-size: 11px; color: var(--accent-fg); background: var(--accent); padding: 1px 7px; border-radius: 999px; }
+.ai-morph-gloss { color: var(--text-2); }
+.ai-examples { display: flex; flex-direction: column; gap: 8px; }
+.ai-example { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; border-left: 2px solid var(--fill-2); }
+.ai-ex-en { font-size: 14px; color: var(--text); line-height: 1.5; }
+.ai-ex-zh { font-size: 13px; color: var(--text-3); line-height: 1.5; }
+.ai-confusion { display: flex; flex-direction: column; gap: 6px; }
+.ai-conf { display: flex; gap: 8px; align-items: baseline; font-size: 13px; line-height: 1.5; }
+.ai-conf-word { flex: 0 0 auto; font-weight: 700; color: var(--orange); }
+.ai-conf-text { color: var(--text-2); }
+#ai-list { display: flex; flex-direction: column; gap: 8px; }
+#ai-scroll { gap: 12px; }

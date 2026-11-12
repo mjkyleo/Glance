@@ -157,6 +157,10 @@
       <div class="scroll" id="stats-scroll">
         <div class="stat-grid" id="stats-today"></div>
         <section class="panel">
+          <div class="panel-head"><h3>记忆模型</h3><span class="panel-sub">FSRS 自适应</span></div>
+          <div class="fsrs-note" id="fsrs-note"></div>
+        </section>
+        <section class="panel">
           <div class="panel-head"><h3>打卡日历</h3><span class="streak-pill" id="stats-streak">连续 0 天</span></div>
           <div class="calendar" id="calendar"></div>
         </section>
@@ -205,6 +209,20 @@
           <div class="panel-head"><h3>自定义词书</h3></div>
           <div id="custom-books-list"></div>
         </section>
+      </div>
+    </main>
+
+    <main class="view" id="view-ai" hidden>
+      <div class="books-top">
+        <button class="icon-btn" id="ai-back" type="button" title="返回" aria-label="返回">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.4 5.6 9 12l6.4 6.4 1.4-1.4-5-5 5-5z"/></svg>
+        </button>
+        <span class="books-title">AI 解释库</span>
+        <button class="link-btn" id="ai-export" type="button">导出全部</button>
+      </div>
+      <div class="scroll" id="ai-scroll">
+        <p class="field-hint" id="ai-lib-hint">在单词详情中点「AI 详解」生成的讲解会保存在这里，可离线查看、导出。</p>
+        <div id="ai-list"></div>
       </div>
     </main>
 
@@ -292,6 +310,19 @@
         <p class="field-hint">切换词库、调整每日计划都在这里。</p>
       </section>
       <section class="set-group">
+        <h4>AI 解释</h4>
+        <div class="set-row">
+          <span class="set-row-label">启用 AI 详解<small>在单词详情中按需生成讲解，结果保存在本地</small></span>
+          <label class="switch"><input type="checkbox" id="set-ai-enabled" /><span class="slider"></span></label>
+        </div>
+        <label class="field"><span>服务商</span><select id="set-ai-provider"></select></label>
+        <label class="field"><span>模型<small id="set-ai-model-hint">留空使用默认模型</small></span><input type="text" id="set-ai-model" placeholder="默认模型" autocomplete="off" /></label>
+        <label class="field" id="set-ai-base-wrap" hidden><span>API 地址</span><input type="text" id="set-ai-base" placeholder="https://…/v1" autocomplete="off" /></label>
+        <label class="field"><span>API Key</span><input type="password" id="set-ai-key" placeholder="仅保存在本机" autocomplete="off" /></label>
+        <button class="btn-ghost" id="set-ai-library" type="button">AI 解释库 / 导出</button>
+        <p class="field-hint">支持 OpenAI、Anthropic 及主流国产大模型；Key 只存本地，不上传。</p>
+      </section>
+      <section class="set-group">
         <h4>学习卡片</h4>
         <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
       </section>
@@ -312,6 +343,7 @@
   <script src="js/srs.js"></script>
   <script src="js/store.js"></script>
   <script src="js/library.js"></script>
+  <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

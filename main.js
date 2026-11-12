@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, net } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
@@ -400,4 +400,40 @@ ipcMain.handle('get-dataset', () => {
 ipcMain.handle('get-default-words-path', () => {
   const p = path.join(app.getPath('userData'), seedName);
   return fs.existsSync(p) ? p : null;
+});
+
+// AI 单词解释：主进程发起 HTTP（绕过浏览器 CORS），统一 OpenAI 兼容 /chat/completions。
+ipcMain.handle('llm-chat', async (_e, args) => {
+  const { base, key, model, messages, temperature, jsonMode, anthropic } = args || {};
+  if (!base || !key || !model) return { ok: false, error: '缺少 API 配置（服务商 / Key / 模型）' };
+  const url = String(base).replace(/\/+$/, '') + '/chat/completions';
+  const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
+  if (anthropic) headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
+  if (jsonMode) body.response_format = { type: 'json_object' };
+  try {
+    const res = await net.fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const text = await res.text();
+    if (!res.ok) return { ok: false, error: 'HTTP ' + res.status + '：' + text.slice(0, 300) };
+    let data;
+    try { data = JSON.parse(text); } catch { return { ok: false, error: '返回内容不是有效 JSON' }; }
+    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (typeof content !== 'string') return { ok: false, error: '响应中没有解释内容' };
+    return { ok: true, content };
+  } catch (err) {
+    return { ok: false, error: String((err && err.message) || err) };
+  }
+});
+
+// 导出文本文件（AI 解释等）：弹出保存对话框并写入。
+ipcMain.handle('save-text-file', async (_e, args) => {
+  const { name, text } = args || {};
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: '导出 / Export',
+    defaultPath: path.join(app.getPath('documents'), name || 'glance-export.json'),
+    filters: [{ name: 'JSON', extensions: ['json'] }, { name: 'All Files', extensions: ['*'] }]
+  });
+  if (canceled || !filePath) return false;
+  try { fs.writeFileSync(filePath, text, 'utf-8'); return true; }
+  catch (err) { console.error('Failed to save export:', err); return false; }
 });

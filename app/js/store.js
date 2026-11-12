@@ -14,7 +14,10 @@
     autoSpeak: false,
     preferAudio: true,
     ttsRate: 1,
-    ttsLang: ''
+    ttsLang: '',
+    fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
+    ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
+    aiCache: {}
   };
 
   let data = null;
@@ -33,6 +36,10 @@
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
     if (!Array.isArray(d.history)) d.history = [];
     if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
+    if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
+    if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
+    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
+    if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     return d;
   }
 
@@ -60,12 +67,15 @@
     return l;
   }
 
-  // Grade a word: advance SRS state + record daily activity. Returns the new state.
+  // Grade a word: advance FSRS state + record daily activity + feed personalization.
   function recordGrade(word, kind, grade, ms) {
     const now = Date.now();
     const prev = data.srs[word];
-    const next = SRS.review(prev, grade, now);
+    const w = data.fsrs.w || SRS.DEFAULT_W;
+    const elapsed = prev && prev.last ? (now - prev.last) / SRS.DAY : 0;
+    const next = SRS.review(prev, grade, now, w);
     data.srs[word] = next;
+    logReview(word, elapsed, SRS.G[grade] || 3);
     const log = getLog();
     if (grade === SRS.GRADE.KNOW) log.know++;
     else if (grade === SRS.GRADE.FUZZY) log.fuzzy++;
@@ -75,6 +85,26 @@
     if (ms && ms > 0 && ms < 600000) log.ms += ms;
     save();
     return next;
+  }
+
+  // Append to the per-word review sequence used to personalize FSRS weights.
+  function logReview(word, elapsedDays, g) {
+    const f = data.fsrs;
+    const seq = f.seqs[word] || (f.seqs[word] = []);
+    seq.push({ t: Math.max(0, elapsedDays), g });
+    if (seq.length > 30) seq.splice(0, seq.length - 30);
+    f.count++;
+    // Trim oldest words once the corpus grows large, to bound memory + optimize cost.
+    const keys = Object.keys(f.seqs);
+    if (keys.length > 1000) { for (let i = 0; i < keys.length - 1000; i++) delete f.seqs[keys[i]]; }
+    if (f.count - f.lastOpt >= 200) {
+      f.lastOpt = f.count;
+      const snapshot = JSON.parse(JSON.stringify(f.seqs));
+      const baseW = f.w || SRS.DEFAULT_W;
+      setTimeout(() => {
+        try { data.fsrs.w = SRS.optimize(snapshot, baseW); save(); } catch (e) { /* keep current weights */ }
+      }, 0);
+    }
   }
 
   function planProgress() {
@@ -169,10 +199,18 @@
     return Object.keys(data.errors).sort((a, b) => data.errors[b].last - data.errors[a].last);
   }
 
+  // AI explanations (config + local cache)
+  function setAiConfig(patch) { Object.assign(data.ai, patch || {}); save(); }
+  function aiExplanation(word) { return data.aiCache[word] || null; }
+  function saveAiExplanation(word, record) { data.aiCache[word] = record; save(); }
+  function deleteAiExplanation(word) { delete data.aiCache[word]; save(); }
+  function aiWords() { return Object.keys(data.aiCache).sort((a, b) => (data.aiCache[b].ts || 0) - (data.aiCache[a].ts || 0)); }
+
   window.Store = {
     load, save, flush, get data() { return data; },
     today, dateKey, getLog, recordGrade, planProgress, streak, mastery, trend,
     isFavorite, addFavorite, removeFavorite, favoriteWords, addFavGroup,
-    addHistory, clearHistory, addError, clearError, errorWords
+    addHistory, clearHistory, addError, clearError, errorWords,
+    setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords
   };
 })();

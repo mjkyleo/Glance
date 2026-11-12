@@ -136,6 +136,61 @@
       });
     },
 
-    openOverlay() { if (isElectron) ipc.send('open-overlay-window'); }
+    openOverlay() { if (isElectron) ipc.send('open-overlay-window'); },
+
+    // Unified OpenAI-compatible chat call. Routes around browser CORS per platform.
+    // args: { base, key, model, messages, temperature, jsonMode, anthropic }
+    // resolves { ok, content } or { ok:false, error }.
+    async llmChat(args) {
+      const { base, key, model, messages, temperature, jsonMode, anthropic } = args || {};
+      if (!base || !key || !model) return { ok: false, error: '缺少 API 配置（服务商 / Key / 模型）' };
+      if (isElectron) return ipc.invoke('llm-chat', args);
+      const url = String(base).replace(/\/+$/, '') + '/chat/completions';
+      const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
+      if (anthropic) headers['anthropic-dangerous-direct-browser-access'] = 'true';
+      const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
+      if (jsonMode) body.response_format = { type: 'json_object' };
+      const http = isNative && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+      try {
+        let status, text;
+        if (http) {
+          const r = await http.post({ url, headers, data: body, connectTimeout: 60000, readTimeout: 60000 });
+          status = r.status; text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+        } else {
+          const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+          status = res.status; text = await res.text();
+        }
+        if (status < 200 || status >= 300) return { ok: false, error: 'HTTP ' + status + '：' + String(text).slice(0, 300) };
+        let data;
+        try { data = typeof text === 'string' ? JSON.parse(text) : text; } catch { return { ok: false, error: '返回内容不是有效 JSON' }; }
+        const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (typeof content !== 'string') return { ok: false, error: '响应中没有解释内容' };
+        return { ok: true, content };
+      } catch (err) {
+        return { ok: false, error: String((err && err.message) || err) };
+      }
+    },
+
+    // Save a text file: Electron save dialog, Android filesystem+share, browser download.
+    async saveTextFile(name, text) {
+      if (isElectron) return ipc.invoke('save-text-file', { name, text });
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.Filesystem && P.Share) {
+        try {
+          const w = await P.Filesystem.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+          await P.Share.share({ title: name, url: w.uri, dialogTitle: '导出 AI 解释' });
+          return true;
+        } catch (e) { /* fall through to browser download */ }
+      }
+      try {
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        return true;
+      } catch (e) { return false; }
+    }
   };
 })();

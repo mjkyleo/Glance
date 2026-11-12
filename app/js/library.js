@@ -8,6 +8,17 @@
   const FB_PREFIX = ['counter', 'contra', 'circum', 'infra', 'inter', 'intra', 'intro', 'trans', 'super', 'under', 'over', 'semi', 'micro', 'macro', 'multi', 'mono', 'hyper', 'hypo', 'retro', 'extra', 'fore', 'anti', 'auto', 'peri', 'para', 'syn', 'sym', 'epi', 'dia', 'meta', 'neo', 'proto', 'pseudo', 'uni', 'sub', 'suc', 'suf', 'sug', 'sup', 'sur', 'sus', 'mis', 'out', 'un', 're', 'in', 'im', 'il', 'ir', 'dis', 'de', 'pre', 'pro', 'con', 'com', 'col', 'cor', 'co', 'ex', 'ef', 'en', 'em', 'e', 'ab', 'abs', 'ad', 'ac', 'af', 'ag', 'ap', 'ar', 'as', 'at', 'ob', 'oc', 'of', 'op', 'os', 'be', 'bene', 'mal', 'mid', 'mini', 'non', 'pan', 'poly', 'post', 'up', 'with', 'by', 'a', 'an', 'bi', 'tri'].sort((a, b) => b.length - a.length);
   const FB_SUFFIX = ['ation', 'ition', 'tion', 'sion', 'ion', 'ment', 'ness', 'able', 'ible', 'ical', 'ial', 'al', 'ive', 'ous', 'ious', 'eous', 'ful', 'less', 'ly', 'er', 'or', 'ist', 'ity', 'ty', 'ance', 'ence', 'ant', 'ent', 'ary', 'ory', 'ure', 'age', 'dom', 'hood', 'ship', 'en', 'ify', 'ise', 'ize', 'ate', 'ism', 'ics', 'ess', 'ette', 'let', 'ling'].sort((a, b) => b.length - a.length);
 
+  // Quality filter: higher-level books drop elementary words everyone already knows.
+  // CEFR rank; unknown (0) is always kept since difficulty can't be judged.
+  const CEFR_RANK = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+  const BOOK_MIN_RANK = { '中考': 0, '高考': 2, '四级': 3, '六级': 3, '考研': 3, '专四': 3, '专八': 3, '托福': 3, '雅思': 3, 'GRE': 3 };
+  function passesQuality(cefr, tag) {
+    const min = BOOK_MIN_RANK[tag] || 0;
+    if (!min) return true;
+    const r = CEFR_RANK[cefr] || 0;
+    return r === 0 || r >= min;
+  }
+
   function uniq(a) { return Array.from(new Set((a || []).filter(Boolean))); }
   function asList(v) {
     if (!v) return [];
@@ -87,20 +98,30 @@
     for (const g of ex.groups || []) {
       const ge = { root: g.root, rootZh: g.rootZh, rootEn: g.rootEn, familySize: g.familySize, words: [] };
       for (const w of g.words || []) {
+        if (!passesQuality(w[2], tag)) continue;
         const e = enrich(w[0], w[1], w[2], w[3], g.root, g.rootZh, g.rootEn, g.familySize);
         entries.push(e); ge.words.push(e);
       }
-      groups.push(ge);
+      if (ge.words.length) groups.push(ge);
     }
-    for (const w of ex.loose || []) entries.push(enrich(w[0], w[1], w[2], w[3], '', '', '', 0));
-    const book = { tag, name: tag + '词库', n: ex.n || entries.length, entries, groups };
+    for (const w of ex.loose || []) {
+      if (!passesQuality(w[2], tag)) continue;
+      entries.push(enrich(w[0], w[1], w[2], w[3], '', '', '', 0));
+    }
+    const book = { tag, name: tag + '词库', n: entries.length, entries, groups };
     books[tag] = book;
     return book;
   }
 
   function listBooks() {
     const tags = (DS.meta && DS.meta.exams) || Object.keys(DS.exams || {});
-    return tags.map(t => ({ tag: t, name: t + '词库', n: ((DS.exams || {})[t] || {}).n || 0 }));
+    return tags.map(t => {
+      const ex = (DS.exams || {})[t] || {};
+      let n = 0;
+      for (const g of ex.groups || []) for (const w of g.words || []) if (passesQuality(w[2], t)) n++;
+      for (const w of ex.loose || []) if (passesQuality(w[2], t)) n++;
+      return { tag: t, name: t + '词库', n };
+    });
   }
 
   function getFamily(root) {
