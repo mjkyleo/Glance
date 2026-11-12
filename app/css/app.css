@@ -1,31 +1,31 @@
 /* Glance — soft, calm design system. Muted pastel palette, light + dark. */
 :root {
-  --bg: #f6f5f1;
-  --card: #fffefb;
-  --elevated: #fffefb;
-  --text: #2e2e39;
-  --text-2: #4a4a55;
-  --text-3: #9b9ba3;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --elevated: #ffffff;
+  --text: #262a33;
+  --text-2: #454b57;
+  --text-3: #8b93a3;
   --separator: rgba(60, 60, 67, 0.1);
   --hairline: rgba(0, 0, 0, 0.045);
   --fill: rgba(120, 120, 128, 0.1);
   --fill-2: rgba(120, 120, 128, 0.17);
-  --accent: #6f8fb5;
+  --accent: #6f9be6;
   --accent-fg: #ffffff;
-  --green: #7ba888;
-  --green-fg: #4c7a5c;
-  --purple: #9a86b8;
-  --orange: #d9a05b;
-  --orange-fg: #a06a2c;
-  --red: #c9705f;
-  --red-fg: #a44e3f;
+  --green: #6fb58c;
+  --green-fg: #3f8a5f;
+  --purple: #a08ad0;
+  --orange: #e6a95c;
+  --orange-fg: #b07a30;
+  --red: #e0806d;
+  --red-fg: #c05a48;
 
-  --root-bg: rgba(111, 143, 181, 0.12);
-  --root-fg: #56789e;
-  --prefix-bg: rgba(154, 134, 184, 0.12);
-  --prefix-fg: #7d689c;
-  --suffix-bg: rgba(123, 168, 136, 0.14);
-  --suffix-fg: #4c7a5c;
+  --root-bg: rgba(111, 155, 230, 0.14);
+  --root-fg: #4a7fc9;
+  --prefix-bg: rgba(160, 138, 208, 0.14);
+  --prefix-fg: #8a6cc0;
+  --suffix-bg: rgba(111, 181, 140, 0.16);
+  --suffix-fg: #3f8a5f;
 
   --shadow-card: 0 1px 2px rgba(60, 50, 30, 0.03), 0 6px 18px rgba(60, 50, 30, 0.045);
   --shadow-pop: 0 2px 8px rgba(60, 50, 30, 0.06), 0 12px 32px rgba(60, 50, 30, 0.08);
@@ -48,22 +48,22 @@
     --hairline: rgba(255, 255, 255, 0.06);
     --fill: rgba(120, 120, 128, 0.2);
     --fill-2: rgba(120, 120, 128, 0.3);
-    --accent: #8fb0d4;
+    --accent: #93b8f0;
     --accent-fg: #16181d;
-    --green: #8fbf9f;
-    --green-fg: #8fbf9f;
-    --purple: #b3a0d0;
-    --orange: #d9b07b;
-    --orange-fg: #d9b07b;
-    --red: #d48a7b;
-    --red-fg: #d48a7b;
+    --green: #8fd0a8;
+    --green-fg: #8fd0a8;
+    --purple: #bda6e6;
+    --orange: #e6b87f;
+    --orange-fg: #e6b87f;
+    --red: #e89a88;
+    --red-fg: #e89a88;
 
-    --root-bg: rgba(143, 176, 212, 0.16);
-    --root-fg: #a9c4e0;
-    --prefix-bg: rgba(179, 160, 208, 0.16);
-    --prefix-fg: #c5b3de;
-    --suffix-bg: rgba(143, 191, 159, 0.16);
-    --suffix-fg: #a3cbB0;
+    --root-bg: rgba(147, 184, 240, 0.18);
+    --root-fg: #aecbf2;
+    --prefix-bg: rgba(189, 166, 230, 0.18);
+    --prefix-fg: #cdb9ee;
+    --suffix-bg: rgba(143, 208, 168, 0.18);
+    --suffix-fg: #a8d8bc;
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25);
     --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.45);
@@ -187,9 +187,9 @@ input, select { font-family: inherit; }
 .grade-icon { width: 22px; height: 22px; display: block; }
 .grade-icon svg { width: 100%; height: 100%; display: block; }
 .grade-label { font-size: 13.5px; font-weight: 600; letter-spacing: 0.2px; }
-.grade-btn.forgot { background: rgba(201, 112, 95, 0.13); color: var(--red-fg); }
-.grade-btn.fuzzy { background: rgba(217, 160, 91, 0.15); color: var(--orange-fg); }
-.grade-btn.know { background: rgba(123, 168, 136, 0.16); color: var(--green-fg); }
+.grade-btn.forgot { background: rgba(224, 128, 109, 0.14); color: var(--red-fg); }
+.grade-btn.fuzzy { background: rgba(230, 169, 92, 0.16); color: var(--orange-fg); }
+.grade-btn.know { background: rgba(111, 181, 140, 0.18); color: var(--green-fg); }
 
 /* ---------- clean study page ---------- */
 /* hide global header while studying; a slim quiet top bar remains */
@@ -203,6 +203,30 @@ input, select { font-family: inherit; }
 /* inline primary meaning + expand affordance on the word card */
 .word-meaning { margin-top: 14px; font-size: 17px; line-height: 1.55; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .word-meaning:empty { display: none; }
+.word-mnemonic { margin-top: 12px; font-size: 13.5px; line-height: 1.5; color: var(--root-fg); background: var(--root-bg); border-radius: var(--r-sm); padding: 8px 12px; display: inline-block; max-width: 100%; }
+.word-mnemonic[hidden] { display: none; }
+.word-mnemonic.ai { color: var(--prefix-fg); background: var(--prefix-bg); }
+
+/* structured part-of-speech senses */
+.pos-group { padding: 9px 0; border-bottom: 1px solid var(--hairline); }
+.pos-group:first-child { padding-top: 0; }
+.pos-group:last-child { border-bottom: none; padding-bottom: 0; }
+.pos-tag { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.pos-zh { font-size: 12.5px; font-weight: 700; color: var(--accent); background: var(--root-bg); padding: 2px 9px; border-radius: 999px; }
+.pos-zh.domain { color: var(--orange-fg); background: rgba(230, 169, 92, 0.16); }
+.pos-abbr { font-size: 12px; font-style: italic; color: var(--text-3); font-weight: 600; }
+.pos-note { font-size: 11.5px; color: var(--text-3); }
+.pos-gloss { font-size: 16px; line-height: 1.55; color: var(--text); }
+
+/* mnemonic card */
+.mnemonic-body { display: flex; flex-direction: column; gap: 6px; background: var(--root-bg); border-radius: var(--r-sm); padding: 12px 14px; }
+.mnemonic-body.ai { background: var(--prefix-bg); }
+.mnemonic-hook { font-size: 15.5px; line-height: 1.6; color: var(--text); font-weight: 500; }
+.mnemonic-src { font-size: 11px; font-weight: 600; color: var(--prefix-fg); align-self: flex-start; }
+
+/* exam tags */
+.exam-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.exam-tag { font-size: 11.5px; font-weight: 600; color: var(--accent); background: var(--root-bg); padding: 3px 10px; border-radius: 999px; }
 .word-detail-btn { margin-top: 14px; display: inline-flex; align-items: center; gap: 6px; border: none; background: var(--fill); color: var(--text-3); font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: background .16s ease, color .16s ease; }
 .word-detail-btn:hover { background: var(--fill-2); color: var(--text-2); }
 .word-detail-btn svg { width: 14px; height: 14px; }

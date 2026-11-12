@@ -136,6 +136,10 @@
     else { badge.textContent = '复习'; badge.className = 'word-badge review'; }
     $('word-due').textContent = item.kind === 'new' ? '' : SRS.nextDueLabel(st, Date.now());
     renderMorphemes(e);
+    const mn = $('word-mnemonic');
+    const m = mnemonicText(e);
+    if (m) { mn.textContent = m.text; mn.hidden = false; mn.classList.toggle('ai', m.ai); }
+    else { mn.textContent = ''; mn.hidden = true; }
     $('word-meaning').textContent = e.meaning || e.zh || '';
     updatePlanBar();
     const panel = $('study-panel');
@@ -232,6 +236,34 @@
       const ul = el('ul');
       card.items.forEach(it => ul.appendChild(el('li', null, it)));
       container.appendChild(ul);
+    } else if (card.kind === 'senses') {
+      const groups = [], byKey = new Map();
+      card.senses.forEach(s => {
+        const info = s.pos ? Library.posInfo(s.pos) : null;
+        const key = info ? info.zh : (s.domain ? 'domain:' + s.domain : 'other');
+        if (!byKey.has(key)) { const g = { info, abbr: s.pos, domain: s.domain, glosses: [] }; byKey.set(key, g); groups.push(g); }
+        byKey.get(key).glosses.push(s.gloss);
+      });
+      groups.forEach(g => {
+        const row = el('div', 'pos-group');
+        const tag = el('div', 'pos-tag');
+        if (g.info) {
+          tag.appendChild(el('span', 'pos-zh', g.info.zh));
+          if (g.abbr) tag.appendChild(el('span', 'pos-abbr', g.abbr + '.'));
+          if (g.info.note) tag.appendChild(el('span', 'pos-note', g.info.note));
+        } else if (g.domain) {
+          tag.appendChild(el('span', 'pos-zh domain', '[' + g.domain + ']'));
+          tag.appendChild(el('span', 'pos-note', '领域义项'));
+        }
+        row.appendChild(tag);
+        row.appendChild(el('div', 'pos-gloss', g.glosses.join('；')));
+        container.appendChild(row);
+      });
+    } else if (card.kind === 'mnemonic') {
+      const box = el('div', 'mnemonic-body' + (card.ai ? ' ai' : ''));
+      box.appendChild(el('span', 'mnemonic-hook', card.text));
+      if (card.ai) box.appendChild(el('span', 'mnemonic-src', 'AI 巧记'));
+      container.appendChild(box);
     } else if (card.id === 'family' && interactive && card.root) {
       const a = el('a', 'card-link', card.text + '  →');
       a.addEventListener('click', () => openFamily(card.root));
@@ -240,11 +272,17 @@
       container.textContent = card.text;
     }
   }
+  function mnemonicText(e) {
+    const ai = Store.aiExplanation(e.word);
+    if (ai && ai.data && ai.data.memoryTip) return { text: ai.data.memoryTip, ai: true };
+    return e.mnemonic ? { text: e.mnemonic, ai: false } : null;
+  }
   function renderCards(e) {
     const cardsEl = $('cards');
     if (!cardsEl) return;
     cardsEl.innerHTML = '';
     orderedCards(e).forEach(card => {
+      if (card.id === 'mnemonic') { const m = mnemonicText(e); if (m) card = Object.assign({}, card, { text: m.text, ai: m.ai }); }
       const sec = el('section', 'card');
       sec.dataset.card = card.id;
       sec.draggable = true;
@@ -533,6 +571,11 @@
     $('word-sheet-sub').textContent = (e.phonetic ? '/' + e.phonetic + '/  ' : '') + (e.cefr || '') + (e.root ? '  ·  词根 ' + e.root : '');
     const body = $('word-sheet-body');
     body.innerHTML = '';
+    if (e.tags && e.tags.length) {
+      const tags = el('div', 'exam-tags');
+      e.tags.forEach(t => tags.appendChild(el('span', 'exam-tag', t)));
+      body.appendChild(tags);
+    }
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);

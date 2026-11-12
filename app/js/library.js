@@ -26,8 +26,12 @@
     return String(v).split(/[;；\n]/).map(s => s.trim()).filter(Boolean);
   }
 
+  // The raw affix index has a few wrong glosses (e.g. con- "cone"); override the common
+  // assimilated com- prefixes so decomposition and mnemonic stay correct.
+  const AFFIX_GLOSS_FIX = { con: '共同、一起', com: '共同、一起', col: '共同、一起', cor: '共同、一起', co: '共同、一起' };
   function affixGloss(raw, kind) {
     if (!raw) return '';
+    if (kind === 'prefix' && AFFIX_GLOSS_FIX[raw.toLowerCase()]) return AFFIX_GLOSS_FIX[raw.toLowerCase()];
     const cands = kind === 'prefix' ? [raw + '-', raw] : ['-' + raw, raw];
     for (const c of cands) { const hit = affixMap.get(c); if (hit) return hit.zh || hit.en || ''; }
     return '';
@@ -58,6 +62,65 @@
     return chips;
   }
 
+  // Part-of-speech labels: the dataset stores POS as abbreviations inside the zh string
+  // (e.g. "n. 行为 / vt. 指挥 / vi. 领导"). Surface them as explained, grouped senses.
+  const POS_LABEL = {
+    n: { zh: '名词', en: 'noun', note: '' },
+    v: { zh: '动词', en: 'verb', note: '' },
+    vt: { zh: '及物动词', en: 'transitive verb', note: '后接宾语' },
+    vi: { zh: '不及物动词', en: 'intransitive verb', note: '不直接接宾语' },
+    a: { zh: '形容词', en: 'adjective', note: '修饰名词' },
+    adj: { zh: '形容词', en: 'adjective', note: '修饰名词' },
+    ad: { zh: '副词', en: 'adverb', note: '修饰动词 / 形容词' },
+    adv: { zh: '副词', en: 'adverb', note: '修饰动词 / 形容词' },
+    prep: { zh: '介词', en: 'preposition', note: '' },
+    conj: { zh: '连词', en: 'conjunction', note: '' },
+    pron: { zh: '代词', en: 'pronoun', note: '' },
+    num: { zh: '数词', en: 'numeral', note: '' },
+    art: { zh: '冠词', en: 'article', note: '' },
+    int: { zh: '感叹词', en: 'interjection', note: '' },
+    interj: { zh: '感叹词', en: 'interjection', note: '' },
+    aux: { zh: '助动词', en: 'auxiliary verb', note: '' },
+    abbr: { zh: '缩写', en: 'abbreviation', note: '' }
+  };
+  function posInfo(abbr) {
+    const k = String(abbr || '').toLowerCase().replace(/\.$/, '');
+    return POS_LABEL[k] || null;
+  }
+  function parseSenses(zh) {
+    if (!zh) return [];
+    const out = [];
+    String(zh).split(/\s*\/\s*/).forEach(seg => {
+      seg = seg.trim();
+      if (!seg) return;
+      let pos = '', domain = '';
+      const pm = seg.match(/^([a-z]+)\.\s*/i);
+      if (pm && posInfo(pm[1])) { pos = pm[1].toLowerCase(); seg = seg.slice(pm[0].length).trim(); }
+      const dm = seg.match(/^\[([^\]]+)\]\s*/);
+      if (dm) { domain = dm[1]; seg = seg.slice(dm[0].length).trim(); }
+      if (!seg) return;
+      out.push({ pos, domain, gloss: seg });
+    });
+    return out;
+  }
+  function primaryGloss(e) {
+    const s = (e.senses && e.senses[0]) || null;
+    const raw = s ? s.gloss : (e.meaning || e.zh || '');
+    return raw.split(/[,，;；]/).slice(0, 2).map(x => x.trim()).filter(Boolean).join('、');
+  }
+  // Offline mnemonic hook: chain the morpheme glosses into the core meaning so the
+  // root story is visible without tapping. Only synthesize when at least two segment
+  // glosses support it — a single noisy root gloss can mislead (e.g. in- "not" vs "into").
+  // AI memoryTip (when cached) overrides this.
+  function cleanGloss(g) { return String(g || '').replace(/^[….\s]+/, '').split(/[；;]/)[0].replace(/[（）()]/g, '').trim(); }
+  function buildMnemonic(e) {
+    const core = primaryGloss(e);
+    if (!core) return '';
+    const parts = (e.morphemes || []).map(m => ({ g: cleanGloss(m.gloss), t: m.text })).filter(x => x.g).map(x => x.g + '（' + x.t + '）');
+    if (parts.length >= 2) return parts.join(' + ') + ' → ' + core;
+    return '';
+  }
+
   function enrich(word, meaning, cefr, phonetic, rootId, rootZh, rootEn, familySize) {
     const d = (DS.words || {})[word] || {};
     const root = rootId || d.root || '';
@@ -81,6 +144,8 @@
       collocations: asList(d.collocations)
     };
     e.morphemes = deriveMorphemes(e);
+    e.senses = parseSenses(e.zh);
+    e.mnemonic = buildMnemonic(e);
     return e;
   }
 
@@ -183,12 +248,14 @@
 
   function buildCards(entry) {
     const cards = [];
-    if (entry.meaning) cards.push({ id: 'meaning', title: '释义', kind: 'text', text: entry.meaning });
+    if (entry.senses && entry.senses.length) cards.push({ id: 'meaning', title: '释义', kind: 'senses', senses: entry.senses });
+    else if (entry.meaning) cards.push({ id: 'meaning', title: '释义', kind: 'text', text: entry.meaning });
+    if (entry.mnemonic) cards.push({ id: 'mnemonic', title: '助记', kind: 'mnemonic', text: entry.mnemonic });
     if (entry.morphemes && entry.morphemes.length) {
       const label = { prefix: '前缀', root: '词根', suffix: '后缀' };
       cards.push({ id: 'morphemes', title: '构词解析', kind: 'list', items: entry.morphemes.map(m => m.text + '（' + (label[m.type] || '词素') + '）' + (m.gloss ? '：' + m.gloss : '')) });
     }
-    if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => (d[0] ? d[0] + '. ' : '') + d[1]) });
+    if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => { const p = posInfo(d[0]); return (p ? p.zh + ' ' + d[0] + ' ' : (d[0] ? d[0] + '. ' : '')) + d[1]; }) });
     if (entry.rootFamily && entry.rootFamily.root) {
       const f = entry.rootFamily;
       cards.push({ id: 'family', title: '词根家族', kind: 'text', text: `${f.root} · ${f.rootZh || ''}${f.rootEn ? ' (' + f.rootEn + ')' : ''}`, root: f.root });
@@ -243,5 +310,5 @@
     return { name: name || 'library', entries: base.entries, custom: true };
   }
 
-  window.Library = { init, getBook, listBooks, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, parse };
+  window.Library = { init, getBook, listBooks, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse };
 })();

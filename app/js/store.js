@@ -10,7 +10,7 @@
     history: [],
     errors: {},
     customBooks: {},
-    cardOrder: ['meaning', 'morphemes', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections'],
+    cardOrder: ['meaning', 'mnemonic', 'morphemes', 'definitions', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections'],
     autoSpeak: false,
     preferAudio: true,
     ttsRate: 1,
@@ -36,6 +36,7 @@
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
     if (!Array.isArray(d.history)) d.history = [];
     if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
+    if (!d.cardOrder.includes('mnemonic')) { const i = d.cardOrder.indexOf('meaning'); d.cardOrder.splice(i < 0 ? 0 : i + 1, 0, 'mnemonic'); }
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
