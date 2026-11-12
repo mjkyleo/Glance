@@ -57,6 +57,24 @@ input[type="color"] {
     border-radius: 4px;
 }
 
+input[type="range"] {
+    width: 150px;
+    accent-color: #3498db;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3498db;
+    cursor: pointer;
+}
+
+.muted {
+    color: #888;
+    font-weight: normal;
+    font-size: 0.9em;
+}
+
 #learned-list-container {
     max-height: 200px;
     overflow-y: auto;

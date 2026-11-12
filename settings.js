@@ -30,6 +30,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   const fontColorInput  = document.getElementById('font-color-input');
   const exampleColorInput = document.getElementById('example-color-input');
   const timerInput      = document.getElementById('timer-input');
+  const autoSpeakInput  = document.getElementById('auto-speak');
+  const ttsRateInput    = document.getElementById('tts-rate');
+  const ttsRateValue    = document.getElementById('tts-rate-value');
   const ttslanguageSelect = document.getElementById('tts-lang');
   const voicesList       = document.getElementById('voices-list');
   const voicesNote       = document.getElementById('voices-note');
@@ -54,6 +57,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       fontColor: 'Meaning Color',
       exampleColor: 'Example Color',
       timer: 'Word Interval (seconds)',
+      autoSpeak: 'Auto Speak',
+      speechRate: 'Speech Rate',
       ttsLangLabel: 'TTS Language',
       voicesHdr: 'Available Voices',
       voicesRefresh: 'Refresh',
@@ -74,6 +79,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       fontColor: '释义颜色',
       exampleColor: '例句颜色',
       timer: '切换间隔(秒)',
+      autoSpeak: '自动朗读',
+      speechRate: '朗读语速',
       ttsLangLabel: 'TTS 语言',
       voicesHdr: '可用语音',
       voicesRefresh: '刷新',
@@ -120,6 +127,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     labelFontColor.textContent  = tr.fontColor;
     labelExampleColor.textContent = tr.exampleColor;
     labelTimer.textContent      = tr.timer;
+    document.querySelector('label[for="auto-speak"]').textContent = tr.autoSpeak;
+    document.getElementById('tts-rate-label').textContent = tr.speechRate;
     document.querySelector('label[for="tts-lang"]').textContent = tr.ttsLangLabel;
     saveButton.textContent      = tr.save;
     document.getElementById('voices-title').textContent = tr.voicesHdr;
@@ -142,6 +151,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   fontColorInput.value  = settings.fontColor || '#abb2bf';
   exampleColorInput.value = settings.exampleColor || '#c8ccd4';
   timerInput.value      = Number(settings.timerSeconds ?? 10);
+  autoSpeakInput.checked = !!settings.autoSpeak;
+  ttsRateInput.value    = Number(settings.ttsRate ?? 1.0);
+  ttsRateValue.textContent = `${Number(ttsRateInput.value).toFixed(1)}×`;
   ttslanguageSelect.value = settings.ttsLang || '';
 
   // 应用文案
@@ -189,6 +201,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       fontColor: fontColorInput.value,
       exampleColor: exampleColorInput.value,
       timerSeconds: parseInt(timerInput.value, 10),
+      autoSpeak: autoSpeakInput.checked,
+      ttsRate: Number(ttsRateInput.value),
       ttsLang: ttslanguageSelect.value || '',
       language: lang
     };
@@ -294,6 +308,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // ▼ TTS 语言变化时刷新提示
   ttslanguageSelect?.addEventListener('change', updateMissingHint);
+
+  // ▼ 语速滑块实时更新数值
+  ttsRateInput?.addEventListener('input', () => {
+    ttsRateValue.textContent = `${Number(ttsRateInput.value).toFixed(1)}×`;
+  });
 
   // ▼ Chromium 语音列表加载完成事件
   window.speechSynthesis?.addEventListener?.('voiceschanged', () => {

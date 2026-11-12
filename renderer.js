@@ -9,9 +9,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   // DOM Elements
 
   const container = document.querySelector('.container');  // ★ 新增
+  const wordArea = document.getElementById('word-area');
   const wordEl = document.getElementById('word');
   const meaningEl = document.getElementById('meaning');
   const exampleEl = document.getElementById('example');
+  const progressText = document.getElementById('progress-text');
+  const progressFill = document.getElementById('progress-fill');
   const learnedCheckbox = document.getElementById('learned-checkbox');
   const loadButton = document.getElementById('load-button');
   const prevButton = document.getElementById('prev-button');
@@ -21,6 +24,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   const settingsButton = document.getElementById('settings-button');
   const helpButton = document.getElementById('help-button');
   const speakButton = document.getElementById('speak-button');
+  const shuffleButton = document.getElementById('shuffle-button');
+  const quizButton = document.getElementById('quiz-button');
  
 
 
@@ -40,6 +45,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   let timer = null;
   let settings = {};
   let isHovered = false;
+  let shuffle = false;
+  let quizMode = false;
+  let revealed = false;
 
   
   if (speakButton) speakButton.addEventListener('click', () => {
@@ -105,17 +113,22 @@ async function initialize() {
     if (words.length === 0) {
       wordEl.textContent = 'All Done!';
       meaningEl.textContent = 'Load a new file or restart.';
-      if (exampleEl) exampleEl.style.display = '';
+      meaningEl.classList.remove('hidden-meaning');
+      if (exampleEl) exampleEl.style.display = 'none';
       if (timer) clearInterval(timer);
-      if (speakButton) speakButton.disabled = true; 
+      if (speakButton) speakButton.disabled = true;
+      updateProgress();
       return;
     }
     const current = words[currentIndex];
     wordEl.textContent = current.word;
-    meaningEl.textContent = current.meaning;
+
+    const hideMeaning = quizMode && !revealed;
+    meaningEl.textContent = hideMeaning ? '· · ·' : current.meaning;
+    meaningEl.classList.toggle('hidden-meaning', hideMeaning);
 
     if (exampleEl) {
-      if (current.example && current.example.length > 0) {
+      if (!hideMeaning && current.example && current.example.length > 0) {
         exampleEl.textContent = current.example;
         exampleEl.style.display = '';
       } else {
@@ -124,7 +137,26 @@ async function initialize() {
       }
     }
     learnedCheckbox.checked = false;
-    if (speakButton) speakButton.disabled = false; 
+    if (speakButton) speakButton.disabled = false;
+    updateProgress();
+    triggerFade();
+  }
+
+  function updateProgress() {
+    const total = words.length;
+    if (progressText) progressText.textContent = total ? `${currentIndex + 1} / ${total}` : '';
+    if (progressFill) progressFill.style.width = total ? `${((currentIndex + 1) / total) * 100}%` : '0';
+  }
+
+  function triggerFade() {
+    if (!wordArea) return;
+    wordArea.classList.remove('animate');
+    void wordArea.offsetWidth;
+    wordArea.classList.add('animate');
+  }
+
+  function autoSpeak() {
+    if (settings.autoSpeak && words.length > 0) TTS.speak(words[currentIndex].word);
   }
 
   function resetTimer() {
@@ -138,15 +170,28 @@ async function initialize() {
   function showNextWord() {
     if (words.length === 0) return;
     currentIndex = (currentIndex + 1) % words.length;
+    revealed = false;
     displayWord();
     resetTimer();
+    autoSpeak();
   }
 
   function showPrevWord() {
     if (words.length === 0) return;
     currentIndex = (currentIndex - 1 + words.length) % words.length;
+    revealed = false;
     displayWord();
     resetTimer();
+    autoSpeak();
+  }
+
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
   function loadAndFilterWords(fileContent) {
@@ -155,30 +200,75 @@ async function initialize() {
     .split('\n')
     .map(l => l.trim())
     .filter(l => l && !l.startsWith('#'))
-    .map(line => {
+    .map((line, order) => {
       // 单词 ↹ 释义 [↹ 例句]（第 3 列可选）
       const parts = line.split('\t');
       const word = (parts[0] || '').trim();
       const meaning = (parts[1] || '').trim();
       const example = (parts[2] || '').trim(); // 没有就是空字符串
-      return { word, meaning, example };
+      return { word, meaning, example, order };
     });
 
   loadLearnedWords();
-  words = allWords.filter(w => w.word && !learnedWords.has(w.word));
+  const filtered = allWords.filter(w => w.word && !learnedWords.has(w.word));
+  words = shuffle ? shuffled(filtered) : filtered;
 
   editButton.disabled = false;
+  revealed = false;
   if (words.length > 0) {
     currentIndex = 0;
     displayWord();
     resetTimer();
+    autoSpeak();
   } else {
     wordEl.textContent = 'All learned!';
     meaningEl.textContent = 'Every word in this file is learned.';
+    meaningEl.classList.remove('hidden-meaning');
     exampleEl.style.display = 'none';
+    if (speakButton) speakButton.disabled = true;
     if (timer) clearInterval(timer);
+    updateProgress();
   }
 }
+
+  function markCurrentLearned() {
+    if (words.length === 0) return;
+    const learnedWord = words[currentIndex].word;
+    learnedWords.add(learnedWord);
+    saveLearnedWords();
+
+    words.splice(currentIndex, 1);
+    if (currentIndex >= words.length) currentIndex = 0;
+
+    revealed = false;
+    displayWord();
+    resetTimer();
+  }
+
+  function toggleShuffle() {
+    shuffle = !shuffle;
+    shuffleButton.classList.toggle('active', shuffle);
+    if (words.length === 0) return;
+    words = shuffle ? shuffled(words) : words.slice().sort((a, b) => a.order - b.order);
+    currentIndex = 0;
+    revealed = false;
+    displayWord();
+    resetTimer();
+  }
+
+  function toggleQuiz() {
+    quizMode = !quizMode;
+    revealed = false;
+    quizButton.classList.toggle('active', quizMode);
+    wordArea.classList.toggle('quiz', quizMode);
+    displayWord();
+  }
+
+  function revealMeaning() {
+    if (!quizMode || words.length === 0) return;
+    revealed = true;
+    displayWord();
+  }
 
   // --- EVENT LISTENERS ---
   loadButton.addEventListener('click', async () => {
@@ -192,21 +282,14 @@ async function initialize() {
   });
 
   learnedCheckbox.addEventListener('change', () => {
-    if (learnedCheckbox.checked && words.length > 0) {
-      const learnedWord = words[currentIndex].word;
-      learnedWords.add(learnedWord);
-      saveLearnedWords();
-
-      words.splice(currentIndex, 1);
-      if (currentIndex >= words.length) currentIndex = 0;
-
-      displayWord();
-      resetTimer();
-    }
+    if (learnedCheckbox.checked) markCurrentLearned();
   });
 
   prevButton.addEventListener('click', showPrevWord);
   nextButton.addEventListener('click', showNextWord);
+  shuffleButton.addEventListener('click', toggleShuffle);
+  quizButton.addEventListener('click', toggleQuiz);
+  wordArea.addEventListener('click', revealMeaning);
 
   // Hide/Show: 只保留 单词/释义/Show
   modeButton.addEventListener('click', () => {
@@ -220,6 +303,23 @@ async function initialize() {
 
   settingsButton.addEventListener('click', () => ipcRenderer.send('open-settings-window'));
   helpButton.addEventListener('click', () => ipcRenderer.send('open-about-window'));
+
+  // 键盘快捷键: ←/→/Space 切换, S 朗读, L 已掌握, Q 测验, X 乱序, H 隐藏
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    switch (e.key) {
+      case 'ArrowRight': e.preventDefault(); showNextWord(); break;
+      case 'ArrowLeft':  e.preventDefault(); showPrevWord(); break;
+      case ' ':          e.preventDefault(); showNextWord(); break;
+      case 's': case 'S': if (words.length) TTS.speak(words[currentIndex].word); break;
+      case 'l': case 'L': markCurrentLearned(); break;
+      case 'q': case 'Q': toggleQuiz(); break;
+      case 'x': case 'X': toggleShuffle(); break;
+      case 'h': case 'H': modeButton.click(); break;
+    }
+  });
 
   ipcRenderer.on('settings-updated', (_evt, newSettings) => applySettings(newSettings));
   ipcRenderer.on('reload-words', () => {
@@ -277,10 +377,18 @@ setInterval(checkHoverState, 300);
       return loose || null;
     }
 
+    function detectLang(text) {
+      if (/[\u3040-\u30ff]/.test(text)) return 'ja-JP';   // 假名 → 日语
+      if (/[\uac00-\ud7af]/.test(text)) return 'ko-KR';   // 谚文 → 韩语
+      if (/[\u4e00-\u9fff]/.test(text)) return 'zh-CN';   // 汉字 → 中文
+      if (/[\u0400-\u04ff]/.test(text)) return 'ru-RU';   // 西里尔 → 俄语
+      return null;
+    }
+
     let speaking = false;
     function speak(text, opts = {}) {
     if (!text) return;
-    const lang2 = (settings && settings.ttsLang) ? settings.ttsLang : 'en-US';
+    const lang2 = detectLang(text) || ((settings && settings.ttsLang) ? settings.ttsLang : 'en-US');
     const rate  = Number(settings?.ttsRate ?? 1.0); // 设置里没有就用 1.0
     const pitch = Number(opts.pitch ?? 1.0);
     const volume = Number(opts.volume ?? 1.0);

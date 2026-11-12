@@ -63,6 +63,9 @@ function loadSettings() {
     wordColor: '#61afef',
     fontSize: 24,
     fontFamily: '-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    autoSpeak: false,
+    ttsRate: 1.0,
+    ttsLang: '',
     lastFilePath: null
   };
 }
