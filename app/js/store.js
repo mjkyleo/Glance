@@ -10,7 +10,11 @@
     history: [],
     errors: {},
     customBooks: {},
-    cardOrder: ['meaning', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections']
+    cardOrder: ['meaning', 'morphemes', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections'],
+    autoSpeak: false,
+    preferAudio: true,
+    ttsRate: 1,
+    ttsLang: ''
   };
 
   let data = null;

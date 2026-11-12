@@ -18,15 +18,18 @@
   let favGroup = '';
   let sheetWord = null;
   let sheetFamily = null;
+  let cardsEntry = null;
 
   // quiz state
   let quiz = { items: [], idx: 0, correct: 0, answered: false, retry: false };
 
-  const speak = text => Platform.speak(text, { lang: Store.data.ttsLang || '', rate: Number(Store.data.ttsRate ?? 1) });
+  const speak = (text, audio) => Platform.speak(text, { lang: Store.data.ttsLang || '', rate: Number(Store.data.ttsRate ?? 1), audio, preferAudio: Store.data.preferAudio !== false });
 
   // ===================== view router =====================
   function switchView(v) {
     currentView = v;
+    const app = document.querySelector('.app');
+    if (app) app.dataset.current = v;
     ['study', 'roots', 'search', 'stats', 'books'].forEach(name => {
       $('view-' + name).hidden = name !== v;
     });
@@ -98,7 +101,6 @@
     $('study-empty').hidden = !(inStudy && !currentItem());
     $('quiz-panel').hidden = inStudy;
     $('grade-footer').hidden = !hasItem;
-    $('session-info').hidden = !inStudy;
     $('mode-study').classList.toggle('active', inStudy);
     $('mode-quiz').classList.toggle('active', !inStudy);
     $('mode-study').setAttribute('aria-selected', String(inStudy));
@@ -114,12 +116,9 @@
   }
 
   function updatePlanBar() {
-    const p = Store.planProgress();
-    $('plan-new').textContent = p.newDone + '/' + p.newPerDay;
-    $('plan-review').textContent = p.reviewDone;
-    $('plan-streak').textContent = Store.streak().count;
-    const pct = p.newPerDay > 0 ? Math.min(100, (p.newDone / p.newPerDay) * 100) : (p.reviewDone > 0 ? 100 : 0);
-    $('plan-fill').style.width = pct + '%';
+    const pill = $('session-pill');
+    if (!pill) return;
+    pill.textContent = session.length ? (Math.min(sessionIdx + 1, session.length) + ' / ' + session.length) : '完成';
   }
 
   function renderStudy() {
@@ -136,13 +135,13 @@
     else { badge.textContent = '复习'; badge.className = 'word-badge review'; }
     $('word-due').textContent = item.kind === 'new' ? '' : SRS.nextDueLabel(st, Date.now());
     renderMorphemes(e);
-    renderCards(e);
-    $('session-info').textContent = '第 ' + (sessionIdx + 1) + ' / ' + session.length + ' · 待复习 ' + sessionMeta.dueTotal;
+    $('word-meaning').textContent = e.meaning || e.zh || '';
+    updatePlanBar();
     const panel = $('study-panel');
     panel.classList.remove('anim'); void panel.offsetWidth; panel.classList.add('anim');
     panel.scrollTop = 0;
     renderTs = Date.now();
-    if (Store.data.autoSpeak) speak(e.word);
+    if (Store.data.autoSpeak) speak(e.word, e.audio);
   }
 
   function renderEmpty() {
@@ -196,12 +195,26 @@
       chip.type = 'button';
       chip.appendChild(el('span', 'morph-text', c.text));
       if (c.gloss) chip.appendChild(el('span', 'morph-gloss', c.gloss));
+      chip.title = ({ prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '') + (c.gloss ? ' · ' + c.gloss : '');
       chip.addEventListener('click', () => {
         if (c.type === 'root' && e.root) openFamily(e.root);
         else openAffixByChip(c.text, c.type);
       });
       morphEl.appendChild(chip);
     });
+    fitMorphemes();
+  }
+
+  // Shrink the decomposition font until every segment fits on a single line.
+  function fitMorphemes() {
+    const m = $('morphemes');
+    if (!m || m.style.display === 'none' || !m.children.length) return;
+    let size = 16;
+    m.style.fontSize = size + 'px';
+    while (m.scrollWidth > m.clientWidth + 1 && size > 10) {
+      size -= 0.5;
+      m.style.fontSize = size + 'px';
+    }
   }
 
   // ===================== cards =====================
@@ -228,6 +241,7 @@
   }
   function renderCards(e) {
     const cardsEl = $('cards');
+    if (!cardsEl) return;
     cardsEl.innerHTML = '';
     orderedCards(e).forEach(card => {
       const sec = el('section', 'card');
@@ -250,7 +264,7 @@
     });
   }
   function moveCard(id, dir) {
-    const e = currentItem() && currentItem().entry; if (!e) return;
+    const e = cardsEntry; if (!e) return;
     const ids = orderedCards(e).map(c => c.id);
     const i = ids.indexOf(id), j = i + dir;
     if (j < 0 || j >= ids.length) return;
@@ -266,7 +280,7 @@
       ev.preventDefault();
       const target = sec.dataset.card;
       if (!dragId || dragId === target) return;
-      const e = currentItem() && currentItem().entry; if (!e) return;
+      const e = cardsEntry; if (!e) return;
       const ids = orderedCards(e).map(c => c.id);
       const from = ids.indexOf(dragId), to = ids.indexOf(target);
       ids.splice(from, 1); ids.splice(to, 0, dragId);
@@ -482,7 +496,7 @@
 
   // ===================== word detail =====================
   function findEntry(word) {
-    return Library.lookup(word) || (activeBook().entries.find(e => e.word === word)) || null;
+    return activeBook().entries.find(e => e.word === word) || Library.lookup(word) || null;
   }
   function openWordSheet(word, fromSearch) {
     const e = findEntry(word);
@@ -501,18 +515,12 @@
     const body = $('word-sheet-body');
     body.innerHTML = '';
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
-    speakRow.addEventListener('click', () => speak(word));
+    speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
-    Library.buildCards(e).forEach(card => {
-      const sec = el('section', 'card');
-      sec.dataset.card = card.id;
-      const head = el('div', 'card-head');
-      head.appendChild(el('span', 'card-title', card.title));
-      const bd = el('div', 'card-body');
-      cardBody(card, bd, true);
-      sec.append(head, bd);
-      body.appendChild(sec);
-    });
+    const cardsWrap = el('section', 'cards'); cardsWrap.id = 'cards';
+    body.appendChild(cardsWrap);
+    cardsEntry = e;
+    renderCards(e);
     updateFavToggle();
     openSheet('word-sheet');
   }
@@ -846,6 +854,8 @@
     $('set-rate').value = Number(Store.data.ttsRate ?? 1);
     $('set-rate-val').textContent = Number(Store.data.ttsRate ?? 1).toFixed(1);
     $('set-lang').value = Store.data.ttsLang || '';
+    $('set-autospeak').checked = !!Store.data.autoSpeak;
+    $('set-prefer-audio').checked = Store.data.preferAudio !== false;
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
     openSheet('settings-sheet');
@@ -872,12 +882,14 @@
 
     $('mode-study').addEventListener('click', () => setMode('study'));
     $('mode-quiz').addEventListener('click', () => setMode('quiz'));
-    $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word); });
+    $('study-settings').addEventListener('click', openSettings);
+    $('word-detail-btn').addEventListener('click', () => { const it = currentItem(); if (it) openWordSheet(it.entry.word); });
+    $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
     $('grade-fuzzy').addEventListener('click', () => grade(SRS.GRADE.FUZZY));
     $('grade-know').addEventListener('click', () => grade(SRS.GRADE.KNOW));
     $('continue-button').addEventListener('click', continueStudy);
-    $('quiz-speak').addEventListener('click', () => { const e = quiz.items[quiz.idx]; if (e) speak(e.word); });
+    $('quiz-speak').addEventListener('click', () => { const e = quiz.items[quiz.idx]; if (e) speak(e.word, e.audio); });
     $('quiz-next').addEventListener('click', nextQuiz);
     $('quiz-retry').addEventListener('click', () => { quiz.retry = !quiz.retry; $('quiz-retry').classList.toggle('active', quiz.retry); $('quiz-retry').textContent = quiz.retry ? '返回常规' : '重练错题'; buildQuiz(); renderQuiz(); });
 
@@ -918,8 +930,12 @@
     $('set-review').addEventListener('change', applyPlan);
     $('set-rate').addEventListener('input', () => { Store.data.ttsRate = Number($('set-rate').value); $('set-rate-val').textContent = Number($('set-rate').value).toFixed(1); Store.save(); });
     $('set-lang').addEventListener('change', () => { Store.data.ttsLang = $('set-lang').value; Store.save(); });
+    $('set-autospeak').addEventListener('change', () => { Store.data.autoSpeak = $('set-autospeak').checked; Store.save(); });
+    $('set-prefer-audio').addEventListener('change', () => { Store.data.preferAudio = $('set-prefer-audio').checked; Store.save(); });
+    $('set-books').addEventListener('click', () => { closeSheet(); switchView('books'); });
+    $('books-back').addEventListener('click', () => switchView('study'));
     $('set-test-speak').addEventListener('click', () => speak('hello'));
-    $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = ['meaning', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections']; Store.save(); const it = currentItem(); if (it) renderCards(it.entry); });
+    $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = ['meaning', 'morphemes', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections']; Store.save(); if (cardsEntry) renderCards(cardsEntry); });
     $('reset-progress').addEventListener('click', () => {
       if (!confirm('确定重置所有学习进度？此操作不可撤销。')) return;
       Store.data.srs = {}; Store.data.logs = {}; Store.data.errors = {};
@@ -938,14 +954,15 @@
         if (ev.key === '1') grade(SRS.GRADE.FORGOT);
         else if (ev.key === '2') grade(SRS.GRADE.FUZZY);
         else if (ev.key === '3' || ev.key === ' ') { ev.preventDefault(); grade(SRS.GRADE.KNOW); }
-        else if (ev.key === 's' || ev.key === 'S') { const it = currentItem(); if (it) speak(it.entry.word); }
+        else if (ev.key === 's' || ev.key === 'S') { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); }
       } else {
         if (ev.key === 'Enter' && !$('quiz-next').hidden) nextQuiz();
         else if (['1', '2', '3', '4'].includes(ev.key)) { const opts = $('quiz-options').children; const b = opts[Number(ev.key) - 1]; if (b) b.click(); }
-        else if (ev.key === 's' || ev.key === 'S') { const e = quiz.items[quiz.idx]; if (e) speak(e.word); }
+        else if (ev.key === 's' || ev.key === 'S') { const e = quiz.items[quiz.idx]; if (e) speak(e.word, e.audio); }
       }
     });
 
+    window.addEventListener('resize', () => { if (currentView === 'study' && mode === 'study') fitMorphemes(); });
     window.addEventListener('beforeunload', () => Store.flush());
     document.addEventListener('visibilitychange', () => { if (document.hidden) Store.flush(); });
   }

@@ -23,6 +23,29 @@
     return 'en-US';
   }
 
+  // ---- real human audio (Wiktionary commons) with TTS fallback ----
+  let audioEl = null;
+  function audioUrl(au) {
+    const path = String(au || '').split('|').pop();
+    if (!path || !/\.(ogg|wav|mp3)$/i.test(path)) return '';
+    return 'https://upload.wikimedia.org/wikipedia/commons/' + path;
+  }
+  function playAudio(url, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      let a;
+      try { a = new Audio(url); } catch (e) { return reject(e); }
+      if (audioEl) { try { audioEl.pause(); } catch {} }
+      audioEl = a;
+      let settled = false;
+      const to = setTimeout(() => { if (settled) return; settled = true; try { a.pause(); } catch {} reject(new Error('timeout')); }, timeoutMs);
+      const ok = () => { if (settled) return; settled = true; clearTimeout(to); resolve(); };
+      const bad = e => { if (settled) return; settled = true; clearTimeout(to); reject(e || new Error('audio')); };
+      a.addEventListener('playing', ok);
+      a.addEventListener('error', () => bad());
+      a.play().catch(bad);
+    });
+  }
+
   window.Platform = {
     isElectron,
     isNative,
@@ -32,6 +55,14 @@
       opts = opts || {};
       const lang = opts.lang || detectLang(text);
       const rate = Number(opts.rate ?? 1);
+      if (opts.preferAudio !== false && Array.isArray(opts.audio)) {
+        for (const au of opts.audio) {
+          const url = audioUrl(au);
+          if (!url) continue;
+          try { await playAudio(url, 3500); return; }
+          catch (e) { /* offline / blocked / unsupported → fall back to TTS */ }
+        }
+      }
       const tts = nativeTTS();
       if (tts) {
         try { await tts.speak({ text, lang, rate, pitch: 1.0, volume: 1.0, category: 'ambient' }); return; }
@@ -51,6 +82,7 @@
     },
 
     stopSpeak() {
+      if (audioEl) { try { audioEl.pause(); } catch {} }
       const tts = nativeTTS();
       if (tts && tts.stop) { try { tts.stop(); } catch {} }
       if (window.speechSynthesis) speechSynthesis.cancel();

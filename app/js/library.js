@@ -4,6 +4,10 @@
   let affixMap = new Map();
   const books = {};
 
+  // Curated common affixes for allomorph fallback (the raw affix index contains noisy fragments).
+  const FB_PREFIX = ['counter', 'contra', 'circum', 'infra', 'inter', 'intra', 'intro', 'trans', 'super', 'under', 'over', 'semi', 'micro', 'macro', 'multi', 'mono', 'hyper', 'hypo', 'retro', 'extra', 'fore', 'anti', 'auto', 'peri', 'para', 'syn', 'sym', 'epi', 'dia', 'meta', 'neo', 'proto', 'pseudo', 'uni', 'sub', 'suc', 'suf', 'sug', 'sup', 'sur', 'sus', 'mis', 'out', 'un', 're', 'in', 'im', 'il', 'ir', 'dis', 'de', 'pre', 'pro', 'con', 'com', 'col', 'cor', 'co', 'ex', 'ef', 'en', 'em', 'e', 'ab', 'abs', 'ad', 'ac', 'af', 'ag', 'ap', 'ar', 'as', 'at', 'ob', 'oc', 'of', 'op', 'os', 'be', 'bene', 'mal', 'mid', 'mini', 'non', 'pan', 'poly', 'post', 'up', 'with', 'by', 'a', 'an', 'bi', 'tri'].sort((a, b) => b.length - a.length);
+  const FB_SUFFIX = ['ation', 'ition', 'tion', 'sion', 'ion', 'ment', 'ness', 'able', 'ible', 'ical', 'ial', 'al', 'ive', 'ous', 'ious', 'eous', 'ful', 'less', 'ly', 'er', 'or', 'ist', 'ity', 'ty', 'ance', 'ence', 'ant', 'ent', 'ary', 'ory', 'ure', 'age', 'dom', 'hood', 'ship', 'en', 'ify', 'ise', 'ize', 'ate', 'ism', 'ics', 'ess', 'ette', 'let', 'ling'].sort((a, b) => b.length - a.length);
+
   function uniq(a) { return Array.from(new Set((a || []).filter(Boolean))); }
   function asList(v) {
     if (!v) return [];
@@ -31,7 +35,14 @@
       chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || '' });
       if (suf) chips.push({ text: suf, type: 'suffix', gloss: affixGloss(suf, 'suffix') });
     } else {
+      // Root allomorph (e.g. introduce → duc vs duct): split off known affixes, keep canonical root.
+      const lw = word.toLowerCase();
+      let pre = '', suf = '';
+      for (const p of FB_PREFIX) if (p.length >= 2 && lw.startsWith(p)) { pre = p; break; }
+      for (const s of FB_SUFFIX) if (s.length >= 2 && lw.endsWith(s) && word.length - s.length > pre.length) { suf = s; break; }
+      if (pre) chips.push({ text: pre, type: 'prefix', gloss: affixGloss(pre, 'prefix') });
       chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || '' });
+      if (suf) chips.push({ text: suf, type: 'suffix', gloss: affixGloss(suf, 'suffix') });
     }
     return chips;
   }
@@ -152,6 +163,10 @@
   function buildCards(entry) {
     const cards = [];
     if (entry.meaning) cards.push({ id: 'meaning', title: '释义', kind: 'text', text: entry.meaning });
+    if (entry.morphemes && entry.morphemes.length) {
+      const label = { prefix: '前缀', root: '词根', suffix: '后缀' };
+      cards.push({ id: 'morphemes', title: '构词解析', kind: 'list', items: entry.morphemes.map(m => m.text + '（' + (label[m.type] || '词素') + '）' + (m.gloss ? '：' + m.gloss : '')) });
+    }
     if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => (d[0] ? d[0] + '. ' : '') + d[1]) });
     if (entry.rootFamily && entry.rootFamily.root) {
       const f = entry.rootFamily;
