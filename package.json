@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node scripts/dev-start.js",
     "start:win": "if not exist \"%APPDATA%\\glance\" mkdir \"%APPDATA%\\glance\" & electron . --no-sandbox",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android",
+    "android:run": "cap run android"
   },
   "build": {
     "appId": "com.glance.app",
@@ -19,11 +22,22 @@
     "files": [
       "**/*",
       "!node_modules/electron-builder/**/*",
+      "!android/**/*",
+      "!capacitor.config.json",
+      "!.scratch/**/*",
+      "!scripts/**/*",
+      "!data/**/*",
       "assets/**"
     ],
     "extraResources": [
-      { "from": "assets/words.tsv",        "to": "words.tsv" },
-      { "from": "assets/sample_en_zh.tsv", "to": "sample_en_zh.tsv" }
+      {
+        "from": "assets/words.tsv",
+        "to": "words.tsv"
+      },
+      {
+        "from": "assets/sample_en_zh.tsv",
+        "to": "sample_en_zh.tsv"
+      }
     ],
     "win": {
       "target": [
@@ -33,7 +47,10 @@
       "artifactName": "glance-setup-${version}.${ext}"
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "hardenedRuntime": true,
       "icon": "assets/icons/app-icon.icns",
       "artifactName": "glance-setup-${version}.${ext}"
@@ -42,6 +59,9 @@
   "keywords": [],
   "license": "ISC",
   "devDependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/cli": "^6.2.3",
+    "@capacitor/core": "^6.2.3",
     "electron": "^31.0.1",
     "electron-builder": "^26.0.12"
   },

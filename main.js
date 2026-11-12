@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
@@ -46,7 +46,7 @@ autoUpdater.on('update-downloaded', (info) => {
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
-let mainWindow, settingsWindow, aboutWindow;
+let mainWindow, overlayWindow, settingsWindow, aboutWindow;
 
 function loadSettings() {
   try {
@@ -118,29 +118,49 @@ function ensureLanguageSetting() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
+    width: 460,
+    height: 800,
+    minWidth: 360,
+    minHeight: 600,
+    icon: path.join(__dirname, 'assets/icons/app-icon.png'),
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#000000' : '#f2f2f7',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    resizable: true,
+    frame: true,
+    title: 'Glance',
+  });
+
+  mainWindow.loadFile(path.join('app', 'index.html'));
+  mainWindow.on('closed', () => { mainWindow = null; });
+}
+
+// 旧的悬浮取词窗，作为学习主窗口的附属窗口保留
+function createOverlayWindow() {
+  if (overlayWindow) { overlayWindow.focus(); return; }
+  overlayWindow = new BrowserWindow({
     width: 350,
     height: 200,
     icon: path.join(__dirname, 'assets/icons/app-icon.png'),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      //preload: path.join(__dirname, 'preload.js') // 用不到就保持注释
     },
     alwaysOnTop: true,
-    minimizable: false,          // 禁止用户通过最小化按钮隐藏
-    fullscreenable: false, 
+    minimizable: false,
+    fullscreenable: false,
     resizable: true,
     frame: false,
-    title: 'Glance',
+    title: 'Glance Overlay',
     transparent: true,
   });
 
-  mainWindow.loadFile('index.html');
-  mainWindow.on('closed', () => { mainWindow = null; });
-  
-    mainWindow.setAlwaysOnTop(true, 'screen-saver'); // 'screen-saver' 是最高层级
-  // 在所有工作区/虚拟桌面/全屏窗口之上可见
-  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  overlayWindow.loadFile('index.html');
+  overlayWindow.on('closed', () => { overlayWindow = null; });
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 }
 
 function createSettingsWindow() {
@@ -236,28 +256,29 @@ app.whenReady().then(() => {
 });
 
 app.on('browser-window-created', (_e, win) => {
+  if (win !== overlayWindow) return;
   win.on('minimize', (ev) => {
     ev.preventDefault();
     win.restore();
     win.show();
     win.setAlwaysOnTop(true, 'screen-saver');
   });
-if (process.platform !== 'darwin') {
-  win.on('hide', () => {
-    win.show();
-    win.setAlwaysOnTop(true, 'screen-saver');
-  });
-}
+  if (process.platform !== 'darwin') {
+    win.on('hide', () => {
+      win.show();
+      win.setAlwaysOnTop(true, 'screen-saver');
+    });
+  }
 });
 
 // 保险用的看门狗（提高稳定性，不需要可删掉）
 if (process.platform !== 'darwin') {
   setInterval(() => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore();
-      mainWindow.show();
-      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    if (!overlayWindow) return;
+    if (overlayWindow.isMinimized()) {
+      overlayWindow.restore();
+      overlayWindow.show();
+      overlayWindow.setAlwaysOnTop(true, 'screen-saver');
     }
   }, 1000);
 }
@@ -292,15 +313,19 @@ ipcMain.on('edit-file', (event, filePath) => {
 
 ipcMain.on('open-settings-window', createSettingsWindow);
 ipcMain.on('open-about-window', createAboutWindow);
+ipcMain.on('open-overlay-window', createOverlayWindow);
 ipcMain.on('open-external-link', (_e, url) => shell.openExternal(url));
 
 ipcMain.handle('get-settings', () => loadSettings());
 ipcMain.on('save-settings', (_e, settings) => {
-  saveSettings(settings);
-  if (mainWindow) mainWindow.webContents.send('settings-updated', settings);
+  const merged = Object.assign(loadSettings(), settings);
+  saveSettings(merged);
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('settings-updated', merged);
+  }
 });
 ipcMain.on('learned-words-updated', () => {
-  if (mainWindow) mainWindow.webContents.send('reload-words');
+  if (overlayWindow) overlayWindow.webContents.send('reload-words');
 });
 
 ipcMain.handle('dialog:openFile', async () => {
@@ -317,10 +342,27 @@ ipcMain.handle('dialog:openFile', async () => {
   return { filePath, content };
 });
 
+// 学习主窗口：选择自定义词库（JSON / TSV / TXT）
+ipcMain.handle('dialog:openLibrary', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: '选择词库 / Open Library',
+    defaultPath: getDefaultDialogPath(),
+    properties: ['openFile'],
+    filters: [
+      { name: '词库 / Library', extensions: ['json', 'tsv', 'txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  if (canceled || filePaths.length === 0) return null;
+  const filePath = filePaths[0];
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return { filePath, content };
+});
+
 ipcMain.on('set-language', (_e, lang) => {
   const next = (lang === 'zh') ? 'zh' : 'en';
   const s = loadSettings(); s.language = next; saveSettings(s);
-  if (mainWindow) mainWindow.webContents.send('settings-updated', s);
+  if (overlayWindow) overlayWindow.webContents.send('settings-updated', s);
 });
 ipcMain.on('set-last-file', (_e, filePath) => {
   const s = loadSettings();
@@ -332,6 +374,10 @@ ipcMain.on('close-settings-window', () => { if (settingsWindow) settingsWindow.c
 ipcMain.on('close-about-window',    () => { if (aboutWindow)    aboutWindow.close(); });
 
 ipcMain.handle('get-userData-path', () => app.getPath('userData'));
+
+// 学习主窗口：内置默认词库（主进程 __dirname 即项目根，路径无歧义）
+ipcMain.handle('get-bundled-library', () =>
+  fs.readFileSync(path.join(__dirname, 'app', 'data', 'cet6.json'), 'utf-8'));
 
 // 提供自动加载用的路径
 ipcMain.handle('get-default-words-path', () => {

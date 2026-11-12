@@ -1,0 +1,8 @@
+{
+  "appId": "com.glance.app",
+  "appName": "Glance",
+  "webDir": "app",
+  "server": {
+    "androidScheme": "https"
+  }
+}

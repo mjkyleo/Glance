@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Glance</string>
+    <string name="title_activity_main">Glance</string>
+    <string name="package_name">com.glance.app</string>
+    <string name="custom_url_scheme">com.glance.app</string>
+</resources>
