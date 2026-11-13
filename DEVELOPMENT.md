@@ -143,12 +143,12 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后最新为 `android-20`。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后最新为 `android-21`（新 Logo 图标 + 启动图）。
 
-- 最新提交：`550d5d6`（`main`），Releases 排序修复 + 停止回填旧 Release 标题 + 文档/仅文档推送不再触发 APK 构建。
-- 最新交付：`android-20` APK → `https://github.com/mjkyleo/Glance/releases/download/android-20/Glance-android.apk`（13,126,987 字节）。
-- 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下新增的 Logo 图片为用户素材，未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.11；**不能按编号折算完成度**，以本文实际勾选为准。
+- 最新提交：`c50253f`（`main`），G 形词根标记替换全部图标与启动图，资源由 `scripts/gen-icons.js` 统一生成。
+- 最新交付：`android-21` APK → `https://github.com/mjkyleo/Glance/releases/download/android-21/Glance-android.apk`（13,161,809 字节）。
+- 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.12；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -464,6 +464,26 @@
 
 **交付**：run `43393338252` → Release `android-20`（target `550d5d6`，APK 13,126,987 字节）。
 
+### 8.12 新 Logo：G 形词根标记全平台替换 ✅
+
+**需求**：用用户提供的「G 形词根」标记（线性 G 圆环 + 水平短横 + 主干 + 双侧分叉与节点）替换旧的蓝眼睛图标，覆盖 Windows、macOS、Android 传统/自适应图标与启动页。
+
+**实现**：
+
+- 几何只维护一份：`scripts/gen-icons.js` 定义路径与节点，派生 `assets/logo/glance-logo.svg`、`glance-logo-light.svg`、`glance-icon.svg`（1024 圆角底板）与全部位图。
+- Electron / Windows：`app-icon.png`（1024）、`app-icon.ico`（9 档 16–256）、`app-icon.icns`、`app.iconset/`。
+- Android：传统 `ic_launcher{,_round}.png`（48–192）；自适应前景 PNG（108–432，缩放 0.9 落在 66dp 安全圆）；`drawable*/ic_launcher_foreground.xml` 矢量前景；背景改 `#0F171D`；`<monochrome>` 支持系统主题图标。
+- 启动图：11 张 `splash.png` 全部重绘（深色底 + 浅色标记，标记高 22%，居中）。
+- `docs/LOGO-SPEC.md` 同步最终坐标（环心 `(512,413)`、`R=200`、开口 `-50°→+45°`、节点 `(512,680)/(404,798)/(620,798)`）与重新生成命令。
+
+**验证**：
+
+- 逐张核对 1024 / 192 / 48 / 32 / 16 图标与竖版启动图渲染；ICO 含 9 档尺寸、ICNS magic 正常。
+- 6 个改动 XML 通过解析；CI run `43394939363` 构建成功（AAPT 接受矢量前景与 monochrome）。
+- 24px/16px 下线稿偏细（线性标识的固有取舍），Windows 主要显示尺寸 32px 以上清晰。
+
+**交付**：`android-21`（target `c50253f`，APK 13,161,809 字节，标题「Replace the app icon with the G-root mark」）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -482,6 +502,8 @@
 
 | 提交 | 内容 |
 |---|---|
+| `c50253f` | G 形词根标记替换全平台图标（ico/icns/Android 传统+自适应+monochrome/启动图）+ `gen-icons.js` 单一矢量源 |
+| `e668593` | 记录 Releases 排序修复与 `android-20` 交付 |
 | `550d5d6` | 删除卡在列表顶部的 `android-7/8/9` release（保留 tag），Releases 恢复从新到旧 |
 | `291c19d` | 移除每轮构建的旧 Release 标题回填 + 文档提交不触发 APK 构建 + README 下载指向 `/releases/latest` |
 | `85a3149` | 背景壁纸（压缩存储/蒙版/模糊）+ 测试引擎与测试页重做（6 范围/3 题型/自动难度/约束/干扰项）+ 文档截图（P13） |
@@ -506,4 +528,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-20` APK（与 P13 相同的应用代码，附加 CI/文档调整）— `https://github.com/mjkyleo/Glance/releases/download/android-20/Glance-android.apk`（13,126,987 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-19` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-21` APK（新 G 形词根图标 + 启动图，应用代码同 P13）— `https://github.com/mjkyleo/Glance/releases/download/android-21/Glance-android.apk`（13,161,809 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-20` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
