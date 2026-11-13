@@ -164,7 +164,59 @@
       </div>
     </main>
 
+    <main class="view" id="view-me" hidden>
+      <div class="scroll" id="me-scroll">
+        <section class="me-hero">
+          <div class="me-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+          </div>
+          <div class="me-hero-main">
+            <h1 class="me-name">我的</h1>
+            <p class="me-sub" id="me-book">Glance · 词根背单词</p>
+          </div>
+          <span class="me-streak" id="me-streak">连续 0 天</span>
+        </section>
+        <section class="me-stats" id="me-stats"></section>
+        <section class="me-menu">
+          <div class="me-menu-label">学习</div>
+          <button class="me-row" id="me-stats-link" type="button">
+            <span class="me-row-icon accent"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 20h16v2H4v-2Zm2-8h3v7H6v-7Zm5-6h3v13h-3V6Zm5 3h3v10h-3V9Z"/></svg></span>
+            <span class="me-row-main"><span class="me-row-title">学习统计</span><span class="me-row-sub">打卡日历 · 掌握分布 · 学习趋势</span></span>
+            <span class="row-arrow">›</span>
+          </button>
+          <button class="me-row" id="me-books-link" type="button">
+            <span class="me-row-icon green"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 4h6a2 2 0 0 1 2 2v14a3 3 0 0 0-3-3H4V4Zm16 0h-6a2 2 0 0 0-2 2v14a3 3 0 0 1 3-3h5V4Z"/></svg></span>
+            <span class="me-row-main"><span class="me-row-title">词书与计划</span><span class="me-row-sub">切换词库 · 每日新词与复习上限</span></span>
+            <span class="row-arrow">›</span>
+          </button>
+          <button class="me-row" id="me-ai-link" type="button">
+            <span class="me-row-icon purple"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="m12 2 1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6L12 2Zm6 11 .9 3.1L22 17l-3.1.9L18 21l-.9-3.1L14 17l3.1-.9L18 13ZM6 14l.8 2.2L9 17l-2.2.8L6 20l-.8-2.2L3 17l2.2-.8L6 14Z"/></svg></span>
+            <span class="me-row-main"><span class="me-row-title">AI 解释库</span><span class="me-row-sub">查看与导出已生成的单词讲解</span></span>
+            <span class="row-arrow">›</span>
+          </button>
+          <div class="me-menu-label">通用</div>
+          <button class="me-row" id="me-data-link" type="button">
+            <span class="me-row-icon orange"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2c4.4 0 8 1.6 8 3.5S16.4 9 12 9 4 7.4 4 5.5 7.6 2 12 2Zm8 5.9V11c0 1.9-3.6 3.5-8 3.5S4 12.9 4 11V7.9C5.7 9.2 8.7 10 12 10s6.3-.8 8-2.1Zm0 5.6V18c0 1.9-3.6 3.5-8 3.5S4 19.9 4 18v-4.5c1.7 1.3 4.7 2 8 2s6.3-.7 8-2Z"/></svg></span>
+            <span class="me-row-main"><span class="me-row-title">数据备份</span><span class="me-row-sub">导出、导入学习数据</span></span>
+            <span class="row-arrow">›</span>
+          </button>
+          <button class="me-row" id="me-settings-link" type="button">
+            <span class="me-row-icon gray"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm9.4-2c0-.5-.4-.9-.9-1l-1.6-.3a7 7 0 0 0-.6-1.4l.9-1.3a1 1 0 0 0-.1-1.3l-1.4-1.4a1 1 0 0 0-1.3-.1l-1.3.9a7 7 0 0 0-1.4-.6L13.4 3a1 1 0 0 0-1-.8h-2a1 1 0 0 0-1 .8l-.3 1.6a7 7 0 0 0-1.4.6l-1.3-.9a1 1 0 0 0-1.3.1L3.7 5.8a1 1 0 0 0-.1 1.3l.9 1.3a7 7 0 0 0-.6 1.4L2.3 10a1 1 0 0 0-.8 1v2c0 .5.4.9.8 1l1.6.3c.2.5.4 1 .6 1.4l-.9 1.3a1 1 0 0 0 .1 1.3l1.4 1.4c.4.4 1 .4 1.3.1l1.3-.9c.4.2.9.4 1.4.6l.3 1.6c.1.5.5.8 1 .8h2c.5 0 .9-.4 1-.8l.3-1.6a7 7 0 0 0 1.4-.6l1.3.9c.4.3 1 .2 1.3-.1l1.4-1.4a1 1 0 0 0 .1-1.3l-.9-1.3c.2-.4.4-.9.6-1.4l1.6-.3c.5-.1.9-.5.9-1v-2Z"/></svg></span>
+            <span class="me-row-main"><span class="me-row-title">设置</span><span class="me-row-sub">学习面板 · 主题配色 · 发音 · 词典</span></span>
+            <span class="row-arrow">›</span>
+          </button>
+        </section>
+        <p class="me-foot" id="me-foot">Glance · 词根背单词</p>
+      </div>
+    </main>
+
     <main class="view" id="view-stats" hidden>
+      <div class="books-top">
+        <button class="icon-btn" id="stats-back" type="button" title="返回" aria-label="返回">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.4 5.6 9 12l6.4 6.4 1.4-1.4-5-5 5-5z"/></svg>
+        </button>
+        <span class="books-title">学习统计</span>
+      </div>
       <div class="scroll" id="stats-scroll">
         <div class="stat-grid" id="stats-today"></div>
         <section class="panel">
@@ -258,9 +310,9 @@
         <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M10 2a8 8 0 1 0 4.9 14.3l5 5 1.4-1.4-5-5A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></svg>
         <span>查词</span>
       </button>
-      <button class="tab" data-view="stats" type="button" aria-label="统计">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 20h16v2H4v-2Zm2-8h3v7H6v-7Zm5-6h3v13h-3V6Zm5 3h3v10h-3V9Z"/></svg>
-        <span>统计</span>
+      <button class="tab" data-view="me" type="button" aria-label="我的">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.3-8 5.2V21h16v-1.8c0-2.9-3.6-5.2-8-5.2Z"/></svg>
+        <span>我的</span>
       </button>
     </nav>
   </div>
@@ -307,116 +359,186 @@
 
   <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title">设置</h2></div>
+      <button class="sheet-back" id="settings-back" type="button" title="返回" aria-label="返回" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.4 5.6 9 12l6.4 6.4 1.4-1.4-5-5 5-5z"/></svg>
+      </button>
+      <div class="sheet-title-wrap">
+        <h2 class="sheet-title" id="settings-title">设置</h2>
+        <p class="sheet-sub" id="settings-sub">按功能分类管理学习、外观与数据</p>
+      </div>
       <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
     </div>
     <div class="sheet-body">
-      <section class="set-group">
-        <h4>每日计划</h4>
-        <label class="field"><span>每日新词</span><input type="number" id="set-new" min="0" max="200" step="5" /></label>
-        <label class="field"><span>复习上限（0=不限）</span><input type="number" id="set-review" min="0" max="500" step="10" /></label>
-      </section>
-      <section class="set-group">
-        <h4>发音</h4>
-        <div class="set-row">
-          <span class="set-row-label">自动朗读<small>切换到新词时自动发音</small></span>
-          <label class="switch"><input type="checkbox" id="set-autospeak" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">真人发音优先<small>有真人录音时优先播放，比合成音更自然</small></span>
-          <label class="switch"><input type="checkbox" id="set-prefer-audio" /><span class="slider"></span></label>
-        </div>
-        <label class="field"><span>语速 <b id="set-rate-val">1.0</b></span><input type="range" id="set-rate" min="0.5" max="1.5" step="0.1" /></label>
-        <label class="field"><span>语言</span>
-          <select id="set-lang"><option value="">自动</option><option value="en-US">英语 (美)</option><option value="en-GB">英语 (英)</option><option value="zh-CN">中文</option></select>
-        </label>
-        <button class="btn-ghost" id="set-test-speak" type="button">试听 hello</button>
-      </section>
-      <section class="set-group">
-        <h4>学习面板</h4>
-        <p class="field-hint">选择学习页展示的内容，随时可开关。</p>
-        <div class="set-row">
-          <span class="set-row-label">音标与发音<small>音标和朗读按钮</small></span>
-          <label class="switch"><input type="checkbox" data-panel="phonetic" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">释义<small>卡片上的中文释义</small></span>
-          <label class="switch"><input type="checkbox" data-panel="meaning" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">构词解析<small>前缀 / 词根 / 后缀拆解</small></span>
-          <label class="switch"><input type="checkbox" data-panel="morphemes" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">助记<small>词根助记钩子</small></span>
-          <label class="switch"><input type="checkbox" data-panel="mnemonic" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">英文释义<small>词性与英文解释</small></span>
-          <label class="switch"><input type="checkbox" data-panel="definitions" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">例句<small>单词例句</small></span>
-          <label class="switch"><input type="checkbox" data-panel="examples" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">词根家族<small>同根词一览</small></span>
-          <label class="switch"><input type="checkbox" data-panel="family" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">近义词<small>同义 / 近义表达</small></span>
-          <label class="switch"><input type="checkbox" data-panel="synonyms" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">派生词<small>加缀派生词</small></span>
-          <label class="switch"><input type="checkbox" data-panel="derivatives" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">词形变化<small>复数、时态等形式</small></span>
-          <label class="switch"><input type="checkbox" data-panel="inflections" /><span class="slider"></span></label>
-        </div>
-        <div class="set-row">
-          <span class="set-row-label">词源<small>单词的来源故事</small></span>
-          <label class="switch"><input type="checkbox" data-panel="etymology" /><span class="slider"></span></label>
-        </div>
-      </section>
-      <section class="set-group">
-        <h4>词书</h4>
-        <button class="btn-ghost" id="set-books" type="button">选择词书 / 导入自定义</button>
-        <p class="field-hint">切换词库、调整每日计划都在这里。</p>
-      </section>
-      <section class="set-group">
-        <h4>AI 解释</h4>
-        <div class="set-row">
-          <span class="set-row-label">启用 AI 详解<small>在单词详情中按需生成讲解，结果保存在本地</small></span>
-          <label class="switch"><input type="checkbox" id="set-ai-enabled" /><span class="slider"></span></label>
-        </div>
-        <label class="field"><span>服务商</span><select id="set-ai-provider"></select></label>
-        <label class="field"><span>模型<small id="set-ai-model-hint">留空使用默认模型</small></span><input type="text" id="set-ai-model" placeholder="默认模型" autocomplete="off" /></label>
-        <label class="field" id="set-ai-base-wrap" hidden><span>API 地址</span><input type="text" id="set-ai-base" placeholder="https://…/v1" autocomplete="off" /></label>
-        <label class="field"><span>API Key</span><input type="password" id="set-ai-key" placeholder="仅保存在本机" autocomplete="off" /></label>
-        <button class="btn-ghost" id="set-ai-library" type="button">AI 解释库 / 导出</button>
-        <p class="field-hint">支持 OpenAI、Anthropic 及主流国产大模型；Key 只存本地，不上传。</p>
-      </section>
-      <section class="set-group">
-        <h4>外部词典</h4>
-        <label class="field"><span>服务商</span><select id="set-dict-provider"></select></label>
-        <label class="field" id="set-dict-key-wrap" hidden><span>API Key</span><input type="password" id="set-dict-key" placeholder="仅保存在本机" autocomplete="off" /></label>
-        <label class="field" id="set-dict-base-wrap" hidden><span>API 地址<small>用 {word} 占位</small></span><input type="text" id="set-dict-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
-        <p class="field-hint" id="set-dict-hint">默认使用免费词典，无需 Key；查询结果缓存本地。</p>
-      </section>
-      <section class="set-group">
-        <h4>学习卡片</h4>
-        <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
-      </section>
-      <section class="set-group">
-        <h4>数据</h4>
-        <button class="btn-ghost" id="export-data" type="button">导出全部学习数据</button>
-        <button class="btn-ghost" id="import-data" type="button">导入学习数据</button>
-        <p class="field-hint">导出为通用 JSON：含可直接复用的单词表与完整进度，不含 API Key，可用于换机恢复或外部分析。</p>
-        <button class="btn-ghost danger" id="reset-progress" type="button">重置学习进度</button>
-        <p class="field-hint" id="about-info">Glance · 词根背单词</p>
-      </section>
+      <div class="settings-nav" id="settings-nav">
+        <button class="settings-nav-row" data-settings-pane="learn" type="button">
+          <span class="settings-nav-icon learn"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3Zm-7 9.2v4L12 20l7-3.8v-4L12 16l-7-3.8Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">学习</span><span class="settings-nav-sub">每日计划 · 学习面板</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-pane="appearance" type="button">
+          <span class="settings-nav-icon appear"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 22 10.8C21.9 5.9 17.5 2 12 2Zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">外观</span><span class="settings-nav-sub">主题配色 · 学习卡片</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-pane="audio" type="button">
+          <span class="settings-nav-icon audio"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">发音</span><span class="settings-nav-sub">朗读、语速与口音</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-books type="button">
+          <span class="settings-nav-icon books"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 4h6a2 2 0 0 1 2 2v14a3 3 0 0 0-3-3H4V4Zm16 0h-6a2 2 0 0 0-2 2v14a3 3 0 0 1 3-3h5V4Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">词书</span><span class="settings-nav-sub">选择词书 / 导入自定义</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-pane="dict" type="button">
+          <span class="settings-nav-icon dict"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm1 2v14h10V5H7Zm2 3h6v2H9V8Zm0 4h6v2H9v-2Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">词典</span><span class="settings-nav-sub">中英词典与外部词典</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-pane="ai" type="button">
+          <span class="settings-nav-icon ai"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="m12 2 1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6L12 2Zm6 11 .9 3.1L22 17l-3.1.9L18 21l-.9-3.1L14 17l3.1-.9L18 13ZM6 14l.8 2.2L9 17l-2.2.8L6 20l-.8-2.2L3 17l2.2-.8L6 14Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">AI 解释</span><span class="settings-nav-sub">模型、Key 与解释库</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+        <button class="settings-nav-row" data-settings-pane="data" type="button">
+          <span class="settings-nav-icon data"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2c4.4 0 8 1.6 8 3.5S16.4 9 12 9 4 7.4 4 5.5 7.6 2 12 2Zm8 5.9V11c0 1.9-3.6 3.5-8 3.5S4 12.9 4 11V7.9C5.7 9.2 8.7 10 12 10s6.3-.8 8-2.1Zm0 5.6V18c0 1.9-3.6 3.5-8 3.5S4 19.9 4 18v-4.5c1.7 1.3 4.7 2 8 2s6.3-.7 8-2Z"/></svg></span>
+          <span class="settings-nav-main"><span class="settings-nav-title">数据</span><span class="settings-nav-sub">导出、导入与重置</span></span>
+          <span class="row-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="settings-pane" id="pane-learn" hidden>
+        <section class="set-group">
+          <h4>每日计划</h4>
+          <label class="field"><span>每日新词</span><input type="number" id="set-new" min="0" max="200" step="5" /></label>
+          <label class="field"><span>复习上限（0=不限）</span><input type="number" id="set-review" min="0" max="500" step="10" /></label>
+        </section>
+        <section class="set-group">
+          <h4>学习面板</h4>
+          <p class="field-hint">选择学习页展示的内容，随时可开关。</p>
+          <div class="set-row">
+            <span class="set-row-label">音标与发音<small>音标和朗读按钮</small></span>
+            <label class="switch"><input type="checkbox" data-panel="phonetic" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">释义<small>卡片上的中文释义</small></span>
+            <label class="switch"><input type="checkbox" data-panel="meaning" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">构词解析<small>前缀 / 词根 / 后缀拆解</small></span>
+            <label class="switch"><input type="checkbox" data-panel="morphemes" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">助记<small>词根助记钩子</small></span>
+            <label class="switch"><input type="checkbox" data-panel="mnemonic" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">英文释义<small>词性与英文解释</small></span>
+            <label class="switch"><input type="checkbox" data-panel="definitions" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">例句<small>单词例句</small></span>
+            <label class="switch"><input type="checkbox" data-panel="examples" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">词根家族<small>同根词一览</small></span>
+            <label class="switch"><input type="checkbox" data-panel="family" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">近义词<small>同义 / 近义表达</small></span>
+            <label class="switch"><input type="checkbox" data-panel="synonyms" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">派生词<small>加缀派生词</small></span>
+            <label class="switch"><input type="checkbox" data-panel="derivatives" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">词形变化<small>复数、时态等形式</small></span>
+            <label class="switch"><input type="checkbox" data-panel="inflections" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">词源<small>单词的来源故事</small></span>
+            <label class="switch"><input type="checkbox" data-panel="etymology" /><span class="slider"></span></label>
+          </div>
+        </section>
+      </div>
+
+      <div class="settings-pane" id="pane-appearance" hidden>
+        <section class="set-group">
+          <h4>主题配色</h4>
+          <p class="field-hint">选择界面的基础色调，浅色与深色模式都会跟随。</p>
+          <div class="theme-swatches" role="radiogroup" aria-label="主题配色">
+            <button class="theme-swatch" data-theme-choice="blue" type="button" role="radio" aria-checked="false"><span class="theme-dot dot-blue"></span><span>天蓝</span></button>
+            <button class="theme-swatch" data-theme-choice="green" type="button" role="radio" aria-checked="false"><span class="theme-dot dot-green"></span><span>浅绿</span></button>
+            <button class="theme-swatch" data-theme-choice="yellow" type="button" role="radio" aria-checked="false"><span class="theme-dot dot-yellow"></span><span>暖黄</span></button>
+            <button class="theme-swatch" data-theme-choice="gray" type="button" role="radio" aria-checked="false"><span class="theme-dot dot-gray"></span><span>雾灰</span></button>
+            <button class="theme-swatch" data-theme-choice="black" type="button" role="radio" aria-checked="false"><span class="theme-dot dot-black"></span><span>墨黑</span></button>
+          </div>
+        </section>
+        <section class="set-group">
+          <h4>学习卡片</h4>
+          <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
+        </section>
+      </div>
+
+      <div class="settings-pane" id="pane-audio" hidden>
+        <section class="set-group">
+          <h4>发音</h4>
+          <div class="set-row">
+            <span class="set-row-label">自动朗读<small>切换到新词时自动发音</small></span>
+            <label class="switch"><input type="checkbox" id="set-autospeak" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">真人发音优先<small>有真人录音时优先播放，比合成音更自然</small></span>
+            <label class="switch"><input type="checkbox" id="set-prefer-audio" /><span class="slider"></span></label>
+          </div>
+          <label class="field"><span>语速 <b id="set-rate-val">1.0</b></span><input type="range" id="set-rate" min="0.5" max="1.5" step="0.1" /></label>
+          <label class="field"><span>语言</span>
+            <select id="set-lang"><option value="">自动</option><option value="en-US">英语 (美)</option><option value="en-GB">英语 (英)</option><option value="zh-CN">中文</option></select>
+          </label>
+          <button class="btn-ghost" id="set-test-speak" type="button">试听 hello</button>
+        </section>
+      </div>
+
+      <div class="settings-pane" id="pane-dict" hidden>
+        <section class="set-group">
+          <h4>外部词典</h4>
+          <label class="field"><span>服务商</span><select id="set-dict-provider"></select></label>
+          <label class="field" id="set-dict-key-wrap" hidden><span>API Key</span><input type="password" id="set-dict-key" placeholder="仅保存在本机" autocomplete="off" /></label>
+          <label class="field" id="set-dict-base-wrap" hidden><span>API 地址<small>用 {word} 占位</small></span><input type="text" id="set-dict-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
+          <p class="field-hint" id="set-dict-hint">默认使用免费词典，无需 Key；查询结果缓存本地。</p>
+        </section>
+      </div>
+
+      <div class="settings-pane" id="pane-ai" hidden>
+        <section class="set-group">
+          <h4>AI 解释</h4>
+          <div class="set-row">
+            <span class="set-row-label">启用 AI 详解<small>在单词详情中按需生成讲解，结果保存在本地</small></span>
+            <label class="switch"><input type="checkbox" id="set-ai-enabled" /><span class="slider"></span></label>
+          </div>
+          <label class="field"><span>服务商</span><select id="set-ai-provider"></select></label>
+          <label class="field"><span>模型<small id="set-ai-model-hint">留空使用默认模型</small></span><input type="text" id="set-ai-model" placeholder="默认模型" autocomplete="off" /></label>
+          <label class="field" id="set-ai-base-wrap" hidden><span>API 地址</span><input type="text" id="set-ai-base" placeholder="https://…/v1" autocomplete="off" /></label>
+          <label class="field"><span>API Key</span><input type="password" id="set-ai-key" placeholder="仅保存在本机" autocomplete="off" /></label>
+          <button class="btn-ghost" id="set-ai-library" type="button">AI 解释库 / 导出</button>
+          <p class="field-hint">支持 OpenAI、Anthropic 及主流国产大模型；Key 只存本地，不上传。</p>
+        </section>
+      </div>
+
+      <div class="settings-pane" id="pane-data" hidden>
+        <section class="set-group">
+          <h4>数据</h4>
+          <button class="btn-ghost" id="export-data" type="button">导出全部学习数据</button>
+          <button class="btn-ghost" id="import-data" type="button">导入学习数据</button>
+          <p class="field-hint">导出为通用 JSON：含可直接复用的单词表与完整进度，不含 API Key，可用于换机恢复或外部分析。</p>
+          <button class="btn-ghost danger" id="reset-progress" type="button">重置学习进度</button>
+        </section>
+        <section class="set-group">
+          <h4>关于</h4>
+          <p class="field-hint" id="about-info">Glance · 词根背单词</p>
+        </section>
+      </div>
     </div>
   </div>
 

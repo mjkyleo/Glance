@@ -21,6 +21,7 @@
   let sheetTheme = null;
   let lastViewKey = null;
   let cardsEntry = null;
+  let subReturn = 'study';
 
   // quiz state
   let quiz = { items: [], idx: 0, correct: 0, answered: false, retry: false };
@@ -32,17 +33,53 @@
     currentView = v;
     const app = document.querySelector('.app');
     if (app) app.dataset.current = v;
-    ['study', 'roots', 'themes', 'search', 'stats', 'books', 'ai'].forEach(name => {
+    ['study', 'roots', 'themes', 'search', 'me', 'stats', 'books', 'ai'].forEach(name => {
       $('view-' + name).hidden = name !== v;
     });
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+    const tabView = (v === 'stats' || v === 'books' || v === 'ai') ? (subReturn || 'study') : v;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === tabView));
     if (v === 'study') { updatePlanBar(); updateStudyVisibility(); }
     if (v === 'roots') { rootsTab === 'roots' ? renderRoots() : renderAffixes(); }
     if (v === 'themes') renderThemes();
     if (v === 'search') renderSearchDefault();
+    if (v === 'me') renderMe();
     if (v === 'stats') renderStats();
     if (v === 'books') renderBooks();
     if (v === 'ai') renderAiLibrary();
+  }
+  function openSub(v) {
+    if (currentView !== 'books' && currentView !== 'ai' && currentView !== 'stats') subReturn = currentView;
+    switchView(v);
+  }
+  function backFromSub() {
+    switchView(subReturn || 'study');
+  }
+
+  // ===================== theme =====================
+  const THEME_META = {
+    blue: ['#f5f7fb', '#16181d'],
+    green: ['#eff6f2', '#131a16'],
+    yellow: ['#fbf4e6', '#1b1711'],
+    gray: ['#eff1f4', '#141519'],
+    black: ['#ededef', '#0c0d0f'],
+  };
+  function applyTheme(theme) {
+    const t = THEME_META[theme] ? theme : 'blue';
+    document.documentElement.dataset.theme = t;
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    if (metas[0]) metas[0].content = THEME_META[t][0];
+    if (metas[1]) metas[1].content = THEME_META[t][1];
+    document.querySelectorAll('[data-theme-choice]').forEach(b => {
+      const on = b.dataset.themeChoice === t;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  function setTheme(theme) {
+    if (!THEME_META[theme]) return;
+    Store.data.theme = theme;
+    Store.save();
+    applyTheme(theme);
   }
 
   // ===================== sheets =====================
@@ -1064,6 +1101,24 @@
     list.appendChild(wrap);
   }
 
+  // ===================== me =====================
+  function renderMe() {
+    const p = Store.planProgress();
+    const b = book || activeBook();
+    $('me-book').textContent = b.name + ' · 词根背单词';
+    $('me-streak').textContent = '连续 ' + Store.streak().count + ' 天';
+    const known = knownCount(b.entries || []);
+    const host = $('me-stats');
+    host.innerHTML = '';
+    [['今日新学', p.newDone], ['今日复习', p.reviewDone], ['已掌握', known], ['累计接触', Store.totalViews()]].forEach(([label, val]) => {
+      const c = el('div', 'me-stat');
+      c.appendChild(el('div', 'me-stat-value', String(val)));
+      c.appendChild(el('div', 'me-stat-label', label));
+      host.appendChild(c);
+    });
+    $('me-foot').textContent = 'Glance · 词根背单词 · ' + b.name;
+  }
+
   // ===================== stats =====================
   function renderStats() {
     const p = Store.planProgress();
@@ -1306,7 +1361,35 @@
   }
 
   // ===================== settings =====================
-  function openSettings() {
+  const SETTINGS_PANES = {
+    learn: ['学习', '每日计划与学习面板'],
+    appearance: ['外观', '主题配色与学习卡片'],
+    audio: ['发音', '朗读、语速与口音'],
+    dict: ['词典', '外部词典与查询缓存'],
+    ai: ['AI 解释', '模型、Key 与解释库'],
+    data: ['数据', '导出、导入与重置'],
+  };
+  function showSettingsNav() {
+    $('settings-back').hidden = true;
+    $('settings-nav').hidden = false;
+    document.querySelectorAll('.settings-pane').forEach(p => { p.hidden = true; });
+    $('settings-title').textContent = '设置';
+    $('settings-sub').textContent = '按功能分类管理学习、外观与数据';
+    const body = document.querySelector('#settings-sheet .sheet-body');
+    if (body) body.scrollTop = 0;
+  }
+  function showSettingsPane(key) {
+    const meta = SETTINGS_PANES[key];
+    if (!meta) { showSettingsNav(); return; }
+    $('settings-back').hidden = false;
+    $('settings-nav').hidden = true;
+    document.querySelectorAll('.settings-pane').forEach(p => { p.hidden = p.id !== 'pane-' + key; });
+    $('settings-title').textContent = meta[0];
+    $('settings-sub').textContent = meta[1];
+    const body = document.querySelector('#settings-sheet .sheet-body');
+    if (body) body.scrollTop = 0;
+  }
+  function openSettings(pane) {
     $('set-new').value = Store.data.plan.newPerDay;
     $('set-review').value = Store.data.plan.reviewCap;
     $('set-rate').value = Number(Store.data.ttsRate ?? 1);
@@ -1316,6 +1399,7 @@
     $('set-prefer-audio').checked = Store.data.preferAudio !== false;
     const panel = Store.data.studyPanel || {};
     document.querySelectorAll('[data-panel]').forEach(cb => { cb.checked = panel[cb.dataset.panel] !== false; });
+    applyTheme(Store.data.theme);
     const ai = Store.data.ai;
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
@@ -1336,6 +1420,7 @@
     syncDictProviderUi();
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
+    if (pane) showSettingsPane(pane); else showSettingsNav();
     openSheet('settings-sheet');
   }
   function syncAiProviderUi() {
@@ -1366,13 +1451,25 @@
   // ===================== events =====================
   function wireEvents() {
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
-    $('settings-button').addEventListener('click', openSettings);
+    $('settings-button').addEventListener('click', () => openSettings());
     $('sheet-backdrop').addEventListener('click', () => closeSheet());
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet()));
 
+    $('settings-back').addEventListener('click', showSettingsNav);
+    document.querySelectorAll('[data-settings-pane]').forEach(b => b.addEventListener('click', () => showSettingsPane(b.dataset.settingsPane)));
+    document.querySelectorAll('[data-settings-books]').forEach(b => b.addEventListener('click', () => { closeSheet(); openSub('books'); }));
+    document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
+
+    $('me-stats-link').addEventListener('click', () => openSub('stats'));
+    $('me-books-link').addEventListener('click', () => openSub('books'));
+    $('me-ai-link').addEventListener('click', () => openSub('ai'));
+    $('me-data-link').addEventListener('click', () => openSettings('data'));
+    $('me-settings-link').addEventListener('click', () => openSettings());
+    $('stats-back').addEventListener('click', backFromSub);
+
     $('mode-study').addEventListener('click', () => setMode('study'));
     $('mode-quiz').addEventListener('click', () => setMode('quiz'));
-    $('study-settings').addEventListener('click', openSettings);
+    $('study-settings').addEventListener('click', () => openSettings());
     $('word-detail-btn').addEventListener('click', () => { const it = currentItem(); if (it) openWordSheet(it.entry.word); });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
@@ -1434,18 +1531,17 @@
       Store.save();
       if (currentView === 'study' && mode === 'study') renderStudy();
     }));
-    $('set-books').addEventListener('click', () => { closeSheet(); switchView('books'); });
-    $('books-back').addEventListener('click', () => switchView('study'));
+    $('books-back').addEventListener('click', backFromSub);
     $('set-ai-enabled').addEventListener('change', () => Store.setAiConfig({ enabled: $('set-ai-enabled').checked }));
     $('set-ai-provider').addEventListener('change', () => { Store.setAiConfig({ provider: $('set-ai-provider').value }); syncAiProviderUi(); });
     $('set-ai-model').addEventListener('change', () => Store.setAiConfig({ model: $('set-ai-model').value.trim() }));
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
     $('set-ai-key').addEventListener('change', () => Store.setAiConfig({ key: $('set-ai-key').value.trim() }));
-    $('set-ai-library').addEventListener('click', () => { closeSheet(); switchView('ai'); });
+    $('set-ai-library').addEventListener('click', () => { closeSheet(); openSub('ai'); });
     $('set-dict-provider').addEventListener('change', () => { Store.setDictConfig({ provider: $('set-dict-provider').value }); syncDictProviderUi(); });
     $('set-dict-key').addEventListener('change', () => Store.setDictConfig({ key: $('set-dict-key').value.trim() }));
     $('set-dict-base').addEventListener('change', () => Store.setDictConfig({ base: $('set-dict-base').value.trim() }));
-    $('ai-back').addEventListener('click', () => switchView('study'));
+    $('ai-back').addEventListener('click', backFromSub);
     $('ai-export').addEventListener('click', async () => {
       const btn = $('ai-export'); btn.disabled = true;
       const r = await AI.exportCache();
@@ -1518,6 +1614,7 @@
   // ===================== init =====================
   window.addEventListener('DOMContentLoaded', async () => {
     await Store.load();
+    applyTheme(Store.data.theme);
     wireEvents();
     let ds = null;
     try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }

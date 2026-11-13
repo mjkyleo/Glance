@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -54,7 +56,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk Glance-android.apk
+          PREV=$(git tag --list 'android-*' --sort=-v:refname | head -n1)
+          if [ -n "$PREV" ]; then RANGE="$PREV..HEAD"; else RANGE="HEAD~1..HEAD"; fi
+          TITLE=$(git log -1 --pretty=%s -- app main.js package.json android capacitor.config.json)
+          [ -z "$TITLE" ] && TITLE=$(git log -1 --pretty=%s)
+          CHANGES=$(git log "$RANGE" --no-merges --pretty=format:'- %s' -- app main.js package.json android capacitor.config.json)
+          [ -z "$CHANGES" ] && CHANGES=$(git log "$RANGE" --no-merges --pretty=format:'- %s')
+          [ -z "$CHANGES" ] && CHANGES="- $(git log -1 --pretty=%s)"
+          NOTES="$CHANGES
+
+          Build #${{ github.run_number }} · ${GITHUB_SHA:0:7}$( [ -n "$PREV" ] && printf ' · changes since %s' "$PREV" )"
+          echo "Release title: $TITLE"
+          echo "$NOTES"
           gh release create "android-${{ github.run_number }}" Glance-android.apk \
-            --title "Glance Android (build ${{ github.run_number }})" \
-            --notes "Automated Android APK build from commit ${{ github.sha }}." \
+            --title "$TITLE" \
+            --notes "$NOTES" \
             --target "${{ github.sha }}"
+
+      - name: Fix generic titles on older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,title --jq '.[] | select(.title | startswith("Glance Android (build")) | .tagName' | while read -r tag; do
+            [ -z "$tag" ] && continue
+            subject=$(git log -1 --pretty=%s "$tag" -- app main.js package.json android capacitor.config.json 2>/dev/null || true)
+            [ -z "$subject" ] && subject=$(git log -1 --pretty=%s "$tag" 2>/dev/null | cut -c1-90)
+            [ -z "$subject" ] && continue
+            gh release edit "$tag" --title "$subject" >/dev/null && echo "Renamed $tag -> $subject"
+          done
