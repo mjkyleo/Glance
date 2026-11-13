@@ -95,6 +95,10 @@
         <div class="quiz-head">
           <span class="quiz-score" id="quiz-score">0 / 0</span>
           <span class="quiz-progress" id="quiz-progress"></span>
+          <button class="quiz-exit" id="quiz-quit" type="button" title="结束测试" aria-label="结束测试">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            <span>结束</span>
+          </button>
         </div>
         <button class="quiz-last" id="quiz-last" type="button" hidden></button>
         <div class="quiz-meta-row">
@@ -116,8 +120,7 @@
         <section class="quiz-options" id="quiz-options"></section>
         <div class="quiz-feedback" id="quiz-feedback" hidden></div>
         <section class="quiz-reveal" id="quiz-reveal" hidden></section>
-        <div class="quiz-actions">
-          <button class="btn-ghost" id="quiz-quit" type="button">结束测试</button>
+        <div class="quiz-actions" id="quiz-actions" hidden>
           <button class="btn-primary" id="quiz-next" type="button" hidden>继续</button>
         </div>
       </div>
@@ -495,6 +498,18 @@
     </div>
   </div>
 
+  <div class="sheet-backdrop sheet-backdrop-nested" id="sheet-backdrop-nested" hidden></div>
+  <div class="sheet sheet-nested" id="dict-provider-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title">词典服务商</h2><p class="sheet-sub">选择查词时优先使用的词典</p></div>
+      <button class="sheet-close" id="dict-provider-close" type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="provider-list" id="dict-provider-list"></div>
+      <p class="field-hint">查询结果按词缓存到本机；切换服务商不会删除已有缓存。</p>
+    </div>
+  </div>
+
   <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap">
@@ -686,7 +701,10 @@
       <div class="settings-pane" id="pane-dict" hidden>
         <section class="set-group">
           <h4>外部词典</h4>
-          <label class="field"><span>服务商</span><select id="set-dict-provider"></select></label>
+          <button class="set-row set-row-tap" id="set-dict-provider-btn" type="button" aria-haspopup="dialog">
+            <span class="set-row-label">服务商<small id="set-dict-provider-sub">中英词典 · 免 Key</small></span>
+            <span class="set-row-action">切换<span aria-hidden="true">›</span></span>
+          </button>
           <label class="field" id="set-dict-key-wrap" hidden><span>API Key</span><input type="password" id="set-dict-key" placeholder="仅保存在本机" autocomplete="off" /></label>
           <label class="field" id="set-dict-base-wrap" hidden><span>API 地址<small>用 {word} 占位</small></span><input type="text" id="set-dict-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
           <p class="field-hint" id="set-dict-hint">默认使用免费词典，无需 Key；查询结果缓存本地。</p>

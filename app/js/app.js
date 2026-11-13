@@ -205,8 +205,11 @@
 
   // ===================== sheets =====================
   let openSheetEl = null;
+  let nestedSheetEl = null;
+  let nestedCloseTimer = 0;
   let profileDraft = null;
   function openSheet(id) {
+    closeNestedSheet();
     closeSheet(true);
     const s = $(id);
     s.hidden = false;
@@ -216,6 +219,7 @@
     openSheetEl = s;
   }
   function closeSheet(instant) {
+    if (nestedSheetEl) closeNestedSheet();
     const bd = $('sheet-backdrop');
     if (openSheetEl) {
       const s = openSheetEl;
@@ -225,6 +229,23 @@
       if (instant) { s.hidden = true; bd.hidden = true; }
       else setTimeout(() => { s.hidden = true; if (!openSheetEl) bd.hidden = true; }, 280);
     } else { bd.hidden = true; }
+  }
+  function openNestedSheet(id) {
+    clearTimeout(nestedCloseTimer);
+    const s = $(id), bd = $('sheet-backdrop-nested');
+    s.hidden = false;
+    bd.hidden = false;
+    requestAnimationFrame(() => { s.classList.add('show'); bd.classList.add('show'); });
+    nestedSheetEl = s;
+  }
+  function closeNestedSheet() {
+    clearTimeout(nestedCloseTimer);
+    const s = nestedSheetEl, bd = $('sheet-backdrop-nested');
+    nestedSheetEl = null;
+    if (!s) { bd.hidden = true; return; }
+    s.classList.remove('show');
+    bd.classList.remove('show');
+    nestedCloseTimer = setTimeout(() => { s.hidden = true; bd.hidden = true; }, 280);
   }
 
   // ===================== active book =====================
@@ -908,6 +929,7 @@
     $('quiz-feedback').hidden = true;
     $('quiz-reveal').hidden = true;
     $('quiz-reveal').innerHTML = '';
+    $('quiz-actions').hidden = true;
     $('quiz-next').hidden = true;
     s.answered = false;
     $('quiz-session').scrollTop = 0;
@@ -954,6 +976,7 @@
       if (!Store.isFavorite(e.word)) Store.addFavorite(e.word, '错题');
       if (!Store.data.favGroups.includes('错题')) { Store.data.favGroups.push('错题'); Store.save(); }
       renderQuizReveal(q);
+      $('quiz-actions').hidden = false;
       $('quiz-next').hidden = false;
       $('quiz-next').textContent = s.idx + 1 >= s.questions.length ? '查看结果' : '继续';
     }
@@ -2079,10 +2102,6 @@
     $('set-ai-key').value = ai.key || '';
     syncAiProviderUi();
     const dict = Store.data.dict;
-    const dsel = $('set-dict-provider');
-    dsel.innerHTML = '';
-    Dictionary.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; dsel.appendChild(o); });
-    dsel.value = dict.provider || 'freezh';
     $('set-dict-key').value = dict.key || '';
     $('set-dict-base').value = dict.base || '';
     syncDictProviderUi();
@@ -2097,11 +2116,54 @@
     $('set-ai-model').placeholder = p.model || '模型名称';
     $('set-ai-model-hint').textContent = p.model ? '留空使用默认：' + p.model : '请填写模型名称';
   }
+  const DICT_PROVIDER_BLURB = {
+    freezh: '中文释义、双音标、双语例句与考试标签',
+    free: '英文词典，含音标、词性、多义项与例句',
+    mw: '韦氏大学词典，需自行申请 API Key',
+    custom: '通用 JSON 端点，URL 用 {word} 占位'
+  };
+  function dictProviderBadge(p) {
+    if (p.id === 'freezh') return { text: '推荐', accent: true };
+    if (p.custom) return { text: '自定义', accent: false };
+    return { text: p.needKey ? '需 Key' : '免 Key', accent: false };
+  }
+  function renderDictProviderList() {
+    const list = $('dict-provider-list');
+    const current = Store.data.dict.provider || 'freezh';
+    list.innerHTML = '';
+    Dictionary.PROVIDERS.forEach(p => {
+      const row = el('button', 'provider-row' + (p.id === current ? ' active' : ''));
+      row.type = 'button';
+      row.appendChild(el('span', 'provider-mark', { freezh: '中', free: 'EN', mw: 'MW', custom: '{}' }[p.id] || p.name.charAt(0)));
+      const main = el('div', 'provider-main');
+      const nameRow = el('div', 'provider-name-row');
+      nameRow.appendChild(el('span', 'provider-name', p.name));
+      const badge = dictProviderBadge(p);
+      nameRow.appendChild(el('span', 'provider-badge' + (badge.accent ? ' accent' : ''), badge.text));
+      main.appendChild(nameRow);
+      main.appendChild(el('span', 'provider-hint', DICT_PROVIDER_BLURB[p.id] || p.hint));
+      row.appendChild(main);
+      row.appendChild(el('span', 'provider-check', '✓'));
+      row.addEventListener('click', () => {
+        Store.setDictConfig({ provider: p.id });
+        syncDictProviderUi();
+        closeNestedSheet();
+      });
+      list.appendChild(row);
+    });
+  }
   function syncDictProviderUi() {
-    const p = Dictionary.getProvider($('set-dict-provider').value);
+    const p = Dictionary.getProvider(Store.data.dict.provider || 'freezh');
+    const badge = dictProviderBadge(p);
+    $('set-dict-provider-sub').textContent = p.name + ' · ' + badge.text;
     $('set-dict-key-wrap').hidden = !(p.needKey || p.custom);
     $('set-dict-base-wrap').hidden = !p.custom;
     $('set-dict-hint').textContent = p.hint;
+    renderDictProviderList();
+  }
+  function openDictProviderSheet() {
+    syncDictProviderUi();
+    openNestedSheet('dict-provider-sheet');
   }
   function applyPlan() {
     const nw = Math.max(0, Math.min(200, parseInt($('set-new').value, 10) || 0));
@@ -2267,7 +2329,9 @@
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
     $('set-ai-key').addEventListener('change', () => Store.setAiConfig({ key: $('set-ai-key').value.trim() }));
     $('set-ai-library').addEventListener('click', () => { closeSheet(); openSub('ai'); });
-    $('set-dict-provider').addEventListener('change', () => { Store.setDictConfig({ provider: $('set-dict-provider').value }); syncDictProviderUi(); });
+    $('set-dict-provider-btn').addEventListener('click', openDictProviderSheet);
+    $('dict-provider-close').addEventListener('click', closeNestedSheet);
+    $('sheet-backdrop-nested').addEventListener('click', closeNestedSheet);
     $('set-dict-key').addEventListener('change', () => Store.setDictConfig({ key: $('set-dict-key').value.trim() }));
     $('set-dict-base').addEventListener('change', () => Store.setDictConfig({ base: $('set-dict-base').value.trim() }));
     $('ai-back').addEventListener('click', backFromSub);
@@ -2312,7 +2376,7 @@
     });
 
     document.addEventListener('keydown', ev => {
-      if (ev.key === 'Escape') { closeSheet(); return; }
+      if (ev.key === 'Escape') { if (nestedSheetEl) closeNestedSheet(); else closeSheet(); return; }
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const tag = (ev.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
