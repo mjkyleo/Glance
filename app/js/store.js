@@ -12,6 +12,10 @@
     errors: {},
     customBooks: {},
     cardOrder: ['meaning', 'mnemonic', 'morphemes', 'definitions', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections'],
+    studyPanel: {
+      phonetic: true, meaning: true, morphemes: true, mnemonic: true, definitions: true,
+      examples: true, family: true, synonyms: true, derivatives: true, etymology: true, inflections: true
+    },
     autoSpeak: false,
     preferAudio: true,
     ttsRate: 1,
@@ -41,6 +45,8 @@
     if (!d.views || typeof d.views !== 'object') d.views = {};
     if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
     if (!d.cardOrder.includes('mnemonic')) { const i = d.cardOrder.indexOf('meaning'); d.cardOrder.splice(i < 0 ? 0 : i + 1, 0, 'mnemonic'); }
+    if (!d.studyPanel || typeof d.studyPanel !== 'object' || Array.isArray(d.studyPanel)) d.studyPanel = {};
+    d.studyPanel = Object.assign({}, DEFAULTS.studyPanel, d.studyPanel);
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
@@ -291,6 +297,7 @@
         customBooks: clone(data.customBooks || {}),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
+          studyPanel: clone(data.studyPanel || {}),
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
           ai, dict
         }
@@ -356,6 +363,7 @@
         if (isObj(s.plan)) data.plan = Object.assign({ newPerDay: 20, reviewCap: 0 }, s.plan);
         if (typeof s.activeBook === 'string' && s.activeBook) data.activeBook = s.activeBook;
         if (Array.isArray(s.cardOrder) && s.cardOrder.length) data.cardOrder = s.cardOrder.slice();
+        if (isObj(s.studyPanel)) data.studyPanel = Object.assign({}, DEFAULTS.studyPanel, s.studyPanel);
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;
         if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;

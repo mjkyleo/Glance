@@ -194,8 +194,9 @@ input, select { font-family: inherit; }
 /* ---------- clean study page ---------- */
 /* hide global header while studying; a slim quiet top bar remains */
 .app[data-current="study"] .app-header { display: none; }
-.study-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; }
-.study-top .session-pill { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; background: var(--fill); padding: 5px 12px; border-radius: 999px; }
+.study-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; }
+.study-progress { flex: 1 1 auto; max-width: 220px; height: 6px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.study-progress-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(147, 184, 240, 0.65), var(--accent)); transition: width .55s cubic-bezier(.22, .61, .36, 1); }
 .study-top .study-top-actions { display: flex; align-items: center; gap: 8px; }
 .study-top .mode-switch { width: 132px; flex: 0 0 auto; }
 .study-top .mode-btn { height: 30px; font-size: 13px; }
@@ -203,6 +204,33 @@ input, select { font-family: inherit; }
 /* inline primary meaning + expand affordance on the word card */
 .word-meaning { margin-top: 14px; font-size: 17px; line-height: 1.55; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .word-meaning:empty { display: none; }
+.word-meaning[hidden] { display: none; }
+.speak-btn[hidden] { display: none; }
+
+/* ---------- study info panel ---------- */
+.study-info { flex: 0 0 auto; margin-top: 12px; padding: 4px 20px; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-card); text-align: left; }
+.study-info[hidden] { display: none; }
+.info-row { padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.info-row:last-child { border-bottom: none; }
+.info-label { margin-bottom: 7px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--text-3); }
+.info-body { font-size: 14px; line-height: 1.55; color: var(--text-2); }
+.info-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.info-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; border: none; background: var(--fill); color: var(--text-2); font-family: inherit; font-size: 13px; line-height: 1.3; padding: 5px 10px; border-radius: 999px; cursor: default; }
+button.info-chip { cursor: pointer; transition: background .16s ease, color .16s ease; }
+button.info-chip:hover { background: var(--fill-2); color: var(--text); }
+.info-chip-main { font-weight: 600; color: var(--text); }
+.info-chip-sub { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--text-3); }
+.info-defs, .info-examples { display: flex; flex-direction: column; gap: 6px; }
+.info-def { display: flex; align-items: baseline; gap: 7px; }
+.info-def-pos { flex: 0 0 auto; font-size: 11.5px; font-style: italic; font-weight: 600; color: var(--accent); }
+.info-example { margin: 0; font-size: 13.5px; color: var(--text-2); }
+.info-etymology { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+.info-more { align-self: center; font-size: 12px; color: var(--text-3); }
+.info-family { display: flex; flex-direction: column; gap: 8px; }
+.info-root { align-self: flex-start; display: inline-flex; align-items: baseline; gap: 6px; border: none; background: var(--root-bg); color: var(--root-fg); font-family: inherit; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.info-root:hover { filter: brightness(1.04); }
+.info-root-text { font-size: 14px; font-weight: 700; }
+.info-root-gloss { font-size: 11.5px; color: var(--text-3); }
 .word-mnemonic { margin-top: 12px; font-size: 13.5px; line-height: 1.5; color: var(--root-fg); background: var(--root-bg); border-radius: var(--r-sm); padding: 8px 12px; display: inline-block; max-width: 100%; }
 .word-mnemonic[hidden] { display: none; }
 .word-mnemonic.ai { color: var(--prefix-fg); background: var(--prefix-bg); }

@@ -2,7 +2,7 @@
 (function () {
   const PROVIDERS = [
     {
-      id: 'freezh', name: '中英词典 (有道 · 免费)', needKey: false, custom: false,
+      id: 'freezh', name: '中英词典', needKey: false, custom: false,
       hint: '免 Key 的中英/英中词典：中文释义、双音标、双语例句、考试标签与助记。桌面/安卓端直连；浏览器预览若被跨域拦截会自动回退免费英文词典。'
     },
     {

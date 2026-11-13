@@ -120,9 +120,13 @@
   }
 
   function updatePlanBar() {
-    const pill = $('session-pill');
-    if (!pill) return;
-    pill.textContent = session.length ? (Math.min(sessionIdx + 1, session.length) + ' / ' + session.length) : '完成';
+    const bar = $('study-progress');
+    const fill = $('study-progress-fill');
+    if (!bar || !fill) return;
+    const total = session.length;
+    const pct = total ? Math.round((Math.min(sessionIdx, total) / total) * 100) : 100;
+    fill.style.width = pct + '%';
+    bar.setAttribute('aria-valuenow', String(pct));
   }
 
   function renderStudy() {
@@ -133,8 +137,11 @@
     const viewKey = e.word + '|' + sessionIdx + '|' + ((session[0] && session[0].entry.word) || '');
     if (viewKey !== lastViewKey) { lastViewKey = viewKey; Store.recordView(e.word); }
     const st = Store.data.srs[e.word];
+    const sp = Store.data.studyPanel || {};
     $('word').textContent = e.word;
     $('phonetic').textContent = e.phonetic ? '/' + e.phonetic + '/' + (e.cefr ? '  ·  ' + e.cefr : '') : (e.cefr || '');
+    $('phonetic').hidden = sp.phonetic === false;
+    $('speak-button').hidden = sp.phonetic === false;
     const badge = $('word-badge');
     if (item.kind === 'new') { badge.textContent = '新词'; badge.className = 'word-badge new'; }
     else if (SRS.isKnown(st)) { badge.textContent = '已掌握'; badge.className = 'word-badge known'; }
@@ -142,16 +149,107 @@
     $('word-due').textContent = item.kind === 'new' ? '' : SRS.nextDueLabel(st, Date.now());
     renderMorphemes(e);
     const mn = $('word-mnemonic');
-    const m = mnemonicText(e);
+    const m = sp.mnemonic === false ? null : mnemonicText(e);
     if (m) { mn.textContent = m.text; mn.hidden = false; mn.classList.toggle('ai', m.ai); }
     else { mn.textContent = ''; mn.hidden = true; }
-    $('word-meaning').textContent = e.meaning || e.zh || '';
+    const wm = $('word-meaning');
+    wm.textContent = e.meaning || e.zh || '';
+    wm.hidden = sp.meaning === false;
+    renderStudyInfo(e);
     updatePlanBar();
     const panel = $('study-panel');
     panel.classList.remove('anim'); void panel.offsetWidth; panel.classList.add('anim');
     panel.scrollTop = 0;
     renderTs = Date.now();
     if (Store.data.autoSpeak) speak(e.word, e.audio);
+  }
+
+  function renderStudyInfo(e) {
+    const wrap = $('study-info');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const sp = Store.data.studyPanel || {};
+    const on = k => sp[k] !== false;
+
+    function addRow(label, node) {
+      const row = el('section', 'info-row');
+      row.appendChild(el('div', 'info-label', label));
+      const body = el('div', 'info-body');
+      body.appendChild(node);
+      row.appendChild(body);
+      wrap.appendChild(row);
+    }
+    function chipList(items) {
+      const box = el('div', 'info-chips');
+      items.forEach(it => {
+        const chip = el(it.word ? 'button' : 'span', 'info-chip');
+        if (it.word) { chip.type = 'button'; chip.addEventListener('click', () => openWordSheet(it.word)); }
+        chip.appendChild(el('span', 'info-chip-main', it.main));
+        if (it.sub) chip.appendChild(el('span', 'info-chip-sub', it.sub));
+        box.appendChild(chip);
+      });
+      return box;
+    }
+
+    if (on('definitions') && (e.definitions || []).length) {
+      const list = el('div', 'info-defs');
+      e.definitions.slice(0, 4).forEach(d => {
+        const row = el('div', 'info-def');
+        if (d[0]) row.appendChild(el('span', 'info-def-pos', d[0] + '.'));
+        row.appendChild(el('span', 'info-def-text', d[1] || ''));
+        list.appendChild(row);
+      });
+      if (e.definitions.length > 4) list.appendChild(el('div', 'info-more', '还有 ' + (e.definitions.length - 4) + ' 条'));
+      addRow('英文释义', list);
+    }
+
+    const famRoot = e.rootFamily && e.rootFamily.root;
+    if (on('family') && famRoot) {
+      const fam = Library.getFamily(famRoot);
+      const box = el('div', 'info-family');
+      const rootBtn = el('button', 'info-root');
+      rootBtn.type = 'button';
+      rootBtn.appendChild(el('span', 'info-root-text', famRoot));
+      const gloss = e.rootFamily.rootZh || (fam && fam.zh) || '';
+      if (gloss) rootBtn.appendChild(el('span', 'info-root-gloss', gloss));
+      rootBtn.addEventListener('click', () => openFamily(famRoot));
+      box.appendChild(rootBtn);
+      const words = ((fam && fam.family) || []).filter(w => w.word !== e.word);
+      if (words.length) {
+        box.appendChild(chipList(words.slice(0, 8).map(w => ({ main: w.word, sub: w.meaning, word: w.word }))));
+        if (words.length > 8) box.appendChild(el('span', 'info-more', '+' + (words.length - 8) + ' 词'));
+      }
+      addRow('词根家族', box);
+    }
+
+    if (on('synonyms') && (e.synonyms || []).length) {
+      addRow('近义词', chipList(e.synonyms.slice(0, 10).map(w => ({ main: w, word: w }))));
+    }
+
+    if (on('derivatives') && (e.derivatives || []).length) {
+      addRow('派生词', chipList(e.derivatives.slice(0, 8).map(d => ({
+        main: d[0],
+        sub: d[1] ? ({ pre: '前缀 ', suf: '后缀 ' }[d[2]] || '') + d[1] : '',
+        word: d[0]
+      }))));
+    }
+
+    if (on('inflections') && (e.inflections || []).length) {
+      addRow('词形变化', chipList(e.inflections.map(w => ({ main: w }))));
+    }
+
+    if (on('etymology') && e.etymology) addRow('词源', el('p', 'info-etymology', e.etymology));
+
+    if (on('examples') && (e.examples || []).length) {
+      const list = el('div', 'info-examples');
+      e.examples.slice(0, 3).forEach(ex => {
+        const line = typeof ex === 'string' ? ex : (ex && (ex.en || ex.example)) || '';
+        if (line) list.appendChild(el('p', 'info-example', line));
+      });
+      if (list.childNodes.length) addRow('例句', list);
+    }
+
+    wrap.hidden = !wrap.childNodes.length;
   }
 
   function renderEmpty() {
@@ -196,7 +294,8 @@
   function renderMorphemes(e) {
     const morphEl = $('morphemes');
     morphEl.innerHTML = '';
-    const chips = e.morphemes || [];
+    const hidden = (Store.data.studyPanel || {}).morphemes === false;
+    const chips = hidden ? [] : (e.morphemes || []);
     if (!chips.length) { morphEl.style.display = 'none'; return; }
     morphEl.style.display = '';
     chips.forEach((c, i) => {
@@ -733,7 +832,7 @@
         content.appendChild(el('p', 'dict-ipa', ipaText));
       }
       const ownTags = new Set((e && e.tags) || []);
-      const exam = (record.exam || []).filter(t => !ownTags.has(t));
+      const exam = ownTags.size ? [] : (record.exam || []);
       if (exam.length) {
         const tags = el('div', 'exam-tags dict-exam');
         exam.forEach(t => tags.appendChild(el('span', 'exam-tag', t)));
@@ -1215,6 +1314,8 @@
     $('set-lang').value = Store.data.ttsLang || '';
     $('set-autospeak').checked = !!Store.data.autoSpeak;
     $('set-prefer-audio').checked = Store.data.preferAudio !== false;
+    const panel = Store.data.studyPanel || {};
+    document.querySelectorAll('[data-panel]').forEach(cb => { cb.checked = panel[cb.dataset.panel] !== false; });
     const ai = Store.data.ai;
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
@@ -1328,6 +1429,11 @@
     $('set-lang').addEventListener('change', () => { Store.data.ttsLang = $('set-lang').value; Store.save(); });
     $('set-autospeak').addEventListener('change', () => { Store.data.autoSpeak = $('set-autospeak').checked; Store.save(); });
     $('set-prefer-audio').addEventListener('change', () => { Store.data.preferAudio = $('set-prefer-audio').checked; Store.save(); });
+    document.querySelectorAll('[data-panel]').forEach(cb => cb.addEventListener('change', () => {
+      Store.data.studyPanel[cb.dataset.panel] = cb.checked;
+      Store.save();
+      if (currentView === 'study' && mode === 'study') renderStudy();
+    }));
     $('set-books').addEventListener('click', () => { closeSheet(); switchView('books'); });
     $('books-back').addEventListener('click', () => switchView('study'));
     $('set-ai-enabled').addEventListener('change', () => Store.setAiConfig({ enabled: $('set-ai-enabled').checked }));

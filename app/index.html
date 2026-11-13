@@ -29,7 +29,9 @@
 
     <main class="view" id="view-study">
       <div class="study-top">
-        <span class="session-pill" id="session-pill">—</span>
+        <div class="study-progress" id="study-progress" role="progressbar" aria-label="学习进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span class="study-progress-fill" id="study-progress-fill"></span>
+        </div>
         <div class="study-top-actions">
           <div class="mode-switch" role="tablist" aria-label="模式">
             <button class="mode-btn active" id="mode-study" type="button" role="tab" aria-selected="true">学习</button>
@@ -62,6 +64,7 @@
             <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.6 5.6 15 12l-6.4 6.4L7.2 17l5-5-5-5z"/></svg>
           </button>
         </section>
+        <div class="study-info" id="study-info" hidden></div>
       </div>
 
       <div class="scroll empty-state" id="study-empty" hidden>
@@ -328,6 +331,54 @@
           <select id="set-lang"><option value="">自动</option><option value="en-US">英语 (美)</option><option value="en-GB">英语 (英)</option><option value="zh-CN">中文</option></select>
         </label>
         <button class="btn-ghost" id="set-test-speak" type="button">试听 hello</button>
+      </section>
+      <section class="set-group">
+        <h4>学习面板</h4>
+        <p class="field-hint">选择学习页展示的内容，随时可开关。</p>
+        <div class="set-row">
+          <span class="set-row-label">音标与发音<small>音标和朗读按钮</small></span>
+          <label class="switch"><input type="checkbox" data-panel="phonetic" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">释义<small>卡片上的中文释义</small></span>
+          <label class="switch"><input type="checkbox" data-panel="meaning" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">构词解析<small>前缀 / 词根 / 后缀拆解</small></span>
+          <label class="switch"><input type="checkbox" data-panel="morphemes" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">助记<small>词根助记钩子</small></span>
+          <label class="switch"><input type="checkbox" data-panel="mnemonic" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">英文释义<small>词性与英文解释</small></span>
+          <label class="switch"><input type="checkbox" data-panel="definitions" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">例句<small>单词例句</small></span>
+          <label class="switch"><input type="checkbox" data-panel="examples" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">词根家族<small>同根词一览</small></span>
+          <label class="switch"><input type="checkbox" data-panel="family" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">近义词<small>同义 / 近义表达</small></span>
+          <label class="switch"><input type="checkbox" data-panel="synonyms" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">派生词<small>加缀派生词</small></span>
+          <label class="switch"><input type="checkbox" data-panel="derivatives" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">词形变化<small>复数、时态等形式</small></span>
+          <label class="switch"><input type="checkbox" data-panel="inflections" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">词源<small>单词的来源故事</small></span>
+          <label class="switch"><input type="checkbox" data-panel="etymology" /><span class="slider"></span></label>
+        </div>
       </section>
       <section class="set-group">
         <h4>词书</h4>
