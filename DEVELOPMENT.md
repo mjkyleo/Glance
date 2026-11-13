@@ -142,8 +142,8 @@
 
 > 更新（2026-11-13）：P7 全部功能（#52–#62）已完成代码、CDP 实测与文档收尾；#63 仅剩推送触发 CI 与交付 APK。
 
-- 最新提交：`dev/p7` 分支，分类器 `01b7a03`、专项 UI `3f2abb9`、查看次数 `890522c`、导出导入 `5f092ab`、外部词典 `449df3b`、清理 + README + 文档收尾 `6d7bb79`、有道中英词典（本次）。
-- 最新交付：`android-8` APK（P7 完整版）；有道词典版本将由本次推送触发的新 CI 产出。
+- 最新提交：`dev/p7` 分支，分类器 `01b7a03`、专项 UI `3f2abb9`、查看次数 `890522c`、导出导入 `5f092ab`、外部词典 `449df3b`、清理 + README + 文档收尾 `6d7bb79`、有道中英词典 `f0e353d`、合并 ImgBot 优化 `9948be9`。
+- 最新交付：`android-10` APK（含 P7 + 有道中英词典）— `https://github.com/mjkyleo/Glance/releases/download/android-10/Glance-android.apk`。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7 需求 #52–#62 全部完成（回归 15/15），#63 推送与发布进行中；**不能按编号折算完成度**，以本文 §4–§8 的实际勾选为准。
 
@@ -324,7 +324,7 @@
 
 ### 8.4 修复 + 重跑 Action 交付（#63）✅
 - [x] 针对实测发现的问题逐项优化修复（词典音标双斜杠 → `cleanIpa`；遗留死代码/文件清理；验证脚本修正）。
-- [x] 重跑 `android-build.yml` 构建 APK → 发布 Release → 通知用户下载链接（run `43358799647` 成功，`android-8`，target `6d7bb79`，APK 13,149,216 字节）。
+- [x] 重跑 `android-build.yml` 构建 APK → 发布 Release → 通知用户下载链接（P7：run `43358799647` → `android-8`；有道词典版：run `43366725898` → `android-10`，target `9948be9`）。
 - [x] 推送用专用 SSH 密钥 `id_ed25519_glance`；提交用 noreply 邮箱 `125885091+mjkyleo@users.noreply.github.com`。
 
 ---
@@ -345,7 +345,8 @@
 
 | 提交 | 内容 |
 |---|---|
-| _本次提交_ | 接入有道中英词典（中文释义/双音标/双语例句/考试标签/助记/中译英 + 免费源自动回退） |
+| `9948be9` | 合并 ImgBot 图片优化（Android 启动图/图标压缩） |
+| `f0e353d` | 接入有道中英词典（中文释义/双音标/双语例句/考试标签/助记/中译英 + 免费源自动回退） |
 | `3c6ae43` | 记录 P7 APK 交付（`android-8`） |
 | `449df3b` | 外部词典检索（免费/MW/自定义）+ 本地缓存 + 设置配置（P7-E） |
 | `5f092ab` | 通用格式学习数据导出 / 导入恢复（P7-D） |
@@ -358,4 +359,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-8` APK（P7 完整版）— `https://github.com/mjkyleo/Glance/releases/download/android-8/Glance-android.apk`（13,149,216 字节）；旧版 `android-6/7` 保留在 Releases。
+**交付物**：`android-10` APK（P7 + 有道中英词典）— `https://github.com/mjkyleo/Glance/releases/download/android-10/Glance-android.apk`（13,093,289 字节）；历史版本 `android-6`–`android-9` 保留在 Releases。
