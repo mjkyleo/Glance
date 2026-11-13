@@ -371,6 +371,19 @@
 
 **交付**：run `43374060828` → Release `android-14`（target `eb42460`，APK 13,102,468 字节），标题为「Add reorderable study panel with drag and arrow controls」。
 
+### 8.8 主题体系重做（P11）✅
+
+**反馈**：主题部分需要根据项目挑几套合适的风格并优化（参考 `ui-style-selector`）。
+
+- [x] **选型**：按 ui-style-selector 的色板与设计 token，选择适合长时阅读与背词的 8 种风格——Apple（天蓝）、Japanese Fresh（抹茶）、Warm Dashboard（暖陶）、Scandinavian（雾灰）、Monochrome（墨黑）、Notion（纸白）、Korean Minimal（樱粉）、Soft UI（暮紫）。
+- [x] **默认主题**：`--bg #f5f7fa`、`--text #1d1d1f`、`--accent #0071e3`，重校文字三级层级、hairline 与 root/prefix/suffix 语义色；8 套主题各自覆写背景、卡片、文字与语义色。
+- [x] **次强调色**：新增 `--accent-2`（蓝→靛、抹茶→浅鼠尾草、暖陶→浅陶、…），词书横幅与学习进度条改为 `accent → accent-2` 渐变，不再固定蓝紫。
+- [x] **深色模式**：逐主题定义深色背景/卡片/文字/accent/accent-2；默认深色对齐 Apple（`#131418` / `#0a84ff`）。
+- [x] **外观页**：8 个色卡（天蓝/抹茶/暖陶/雾灰/墨黑/纸白/樱粉/暮紫）4 列两行，`THEME_META`、store 归一化与导入白名单、theme-color meta 同步扩容。
+- [x] **文档**：全部截图按新配色重拍，新增 `theme-paper/sakura/violet`，移除旧 `theme-green`；README 功能与使用说明更新为 8 套配色。
+
+**验证（CDP 实操）**：`verify-p9.js` 21/21——8 套主题切换、持久化、active 状态、浅/深 theme-color、accent 与 accent-2；回归 `verify-all` 15/15、`verify-panel` 6/6、`verify-order` 7/7；360px 色卡网格 4 列无溢出；桌面/移动/深色截图逐张检查。
+
 ---
 
 ## 9. 关键约束与注意事项

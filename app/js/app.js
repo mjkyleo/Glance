@@ -57,11 +57,14 @@
 
   // ===================== theme =====================
   const THEME_META = {
-    blue: ['#f5f7fb', '#16181d'],
-    green: ['#eff6f2', '#131a16'],
-    yellow: ['#fbf4e6', '#1b1711'],
-    gray: ['#eff1f4', '#141519'],
-    black: ['#ededef', '#0c0d0f'],
+    blue: ['#f5f7fa', '#131418'],
+    green: ['#f4f7f1', '#141a16'],
+    yellow: ['#faf5ee', '#1c1713'],
+    gray: ['#f3f2f0', '#141516'],
+    black: ['#f6f6f6', '#0b0b0c'],
+    paper: ['#f7f7f5', '#191919'],
+    sakura: ['#faf7f7', '#1b1517'],
+    violet: ['#f4f4fb', '#15141c'],
   };
   function applyTheme(theme) {
     const t = THEME_META[theme] ? theme : 'blue';

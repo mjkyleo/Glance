@@ -1,16 +1,17 @@
 /* Glance — soft, calm design system. Muted pastel palette, light + dark. */
 :root {
-  --bg: #f5f7fb;
+  --bg: #f5f7fa;
   --card: #ffffff;
   --elevated: #ffffff;
-  --text: #262a33;
-  --text-2: #454b57;
-  --text-3: #8b93a3;
+  --text: #1d1d1f;
+  --text-2: #424245;
+  --text-3: #86868b;
   --separator: rgba(60, 60, 67, 0.1);
-  --hairline: rgba(0, 0, 0, 0.045);
+  --hairline: rgba(0, 0, 0, 0.05);
   --fill: rgba(120, 120, 128, 0.1);
   --fill-2: rgba(120, 120, 128, 0.17);
-  --accent: #6f9be6;
+  --accent: #0071e3;
+  --accent-2: #5e5ce6;
   --accent-fg: #ffffff;
   --green: #6fb58c;
   --green-fg: #3f8a5f;
@@ -20,8 +21,8 @@
   --red: #e0806d;
   --red-fg: #c05a48;
 
-  --root-bg: rgba(111, 155, 230, 0.14);
-  --root-fg: #4a7fc9;
+  --root-bg: rgba(0, 113, 227, 0.1);
+  --root-fg: #0068d1;
   --prefix-bg: rgba(160, 138, 208, 0.14);
   --prefix-fg: #8a6cc0;
   --suffix-bg: rgba(111, 181, 140, 0.16);
@@ -37,37 +38,80 @@
 }
 
 /* ---------- color themes ---------- */
+/* Japanese Fresh — matcha sage */
 html[data-theme="green"] {
-  --bg: #eff6f2; --card: #ffffff; --elevated: #ffffff;
-  --accent: #6aac83; --root-bg: rgba(106, 172, 131, 0.16); --root-fg: #3a7555;
+  --bg: #f4f7f1; --card: #ffffff; --elevated: #ffffff;
+  --text: #2c3730; --text-2: #48584e; --text-3: #83928a;
+  --accent: #53896a; --accent-2: #86b59a; --accent-fg: #ffffff;
+  --root-bg: rgba(152, 216, 200, 0.2); --root-fg: #3f7a68;
+  --hairline: rgba(44, 55, 48, 0.07);
 }
+/* Warm Dashboard — terracotta */
 html[data-theme="yellow"] {
-  --bg: #fbf4e6; --card: #ffffff; --elevated: #ffffff;
-  --accent: #cf9a3f; --root-bg: rgba(207, 154, 63, 0.18); --root-fg: #8c631c;
+  --bg: #faf5ee; --card: #fffdf9; --elevated: #fffdf9;
+  --text: #3a2f27; --text-2: #5c4c40; --text-3: #9a877a;
+  --accent: #b0674f; --accent-2: #d99a7a; --accent-fg: #ffffff;
+  --root-bg: rgba(212, 160, 136, 0.2); --root-fg: #9a5b43;
+  --hairline: rgba(58, 47, 39, 0.07);
 }
+/* Scandinavian — warm neutral */
 html[data-theme="gray"] {
-  --bg: #eff1f4; --card: #ffffff; --elevated: #ffffff;
-  --accent: #7d8899; --root-bg: rgba(125, 136, 153, 0.16); --root-fg: #515b6a;
+  --bg: #f3f2f0; --card: #ffffff; --elevated: #ffffff;
+  --text: #2f3335; --text-2: #4f565a; --text-3: #878e93;
+  --accent: #6d7b84; --accent-2: #9aa7ae; --accent-fg: #ffffff;
+  --root-bg: rgba(109, 123, 132, 0.14); --root-fg: #4e5c66;
+  --hairline: rgba(47, 51, 53, 0.07);
 }
+/* Monochrome — ink */
 html[data-theme="black"] {
-  --bg: #ededef; --card: #ffffff; --elevated: #ffffff;
-  --accent: #2f333a; --root-bg: rgba(47, 51, 58, 0.1); --root-fg: #2f333a;
+  --bg: #f6f6f6; --card: #ffffff; --elevated: #ffffff;
+  --text: #111111; --text-2: #333333; --text-3: #8a8a8a;
+  --accent: #1d1d1f; --accent-2: #4a4a4f; --accent-fg: #ffffff;
+  --root-bg: rgba(17, 17, 17, 0.08); --root-fg: #1d1d1f;
+  --hairline: rgba(0, 0, 0, 0.07);
+}
+/* Notion — paper + teal ink */
+html[data-theme="paper"] {
+  --bg: #f7f7f5; --card: #ffffff; --elevated: #ffffff;
+  --text: #37352f; --text-2: #5c594f; --text-3: #8f8b81;
+  --accent: #0f7b6c; --accent-2: #3fa796; --accent-fg: #ffffff;
+  --root-bg: rgba(15, 123, 108, 0.1); --root-fg: #0b6557;
+  --hairline: rgba(55, 53, 47, 0.08);
+}
+/* Korean Minimal — dusty rose */
+html[data-theme="sakura"] {
+  --bg: #faf7f7; --card: #ffffff; --elevated: #ffffff;
+  --text: #352d2f; --text-2: #5b4e51; --text-3: #a08f93;
+  --accent: #ad6673; --accent-2: #d5a3ab; --accent-fg: #ffffff;
+  --root-bg: rgba(212, 165, 165, 0.22); --root-fg: #955c66;
+  --prefix-bg: rgba(168, 197, 184, 0.22); --prefix-fg: #5c7f6f;
+  --hairline: rgba(53, 45, 47, 0.07);
+}
+/* Soft UI — indigo */
+html[data-theme="violet"] {
+  --bg: #f4f4fb; --card: #ffffff; --elevated: #ffffff;
+  --text: #2f2d3a; --text-2: #4f4b63; --text-3: #8b86a0;
+  --accent: #6c63c9; --accent-2: #9a93e0; --accent-fg: #ffffff;
+  --root-bg: rgba(108, 99, 201, 0.12); --root-fg: #554bab;
+  --hairline: rgba(47, 45, 58, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
+  /* Apple — default dark */
   :root {
-    --bg: #16181d;
-    --card: #1f232b;
-    --elevated: #262b34;
-    --text: #e8e6e1;
-    --text-2: #c9c8c4;
-    --text-3: #8b8f98;
+    --bg: #131418;
+    --card: #1c1c1e;
+    --elevated: #242426;
+    --text: #f5f5f7;
+    --text-2: #c7c7cc;
+    --text-3: #8e8e93;
     --separator: rgba(84, 84, 88, 0.5);
     --hairline: rgba(255, 255, 255, 0.06);
     --fill: rgba(120, 120, 128, 0.2);
     --fill-2: rgba(120, 120, 128, 0.3);
-    --accent: #93b8f0;
-    --accent-fg: #16181d;
+    --accent: #0a84ff;
+    --accent-2: #5e5ce6;
+    --accent-fg: #ffffff;
     --green: #8fd0a8;
     --green-fg: #8fd0a8;
     --purple: #bda6e6;
@@ -76,8 +120,8 @@ html[data-theme="black"] {
     --red: #e89a88;
     --red-fg: #e89a88;
 
-    --root-bg: rgba(147, 184, 240, 0.18);
-    --root-fg: #aecbf2;
+    --root-bg: rgba(10, 132, 255, 0.18);
+    --root-fg: #6cb2ff;
     --prefix-bg: rgba(189, 166, 230, 0.18);
     --prefix-fg: #cdb9ee;
     --suffix-bg: rgba(143, 208, 168, 0.18);
@@ -86,21 +130,62 @@ html[data-theme="black"] {
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25);
     --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.45);
   }
+  /* Japanese Fresh — matcha sage */
   html[data-theme="green"] {
-    --bg: #131a16; --card: #1e2721; --elevated: #25312a;
-    --accent: #8fd0a8; --root-bg: rgba(143, 208, 168, 0.16); --root-fg: #a8d8bc;
+    --bg: #141a16; --card: #1e2721; --elevated: #25312a;
+    --text: #e6ece8; --text-2: #c2cec6; --text-3: #8a9a90;
+    --accent: #7fc79d; --accent-2: #4b8f6d; --accent-fg: #0f1a14;
+    --root-bg: rgba(127, 199, 157, 0.16); --root-fg: #9ed9b6;
+    --hairline: rgba(255, 255, 255, 0.06);
   }
+  /* Warm Dashboard — terracotta */
   html[data-theme="yellow"] {
-    --bg: #1b1711; --card: #27231c; --elevated: #302b22;
-    --accent: #e6c07f; --root-bg: rgba(230, 192, 127, 0.16); --root-fg: #e6c07f;
+    --bg: #1c1713; --card: #26201a; --elevated: #302821;
+    --text: #f0e7dd; --text-2: #d4c5b6; --text-3: #a08d7c;
+    --accent: #e0a17c; --accent-2: #b0674f; --accent-fg: #21150f;
+    --root-bg: rgba(224, 161, 124, 0.16); --root-fg: #eeb997;
+    --hairline: rgba(255, 255, 255, 0.06);
   }
+  /* Scandinavian — warm neutral */
   html[data-theme="gray"] {
-    --bg: #141519; --card: #212327; --elevated: #292c31;
-    --accent: #aeb7c4; --root-bg: rgba(174, 183, 196, 0.16); --root-fg: #c3cad4;
+    --bg: #141516; --card: #1f2123; --elevated: #282b2d;
+    --text: #e9eaea; --text-2: #c4c8cb; --text-3: #8d9499;
+    --accent: #a9b6bd; --accent-2: #6d7b84; --accent-fg: #121517;
+    --root-bg: rgba(169, 182, 189, 0.16); --root-fg: #c3ccd2;
+    --hairline: rgba(255, 255, 255, 0.06);
   }
+  /* Monochrome — ink */
   html[data-theme="black"] {
-    --bg: #0c0d0f; --card: #1a1b1e; --elevated: #222327;
-    --accent: #e6e7ea; --root-bg: rgba(230, 231, 234, 0.12); --root-fg: #eceef1;
+    --bg: #0b0b0c; --card: #17181a; --elevated: #202123;
+    --text: #f2f2f3; --text-2: #c9c9cb; --text-3: #8a8a8c;
+    --accent: #ecedee; --accent-2: #9a9a9e; --accent-fg: #0b0b0c;
+    --root-bg: rgba(236, 237, 238, 0.12); --root-fg: #f2f2f3;
+    --hairline: rgba(255, 255, 255, 0.07);
+  }
+  /* Notion — paper + teal ink */
+  html[data-theme="paper"] {
+    --bg: #191919; --card: #212121; --elevated: #2a2a2a;
+    --text: #e9e7e2; --text-2: #c4c1ba; --text-3: #8f8b83;
+    --accent: #4cc4ad; --accent-2: #2f8f7f; --accent-fg: #0d1a17;
+    --root-bg: rgba(76, 196, 173, 0.16); --root-fg: #7dd8c6;
+    --hairline: rgba(255, 255, 255, 0.07);
+  }
+  /* Korean Minimal — dusty rose */
+  html[data-theme="sakura"] {
+    --bg: #1b1517; --card: #251d20; --elevated: #2e2427;
+    --text: #efe6e7; --text-2: #d0c1c3; --text-3: #a08f93;
+    --accent: #e2a3ae; --accent-2: #ad6673; --accent-fg: #23171a;
+    --root-bg: rgba(226, 163, 174, 0.16); --root-fg: #edbcc4;
+    --prefix-bg: rgba(168, 197, 184, 0.16); --prefix-fg: #a9cbbb;
+    --hairline: rgba(255, 255, 255, 0.07);
+  }
+  /* Soft UI — indigo */
+  html[data-theme="violet"] {
+    --bg: #15141c; --card: #1f1e2a; --elevated: #272634;
+    --text: #e8e6f2; --text-2: #c6c3d8; --text-3: #938fab;
+    --accent: #a49df0; --accent-2: #7a72d8; --accent-fg: #17151c;
+    --root-bg: rgba(164, 157, 240, 0.16); --root-fg: #bcb6f5;
+    --hairline: rgba(255, 255, 255, 0.06);
   }
 }
 
@@ -230,7 +315,7 @@ input, select { font-family: inherit; }
 .app[data-current="study"] .app-header { display: none; }
 .study-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; }
 .study-progress { flex: 1 1 auto; max-width: 220px; height: 6px; border-radius: 999px; background: var(--fill); overflow: hidden; }
-.study-progress-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(147, 184, 240, 0.65), var(--accent)); transition: width .55s cubic-bezier(.22, .61, .36, 1); }
+.study-progress-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width .55s cubic-bezier(.22, .61, .36, 1); }
 .study-top .study-top-actions { display: flex; align-items: center; gap: 8px; }
 .study-top .mode-switch { width: 132px; flex: 0 0 auto; }
 .study-top .mode-btn { height: 30px; font-size: 13px; }
@@ -420,7 +505,7 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .day-nums { flex: 0 0 auto; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 
 /* ---------- books ---------- */
-.active-book { background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: var(--r-lg); padding: 20px; color: #fff; box-shadow: var(--shadow-card); flex: 0 0 auto; }
+.active-book { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-radius: var(--r-lg); padding: 20px; color: #fff; box-shadow: var(--shadow-card); flex: 0 0 auto; }
 .active-book .ab-name { font-size: 22px; font-weight: 700; }
 .active-book .ab-sub { font-size: 13px; opacity: 0.85; margin-top: 3px; }
 .active-book .ab-bar { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.3); overflow: hidden; margin-top: 14px; }
@@ -615,17 +700,20 @@ button:disabled { opacity: 0.45; cursor: default; }
 .settings-pane { display: flex; flex-direction: column; gap: 16px; }
 .settings-pane[hidden] { display: none; }
 
-.theme-swatches { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.theme-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .theme-swatch { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 2px; border: none; border-radius: var(--r-sm); background: var(--fill); color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: box-shadow .16s ease, background .16s ease, transform .12s ease; }
 .theme-swatch:hover { background: var(--fill-2); }
 .theme-swatch:active { transform: scale(0.97); }
 .theme-swatch.active { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
 .theme-dot { width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); }
-.dot-blue { background: linear-gradient(135deg, #dbe6f8, #6f9be6); }
-.dot-green { background: linear-gradient(135deg, #e2f1e7, #72b08a); }
-.dot-yellow { background: linear-gradient(135deg, #fbf0d8, #d9a84e); }
-.dot-gray { background: linear-gradient(135deg, #e8eaee, #8b95a5); }
-.dot-black { background: linear-gradient(135deg, #cfd1d6, #3f444d); }
+.dot-blue { background: linear-gradient(135deg, #d9e8ff, #0071e3); }
+.dot-green { background: linear-gradient(135deg, #e4f1e6, #53896a); }
+.dot-yellow { background: linear-gradient(135deg, #fbead9, #b0674f); }
+.dot-gray { background: linear-gradient(135deg, #e9e8e5, #6d7b84); }
+.dot-black { background: linear-gradient(135deg, #e6e6e6, #1d1d1f); }
+.dot-paper { background: linear-gradient(135deg, #f1f0ec, #0f7b6c); }
+.dot-sakura { background: linear-gradient(135deg, #f7e6e8, #ad6673); }
+.dot-violet { background: linear-gradient(135deg, #e7e4fb, #6c63c9); }
 
 /* ---------- me ---------- */
 .me-hero { flex: 0 0 auto; display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 18px 20px; }

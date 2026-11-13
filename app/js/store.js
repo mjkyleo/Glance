@@ -56,7 +56,7 @@
     if (!Array.isArray(d.studyPanelOrder)) d.studyPanelOrder = [];
     const savedOrder = d.studyPanelOrder.filter((id, i) => panelIds.includes(id) && d.studyPanelOrder.indexOf(id) === i);
     d.studyPanelOrder = savedOrder.concat(panelIds.filter(id => !savedOrder.includes(id)));
-    if (!['blue', 'green', 'yellow', 'gray', 'black'].includes(d.theme)) d.theme = 'blue';
+    if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
@@ -375,7 +375,7 @@
         if (Array.isArray(s.cardOrder) && s.cardOrder.length) data.cardOrder = s.cardOrder.slice();
         if (isObj(s.studyPanel)) data.studyPanel = Object.assign({}, DEFAULTS.studyPanel, s.studyPanel);
         if (Array.isArray(s.studyPanelOrder) && s.studyPanelOrder.length) data.studyPanelOrder = s.studyPanelOrder.slice();
-        if (['blue', 'green', 'yellow', 'gray', 'black'].includes(s.theme)) data.theme = s.theme;
+        if (['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(s.theme)) data.theme = s.theme;
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;
         if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;
