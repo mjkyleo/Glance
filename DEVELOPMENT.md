@@ -339,7 +339,9 @@
   - 开关关闭时同步隐藏对应 DOM（`phonetic`/`speak-button`/`word-meaning`/`morphemes`/`word-mnemonic`），不占位。
 - [x] **柔和进度条**：移除 `session-pill` 数字，改为 6px 圆角轨道 + 渐变填充，`aria-valuenow` 同步；宽度按已完成/总数平滑过渡。
 
-**验证（CDP 实操）**：`verify-panel.js` 5/5 通过——设置组 11 项默认全开、进度条无文字且评分后由 0% → 5%、`abandon` 学习页出现 6 个信息行、关闭释义/词根家族/音标后对应元素隐藏且恢复、词典名「中英词典」且本地词词典标签 0 条（顶部 8 条）。全量回归 15/15、有道归一化 24/24，`EXCEPTIONS: []`、`CONSOLE_ERRORS: []`。截图更新 `docs/screenshots/{study,dictionary}.png`。
+**验证（CDP 实操）**：`verify-panel.js` 6/6 通过——设置组 11 项默认全开、进度条无文字且评分后由 0% → 7%、`abandon` 学习页出现 6 个信息行、关闭释义/词根家族/音标后对应元素隐藏且恢复、词典名「中英词典」且本地词词典标签 0 条（顶部 8 条）、导出/导入携带 `studyPanel`。词根按钮与家族 chip 可分别打开家族/词卡；360×800 移动视口与深色模式布局正常。全量回归 15/15、有道归一化 24/24，`EXCEPTIONS: []`、`CONSOLE_ERRORS: []`。截图更新 `docs/screenshots/{study,dictionary}.png`。
+
+**交付**：run `43370077807` → Release `android-11`（target `0931d08`，APK 13,095,753 字节）。
 
 ---
 
@@ -375,4 +377,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-10` APK（P7 + 有道中英词典）— `https://github.com/mjkyleo/Glance/releases/download/android-10/Glance-android.apk`（13,093,289 字节）；历史版本 `android-6`–`android-9` 保留在 Releases。
+**交付物**：`android-11` APK（学习面板设置 + 柔和进度条 + 词典标签去重）— `https://github.com/mjkyleo/Glance/releases/download/android-11/Glance-android.apk`（13,095,753 字节）；历史版本 `android-6`–`android-10` 保留在 Releases。
