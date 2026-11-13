@@ -139,14 +139,12 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> ⚠️ 重要：P7 的多数功能在之前的对话中**仅停留在「读代码 + 登记任务」阶段，并未真正写入代码**。
-> 截至本文件更新，Git 工作区唯一新增文件是 `app/js/themes.js`（未跟踪、规则退化、未接入）。
-> 下列 §4–§8 为**待实现**明细，不可视为已完成。
+> 更新（2026-11-13）：专项分类已完成代码与浏览器实测；其余 P7 功能按 §5–§8 顺序推进。
 
-- 最新提交：`1ed87f8`（P6 内容）。
-- 最新交付：`android-6` APK（**不含** P7 任何新功能）。
-- 工作区：`?? app/js/themes.js`（草稿）。
-- 任务清单：51 项标记完成，12 项未完成（#52–#63）。任务粒度不一，**不能按 51/63 折算完成度**。
+- 最新提交：`dev/p7` 分支，分类器 `01b7a03` + 专项 UI（本提交）。
+- 最新交付：`android-6` APK（**不含** P7 新功能）。
+- 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
+- 任务清单：54 项完成，9 项待做（#55–#63）；**不能按 54/63 折算完成度**，以本文 §4–§8 的实际勾选为准。
 
 ---
 
@@ -155,27 +153,30 @@
 **需求**：全方位单词分类（动物/家居/动作/经济/科技/政策/自然/植物/节日/星期/月份/颜色等），
 并针对四六级翻译/作文常考话题（中国传统文化等）做专项汇总，可在某领域集中学习。
 
-### 4.1 分类器 `themes.js`（#52）
-- [~] 已建 IIFE 骨架与 API：`init/list/groups/get/wordsOf/themesOf/isReady/GROUPS`。
-- [~] 分组 `GROUPS`：考试专项 / 自然与生命 / 生活与社会 / 经济与科技 / 语言与基础。
-- [~] 约 28 个主题 id（culture / cet_trans / cet_write / animal / plant / nature / body / food / home / family / emotion / education / health / transport / sports / art / society / environment / history / economy / business / tech / policy / politics / action / time / number / color / festival）。
-- [ ] **重写退化关键词表**（当前严重缺陷）：
-  - 多个 `en/zh` 数组膨胀成数千无关词（word-salad），导致大规模误分。
-  - `color.words` 误含全部化学元素；`zh` 表退化成「药…/述…/价值…」等无意义复合。
-  - 目标：每表精简到 ~30–150 个**精准**词条；具体可枚举主题用闭集词表（精确匹配词本身），抽象主题用多字中文领域词 + WordNet 分类学英文释义关键词。
-  - 精度规则：中文关键词 ≥2 字且领域专属（避免单字「花/草/根/色/玉/营/团/旅/局/单/打」等误匹配）；`action` 仅闭集（不做释义匹配）；`number/time` 避免泛词。
-- [ ] 复合考试主题：`cet_trans`/`cet_write` = 基础主题并集 ∩ 四六级标签，按 `fr` 升序。
+### 4.1 分类器 `themes.js`（#52）✅
+- [x] IIFE 骨架与 API：`init/list/groups/get/wordsOf/themesOf/isReady/GROUPS`。
+- [x] 分组 `GROUPS`：考试专项 / 自然与生命 / 生活与社会 / 经济与科技 / 语言与基础。
+- [x] 29 个主题（含 `cet_trans` / `cet_write` 两个复合考试主题）。
+- [x] **重写退化关键词表**：全部改为人工精选闭集 + 领域关键词，单表 ~15–150 条。
+- [x] 精度规则（实现于 `init` / `zhHit` / `enHits`）：
+  - 中文只取**首要义项单元**（`zh.split('/')[0]`，再按顿号/逗号切分），避免 `wine` 的第三义「暗红色」把词拖进颜色主题；
+  - 单元**整段或词尾**匹配，避免 `橄榄球` 命中 `橄榄`；
+  - 英文释义仅在**同一首要释义中命中 ≥2 个**长领域词（≥6 字母）时计分；
+  - `EN_STOP` 过滤 light/dark/state/law 等跨领域泛词。
+- [x] 复合考试主题：`cet_trans`/`cet_write` = 基础主题并集 ∩ 四六级标签，按 `fr` 升序。
 
-### 4.2 分类质量验证（#53）
-- [ ] Node harness（`global.window=global` + 载入 `words.json` + `Themes.init`）统计每主题词数/覆盖率。
-- [ ] 抽查样本，剔除明显误分；迭代关键词与排除词。
-- [ ] 确认无主题膨胀到数千词；具体主题（动物/颜色/节日等）样本准确。
+### 4.2 分类质量验证（#53）✅
+- [x] Node harness（`global.window=global` + `words.json` + `Themes.init`）逐主题统计。
+- [x] 抽样审计 animal / color / festival / time / policy / politics / economy / tech 等；修复 `he→动物`、
+      `football→颜色`、`wine→颜色`、`campaign→体育`、`history→时间` 等误分。
+- [x] 结果：单主题 34–339 词（`culture` 90、`animal` 124、`cet_trans` 242、`cet_write` 339），无膨胀主题。
 
-### 4.3 专项学习 UI（#54）
-- [ ] `index.html`：底部新增「专项」tab（5 tab：学习/词根/专项/查词/统计）+ `view-themes`  markup + `theme-sheet`（镜像 `family-sheet`）+ `themes.js` script 标签。
-- [ ] `app.js`：`switchView` 增 `'themes'`；`renderThemes()` 分组主题卡（名称/描述/词数/已掌握进度）；`openThemeSheet(id)` 词行 + `stateDot` + 查看次数徽标 + 「专项学习」按钮 → 复用 `studyWords(entries)`（`app.js:88`）。
-- [ ] bootstrap 调 `Themes.init(ds.words)`（`app.js:1199` 之后）。
-- [ ] `app.css`：主题卡 / 主题详情样式。
+### 4.3 专项学习 UI（#54）✅
+- [x] `index.html`：底部新增「专项」tab（学习/词根/专项/查词/统计）+ `view-themes` + `theme-sheet` + `themes.js` script。
+- [x] `app.js`：`switchView('themes')`；`renderThemes()` 分组主题卡（名称/描述/词数）；`openThemeSheet(id)` 词行 +
+      `stateDot` + 掌握状态徽标 + 已掌握计数；「专项学习」→ `studyWords(entries)`。
+- [x] bootstrap 调 `Themes.init(ds.words)`。
+- [x] `app.css`：主题卡网格（双列、窄屏单列）、卡片 hover/active 反馈。
 
 ### 4.4 验证 + 交付（#55）
 - [ ] CDP 实测专项浏览/详情/专项学习；回归既有功能。

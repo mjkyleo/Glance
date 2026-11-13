@@ -18,6 +18,7 @@
   let favGroup = '';
   let sheetWord = null;
   let sheetFamily = null;
+  let sheetTheme = null;
   let cardsEntry = null;
 
   // quiz state
@@ -30,12 +31,13 @@
     currentView = v;
     const app = document.querySelector('.app');
     if (app) app.dataset.current = v;
-    ['study', 'roots', 'search', 'stats', 'books', 'ai'].forEach(name => {
+    ['study', 'roots', 'themes', 'search', 'stats', 'books', 'ai'].forEach(name => {
       $('view-' + name).hidden = name !== v;
     });
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
     if (v === 'study') { updatePlanBar(); updateStudyVisibility(); }
     if (v === 'roots') { rootsTab === 'roots' ? renderRoots() : renderAffixes(); }
+    if (v === 'themes') renderThemes();
     if (v === 'search') renderSearchDefault();
     if (v === 'stats') renderStats();
     if (v === 'books') renderBooks();
@@ -529,6 +531,63 @@
     });
     body.appendChild(wrap);
     openSheet('family-sheet');
+  }
+
+  // ===================== thematic decks =====================
+  function themeStateLabel(st) { return { new: '未学', learning: '学习中', known: '已掌握', relearn: '重学' }[st] || ''; }
+  function renderThemes() {
+    const host = $('themes-groups');
+    host.innerHTML = '';
+    if (!window.Themes || !Themes.isReady()) { host.appendChild(el('div', 'empty-hint', '主题分类尚未就绪')); return; }
+    Themes.groups().forEach(g => {
+      const section = el('section', 'theme-group');
+      section.appendChild(el('div', 'section-label', g.name));
+      const grid = el('div', 'theme-grid');
+      g.themes.forEach(t => {
+        const card = el('button', 'theme-card'); card.type = 'button';
+        const top = el('div', 'theme-card-top');
+        top.appendChild(el('span', 'theme-card-name', t.name));
+        top.appendChild(el('span', 'theme-card-count', t.n + ' 词'));
+        card.appendChild(top);
+        if (t.desc) card.appendChild(el('div', 'theme-card-desc', t.desc));
+        card.addEventListener('click', () => openThemeSheet(t.id));
+        grid.appendChild(card);
+      });
+      section.appendChild(grid);
+      host.appendChild(section);
+    });
+  }
+  function openThemeSheet(id) {
+    const meta = window.Themes && Themes.get(id);
+    if (!meta) return;
+    sheetTheme = id;
+    const words = Themes.wordsOf(id);
+    const known = words.filter(w => SRS.isKnown(Store.data.srs[w])).length;
+    $('theme-title').textContent = meta.name;
+    $('theme-meta').textContent = meta.desc + ' · ' + words.length + ' 词 · 已掌握 ' + known;
+    const body = $('theme-words');
+    body.innerHTML = '';
+    $('theme-study-btn').disabled = !words.length;
+    if (!words.length) {
+      body.appendChild(el('div', 'empty-hint', '该专题暂无词条'));
+      openSheet('theme-sheet');
+      return;
+    }
+    const wrap = el('div', 'list-gap');
+    words.forEach(w => {
+      const e = Library.lookup(w);
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(stateDot(w));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', w));
+      main.appendChild(el('div', 'row-sub', (e && (e.meaning || e.zh)) || ''));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge ' + (stateOf(w) === 'known' ? 'green' : 'gray'), themeStateLabel(stateOf(w))));
+      row.addEventListener('click', () => openWordSheet(w));
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+    openSheet('theme-sheet');
   }
 
   function openAffixByChip(text, type) {
@@ -1114,6 +1173,13 @@
       studyWords(entries);
     });
 
+    $('theme-study-btn').addEventListener('click', () => {
+      if (!sheetTheme) return;
+      const entries = Themes.wordsOf(sheetTheme).map(w => Library.lookup(w)).filter(Boolean);
+      closeSheet();
+      if (entries.length) studyWords(entries);
+    });
+
     $('search-input').addEventListener('input', runSearch);
     $('search-clear').addEventListener('click', () => { $('search-input').value = ''; runSearch(); $('search-input').focus(); });
     $('history-clear').addEventListener('click', () => { Store.clearHistory(); renderHistory(); });
@@ -1197,6 +1263,7 @@
     let ds = null;
     try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }
     Library.init(ds || {});
+    if (window.Themes && ds && ds.words) Themes.init(ds.words);
     if (!Library.hasData()) {
       $('loading').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3)">词库加载失败。<br>请确认 app/data 数据文件存在。</div>';
       return;
