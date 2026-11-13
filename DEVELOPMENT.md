@@ -140,12 +140,12 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8（学习面板、柔和进度条、词典标签）、P9（分类设置、「我的」入口、Release 标题）、P10（学习面板排序）、P11（8 套主题体系）与 P12（主题级 UI/UX 差异）已完成，P11 交付 `android-15`。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8（学习面板、柔和进度条、词典标签）、P9（分类设置、「我的」入口、Release 标题）、P10（学习面板排序）、P11（8 套主题体系）与 P12（主题级 UI/UX 差异）已完成并交付 `android-17`。
 
-- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 设置/我的 + P10 面板排序 + P11 主题体系。
-- 最新交付：`android-15` APK（8 套 ui-style-selector 配色 + 面板排序 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-15/Glance-android.apk`。
+- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 设置/我的 + P10 面板排序 + P11 主题体系 + P12 主题级 UI/UX。
+- 最新交付：`android-17` APK（8 套主题的字体/形状/密度/动效差异 + 面板排序 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-17/Glance-android.apk`。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
-- 任务清单：P7–P11 功能全部完成，回归与专项验证见 §8.5–§8.8；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P12 功能全部完成，回归与专项验证见 §8.5–§8.9；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -406,6 +406,8 @@
 
 **验证（CDP 实操）**：`verify-uiux.js` 16/16——架构未变（5 tab/8 view/7 nav/6 pane）、8 套主题的圆角/字重/描边/底栏/对齐/输入框/底纹/动效逐项断言、8 套签名互不重复、Notion 衬线左对齐与纸纹、Monochrome 直角/大写/纯色横幅、Soft UI 悬浮底栏与柔影、360px 无横向溢出、深色描边与横幅反转、零异常零控制台错误；回归 `verify-all` 15/15、`verify-p9` 21/21、`verify-panel` 6/6、`verify-order` 7/7；逐张检查浅色/深色/移动端截图。
 
+**交付**：run `43381786105` → Release `android-17`（target `a87d3e9`，APK 13,108,639 字节），标题为「Differentiate themes by typography, shape, density and motion」。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -424,6 +426,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `9c5294d` | 主题级 UI/UX：逐主题字体/圆角/阴影/密度/动效/底栏/底纹 token + 深色适配 + 文档与截图（P12） |
 | `5714557` | 8 套 ui-style-selector 主题 + 次强调色渐变 + 深浅色重校 + 文档截图重拍（P11） |
 | `eb42460` | 学习面板拖动/箭头排序 + 顺序持久化与导出导入（P10） |
 | `036b51b` | 修复历史 Release 标题回填（`--json name`）+ pipeline-only 构建标题兜底 |
@@ -444,4 +447,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-15` APK（8 套主题 + 面板排序 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-15/Glance-android.apk`（13,103,880 字节）；历史版本 `android-2`–`android-14` 保留在 Releases。
+**交付物**：`android-17` APK（8 套主题的完整 UI/UX 差异 + 面板排序 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-17/Glance-android.apk`（13,108,639 字节）；历史版本 `android-2`–`android-16` 保留在 Releases。
