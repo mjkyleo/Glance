@@ -143,10 +143,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后最新为 `android-22`（versionCode 22 / versionName 1.0.5）。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后最新为 `android-23`（versionCode 23 / versionName `1.0.6+23`）。
 
-- 最新提交：`8d89844`（`main`），Android 每次构建递增 versionCode，并改用仓库内固定调试签名密钥。
-- 最新交付：`android-22` APK → `https://github.com/mjkyleo/Glance/releases/download/android-22/Glance-android.apk`（13,161,866 字节）。
+- 最新提交：`209d866`（`main`），Android 版本名带上构建号，CI 校验 APK 版本与签名证书。
+- 最新交付：`android-23` APK → `https://github.com/mjkyleo/Glance/releases/download/android-23/Glance-android.apk`（13,161,873 字节）。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -499,7 +499,13 @@
 
 **验证**：run `43399149905` 构建成功；Release `android-22` 资产 `Glance-android.apk`（13,161,866 字节）。
 
-**交付**：`android-22`（target `8d89844`，标题「Fix Android updates: per-build versionCode and a stable debug signing key」）。
+**追加（安装时版本号看不出变化）**：
+
+- `versionName` 改为 `package.json` 版本 + 构建号（`1.0.6+23`），`package.json` 升到 `1.0.6`；每次构建在「应用信息」里都能直接看出是否是新包。
+- `android-build.yml` 新增 `Verify APK build metadata`：用 `aapt2 dump badging` 断言 `versionCode == github.run_number`、`versionName == <pkg.version>+<run_number>`，并用 `apksigner verify --print-certs` 断言签名者是 `CN=Glance Debug`；任一不符即构建失败。
+- 用 Range 请求从 Release 资产中取出 `AndroidManifest.xml` 与 `META-INF/CERT.RSA` 复核：`android-22` 为 `versionCode 22 / versionName 1.0.5`，`android-23` 为 `23 / 1.0.6+23`；两者证书 SHA-256 均为 `82:F7:…:C9:AF`，与仓库内 `glance-debug.keystore` 完全一致，证明后续版本可覆盖安装。
+
+**交付**：`android-22`（target `8d89844`，标题「Fix Android updates: per-build versionCode and a stable debug signing key」）；`android-23`（target `209d866`，versionName `1.0.6+23`，APK 13,161,873 字节）。
 
 ---
 
@@ -519,6 +525,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `209d866` | Android 版本名带构建号（`1.0.6+23`）+ CI 断言 APK 版本与签名证书 |
 | `8d89844` | Android 构建注入递增 versionCode + 仓库内固定调试签名，修复新包无法覆盖安装 |
 | `c50253f` | G 形词根标记替换全平台图标（ico/icns/Android 传统+自适应+monochrome/启动图）+ `gen-icons.js` 单一矢量源 |
 | `e668593` | 记录 Releases 排序修复与 `android-20` 交付 |
@@ -546,4 +553,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-22` APK（新 G 形词根图标 + 启动图，versionCode 22 / versionName 1.0.5，固定调试签名）— `https://github.com/mjkyleo/Glance/releases/download/android-22/Glance-android.apk`（13,161,866 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-21` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-23` APK（新 G 形词根图标 + 启动图，versionCode 23 / versionName `1.0.6+23`，固定调试签名）— `https://github.com/mjkyleo/Glance/releases/download/android-23/Glance-android.apk`（13,161,873 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-22` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
