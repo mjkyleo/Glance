@@ -365,7 +365,7 @@
       if (cached && Array.isArray(cached.meanings) && cached.meanings.length) return { ok: true, record: cached, cached: true };
     }
     const p = getProvider(cfg.provider);
-    if (p.needKey && !str(cfg.key)) return { ok: false, error: '请先在「设置 → 外部词典」填写 ' + p.name + ' 的 API Key' };
+    if (p.needKey && !str(cfg.key)) return { ok: false, error: '请先在「我的 → 词典」填写 ' + p.name + ' 的 API Key' };
     if (p.custom && !str(cfg.base)) return { ok: false, error: '请填写自定义词典的 API 地址（含 {word}）' };
 
     let out = await attempt(p, word, cfg);

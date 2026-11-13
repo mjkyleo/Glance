@@ -1192,10 +1192,10 @@
 
   function aiConfigPrompt(content, actions) {
     content.innerHTML = '';
-    content.appendChild(el('p', 'ai-placeholder', 'AI 详解未配置。请到「设置 → AI 解释」开启并填写 API Key。'));
+    content.appendChild(el('p', 'ai-placeholder', 'AI 详解未配置。请到「我的 → AI 解释」开启并填写 API Key。'));
     actions.innerHTML = '';
     const go = el('button', 'btn-ghost', '前往设置');
-    go.addEventListener('click', () => { closeSheet(); openSettings(); });
+    go.addEventListener('click', () => { closeSheet(); openSettings('ai'); });
     actions.appendChild(go);
   }
 
@@ -1766,15 +1766,6 @@
     ai: ['AI 解释', '模型、Key 与解释库'],
     data: ['数据', '导出、导入与重置'],
   };
-  function showSettingsNav() {
-    $('settings-back').hidden = true;
-    $('settings-nav').hidden = false;
-    document.querySelectorAll('.settings-pane').forEach(p => { p.hidden = true; });
-    $('settings-title').textContent = '设置';
-    $('settings-sub').textContent = '按功能分类管理学习、外观与数据';
-    const body = document.querySelector('#settings-sheet .sheet-body');
-    if (body) body.scrollTop = 0;
-  }
   function renderPanelOrderUi() {
     const order = panelOrder();
     document.querySelectorAll('[data-panel-group]').forEach(box => {
@@ -1829,9 +1820,7 @@
 
   function showSettingsPane(key) {
     const meta = SETTINGS_PANES[key];
-    if (!meta) { showSettingsNav(); return; }
-    $('settings-back').hidden = false;
-    $('settings-nav').hidden = true;
+    if (!meta) return;
     document.querySelectorAll('.settings-pane').forEach(p => { p.hidden = p.id !== 'pane-' + key; });
     $('settings-title').textContent = meta[0];
     $('settings-sub').textContent = meta[1];
@@ -1839,6 +1828,7 @@
     if (body) body.scrollTop = 0;
   }
   function openSettings(pane) {
+    pane = SETTINGS_PANES[pane] ? pane : 'learn';
     $('set-new').value = Store.data.plan.newPerDay;
     $('set-review').value = Store.data.plan.reviewCap;
     $('set-rate').value = Number(Store.data.ttsRate ?? 1);
@@ -1872,7 +1862,7 @@
     syncDictProviderUi();
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
-    if (pane) showSettingsPane(pane); else showSettingsNav();
+    showSettingsPane(pane);
     openSheet('settings-sheet');
   }
   function syncAiProviderUi() {
@@ -1903,13 +1893,10 @@
   // ===================== events =====================
   function wireEvents() {
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
-    $('settings-button').addEventListener('click', () => openSettings());
     $('sheet-backdrop').addEventListener('click', () => closeSheet());
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet()));
 
-    $('settings-back').addEventListener('click', showSettingsNav);
-    document.querySelectorAll('[data-settings-pane]').forEach(b => b.addEventListener('click', () => showSettingsPane(b.dataset.settingsPane)));
-    document.querySelectorAll('[data-settings-books]').forEach(b => b.addEventListener('click', () => { closeSheet(); openSub('books'); }));
+    document.querySelectorAll('[data-settings-pane]').forEach(b => b.addEventListener('click', () => openSettings(b.dataset.settingsPane)));
     document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
     $('bg-choose').addEventListener('click', () => $('bg-file').click());
     $('bg-file').addEventListener('change', () => {
@@ -1939,13 +1926,10 @@
     $('me-stats-link').addEventListener('click', () => openSub('stats'));
     $('me-books-link').addEventListener('click', () => openSub('books'));
     $('me-ai-link').addEventListener('click', () => openSub('ai'));
-    $('me-data-link').addEventListener('click', () => openSettings('data'));
-    $('me-settings-link').addEventListener('click', () => openSettings());
     $('stats-back').addEventListener('click', backFromSub);
 
     $('mode-study').addEventListener('click', () => setMode('study'));
     $('mode-quiz').addEventListener('click', () => setMode('quiz'));
-    $('study-settings').addEventListener('click', () => openSettings());
     $('word-detail-btn').addEventListener('click', () => { const it = currentItem(); if (it) openWordSheet(it.entry.word); });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
