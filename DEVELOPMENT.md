@@ -63,7 +63,7 @@
 | P6 | 词性详解 / 助记钩子 / 柔和配色 / 考试标签 | #47–#51 | [x] |
 | P7 | 专项分类 / 查看次数 / 数据迁移 / 外部词典 / 收尾 | #52–#63 | [x] |
 | P8–P12 | 学习面板 / 分类设置 / 面板排序 / 8 套主题 / 主题级 UI/UX | #64–#69 | [x] |
-| **P13** | **背景壁纸 + 测试引擎与测试页重做** | **#70–#75** | **[x] 功能完成，交付进行中** |
+| **P13** | **背景壁纸 + 测试引擎与测试页重做** | **#70–#75** | **[x]** |
 
 ---
 
@@ -143,11 +143,11 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）功能完成并验证，交付进行中。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`。
 
-- 最新提交：`dev/p7` 分支，P13 背景壁纸 + `quiz.js` 测试引擎 + 测试页三屏（开始/作答/结果）。
-- 最新交付：`android-17` APK → `https://github.com/mjkyleo/Glance/releases/download/android-17/Glance-android.apk`；P13 APK 在 CI 完成後补充链接。
-- 工作区：功能与文档改动待提交（`.scratch/` 为本地调试产物，已忽略）。
+- 最新提交：`85a3149`（`main` / `dev/p7`），P13 背景壁纸 + `quiz.js` 测试引擎 + 测试页三屏（开始/作答/结果）。
+- 最新交付：`android-18` APK → `https://github.com/mjkyleo/Glance/releases/download/android-18/Glance-android.apk`（13,126,989 字节）。
+- 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.10；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
@@ -447,7 +447,7 @@
 - 回归：词根 200 行、词缀 200、专项 29 卡、查词、我的、学习页正常；201 个 DOM id 无重复/缺失。
 - 文档截图：`docs/screenshots/{quiz-start,quiz-session,background}.png`。
 
-**交付**：待 CI（提交后补充 run / Release / APK 大小 / 标题）。
+**交付**：run `43389370961` → Release `android-18`（target `85a3149`，APK 13,126,989 字节），标题为「Add wallpaper background and an adaptive quiz engine」。
 
 ---
 
@@ -467,6 +467,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `85a3149` | 背景壁纸（压缩存储/蒙版/模糊）+ 测试引擎与测试页重做（6 范围/3 题型/自动难度/约束/干扰项）+ 文档截图（P13） |
 | `9c5294d` | 主题级 UI/UX：逐主题字体/圆角/阴影/密度/动效/底栏/底纹 token + 深色适配 + 文档与截图（P12） |
 | `5714557` | 8 套 ui-style-selector 主题 + 次强调色渐变 + 深浅色重校 + 文档截图重拍（P11） |
 | `eb42460` | 学习面板拖动/箭头排序 + 顺序持久化与导出导入（P10） |
@@ -488,4 +489,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-17` APK（8 套主题的完整 UI/UX 差异 + 面板排序 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-17/Glance-android.apk`（13,108,639 字节）；历史版本 `android-2`–`android-16` 保留在 Releases。
+**交付物**：`android-18` APK（背景壁纸 + 测试引擎与测试页重做 + 8 套主题 UI/UX）— `https://github.com/mjkyleo/Glance/releases/download/android-18/Glance-android.apk`（13,126,989 字节）；历史版本 `android-2`–`android-17` 保留在 Releases。
