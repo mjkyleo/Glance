@@ -135,6 +135,8 @@
 
 **Android**：从 [Releases](https://github.com/mjkyleo/Glance/releases/latest) 下载 `Glance-android.apk`，允许「安装未知应用」后安装。APK 由 GitHub Actions 自动构建。
 
+> 从旧版本升级（包名相同但签名不同）：先在「设置 → 数据」导出备份，再卸载旧版，安装新 APK 后导入即可。此后新版本可直接覆盖安装，无需再卸载。
+
 **macOS**：仓库保留了 electron-builder 的 mac 配置，可自行构建，暂未提供签名安装包。
 
 ## 使用
