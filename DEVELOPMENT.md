@@ -143,12 +143,12 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后最新为 `android-20`。
 
-- 最新提交：`85a3149`（`main` / `dev/p7`），P13 背景壁纸 + `quiz.js` 测试引擎 + 测试页三屏（开始/作答/结果）。
-- 最新交付：`android-18` APK → `https://github.com/mjkyleo/Glance/releases/download/android-18/Glance-android.apk`（13,126,989 字节）。
-- 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.10；**不能按编号折算完成度**，以本文实际勾选为准。
+- 最新提交：`550d5d6`（`main`），Releases 排序修复 + 停止回填旧 Release 标题 + 文档/仅文档推送不再触发 APK 构建。
+- 最新交付：`android-20` APK → `https://github.com/mjkyleo/Glance/releases/download/android-20/Glance-android.apk`（13,126,987 字节）。
+- 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下新增的 Logo 图片为用户素材，未提交）。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.11；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -449,6 +449,21 @@
 
 **交付**：run `43389370961` → Release `android-18`（target `85a3149`，APK 13,126,989 字节），标题为「Add wallpaper background and an adaptive quiz engine」。
 
+### 8.11 Releases 排序修复 ✅
+
+**问题**：Releases 页面与 API 的顺序为 `android-9, 8, 7, 19, 18, …, 10, 6, …, 2`——三个旧版本被 GitHub 服务端排到最新版之上（`created_at`、id、tag 提交时间均正常，`/releases/latest` 也正确指向 19），属于 GitHub 对非 SemVer 标签的排序异常，网页没有「拖动排序」入口。
+
+**处理**：
+
+- 用户确认后删除 `android-7` / `android-8` / `android-9` 三个 release（仅删 release 与 APK 资产，**git tag 保留**），由 `.github/workflows/release-order.yml` 一次性执行（清单写死、可重复运行）。
+- 移除 `android-build.yml` 中「Fix generic titles on older releases」步骤：它每次构建都会 PATCH 历史 release，是造成列表反复变动的来源；现有标题已全部具体化。
+- `android-build.yml` 增加 `paths-ignore`（`**/*.md`、`docs/**`、`release-order.yml`），文档提交不再触发 APK 构建。
+- README 下载入口与徽标链接改为 `/releases/latest`，避免用户落在列表顶部。
+
+**验证**：清理后 API 顺序为 `20, 19, 18, …, 10, 6, …, 2`，严格从新到旧；`android-9` 的 git tag 仍存在。
+
+**交付**：run `43393338252` → Release `android-20`（target `550d5d6`，APK 13,126,987 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -467,6 +482,8 @@
 
 | 提交 | 内容 |
 |---|---|
+| `550d5d6` | 删除卡在列表顶部的 `android-7/8/9` release（保留 tag），Releases 恢复从新到旧 |
+| `291c19d` | 移除每轮构建的旧 Release 标题回填 + 文档提交不触发 APK 构建 + README 下载指向 `/releases/latest` |
 | `85a3149` | 背景壁纸（压缩存储/蒙版/模糊）+ 测试引擎与测试页重做（6 范围/3 题型/自动难度/约束/干扰项）+ 文档截图（P13） |
 | `9c5294d` | 主题级 UI/UX：逐主题字体/圆角/阴影/密度/动效/底栏/底纹 token + 深色适配 + 文档与截图（P12） |
 | `5714557` | 8 套 ui-style-selector 主题 + 次强调色渐变 + 深浅色重校 + 文档截图重拍（P11） |
@@ -489,4 +506,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-18` APK（背景壁纸 + 测试引擎与测试页重做 + 8 套主题 UI/UX）— `https://github.com/mjkyleo/Glance/releases/download/android-18/Glance-android.apk`（13,126,989 字节）；历史版本 `android-2`–`android-17` 保留在 Releases。
+**交付物**：`android-20` APK（与 P13 相同的应用代码，附加 CI/文档调整）— `https://github.com/mjkyleo/Glance/releases/download/android-20/Glance-android.apk`（13,126,987 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-19` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
