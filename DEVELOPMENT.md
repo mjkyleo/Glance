@@ -143,12 +143,12 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后最新为 `android-21`（新 Logo 图标 + 启动图）。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后最新为 `android-22`（versionCode 22 / versionName 1.0.5）。
 
-- 最新提交：`c50253f`（`main`），G 形词根标记替换全部图标与启动图，资源由 `scripts/gen-icons.js` 统一生成。
-- 最新交付：`android-21` APK → `https://github.com/mjkyleo/Glance/releases/download/android-21/Glance-android.apk`（13,161,809 字节）。
+- 最新提交：`8d89844`（`main`），Android 每次构建递增 versionCode，并改用仓库内固定调试签名密钥。
+- 最新交付：`android-22` APK → `https://github.com/mjkyleo/Glance/releases/download/android-22/Glance-android.apk`（13,161,866 字节）。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.12；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -484,6 +484,23 @@
 
 **交付**：`android-21`（target `c50253f`，APK 13,161,809 字节，标题「Replace the app icon with the G-root mark」）。
 
+### 8.13 Android 覆盖安装修复：版本号递增 + 固定调试签名 ✅
+
+**问题**：手机上「应用信息」仍是旧蓝眼睛图标、版本仍是 `1.0`。排查后确认不是图标资源没打进去，而是新包根本没装上：
+
+- `android/app/build.gradle` 里 `versionCode 1` / `versionName "1.0"` 写死，每个 APK 对外都是同一版本，系统不认为需要更新。
+- 工作流用 `./gradlew assembleDebug`，GitHub Actions 每次都是全新机器，debug 签名由机器本地生成，**每个 APK 签名都不同**，覆盖安装直接被系统拒绝（通常提示「应用未安装」，且不覆盖旧版）。
+
+**修复**：
+
+- 新增 `android/keystore/glance-debug.keystore`（alias `androiddebugkey`，口令 `android`，仅用于 debug 包），`build.gradle` 显式指定 `signingConfigs.debug` 指向该文件，所有 CI 构建签名一致，后续版本可原地覆盖升级。
+- `versionCode` 改为 `-PglanceVersionCode=${{ github.run_number }}` 注入（本地默认 1），`versionName` 从 `package.json` 读取（当前 `1.0.5`），每次构建单调递增。
+- 因签名从「每次随机」变为固定密钥，**从旧版本升级到最后一次旧签名安装包需要卸载一次**；此后的所有构建都可直接覆盖安装。卸载会清空本地学习数据，升级前先在「设置 → 数据」导出一份。
+
+**验证**：run `43399149905` 构建成功；Release `android-22` 资产 `Glance-android.apk`（13,161,866 字节）。
+
+**交付**：`android-22`（target `8d89844`，标题「Fix Android updates: per-build versionCode and a stable debug signing key」）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -502,6 +519,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `8d89844` | Android 构建注入递增 versionCode + 仓库内固定调试签名，修复新包无法覆盖安装 |
 | `c50253f` | G 形词根标记替换全平台图标（ico/icns/Android 传统+自适应+monochrome/启动图）+ `gen-icons.js` 单一矢量源 |
 | `e668593` | 记录 Releases 排序修复与 `android-20` 交付 |
 | `550d5d6` | 删除卡在列表顶部的 `android-7/8/9` release（保留 tag），Releases 恢复从新到旧 |
@@ -528,4 +546,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-21` APK（新 G 形词根图标 + 启动图，应用代码同 P13）— `https://github.com/mjkyleo/Glance/releases/download/android-21/Glance-android.apk`（13,161,809 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-20` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-22` APK（新 G 形词根图标 + 启动图，versionCode 22 / versionName 1.0.5，固定调试签名）— `https://github.com/mjkyleo/Glance/releases/download/android-22/Glance-android.apk`（13,161,866 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-21` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
