@@ -140,10 +140,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8（学习面板、柔和进度条、词典标签）与 P9（五套配色、分类设置、「我的」入口、Release 标题）已完成并交付 `android-13`。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8（学习面板、柔和进度条、词典标签）、P9（五套配色、分类设置、「我的」入口、Release 标题）与 P10（学习面板排序）已完成并交付 `android-14`。
 
-- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 配色/设置/我的，Release 标题改为按改动生成。
-- 最新交付：`android-13` APK（五套配色 + 分类设置 + 我的 + 动态 Release 标题）— `https://github.com/mjkyleo/Glance/releases/download/android-13/Glance-android.apk`。
+- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 配色/设置/我的 + P10 面板排序。
+- 最新交付：`android-14` APK（面板拖动/箭头排序 + 五套配色 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-14/Glance-android.apk`。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7–P9 功能全部完成，回归与专项验证见 §8.5–§8.6；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -358,6 +358,19 @@
 
 **交付**：run `43372482022` → Release `android-13`（target `036b51b`，APK 13,100,488 字节），标题取自本次改动提交。历史上 `Glance Android (build N)` 的 Release 已按标签对应提交标题回填（`android-2`–`android-8`、`android-10`、`android-11`；`android-9` 为 ImgBot 图片优化）。回填依赖 `gh release list --json name`（`title` 字段不存在）与 pipeline-only 构建的标题兜底，修复提交 `036b51b`。
 
+### 8.7 学习面板排序（P10）✅
+
+**反馈**：设置里的「每日计划与学习面板」需要能调整学习页内容的先后顺序。
+
+- [x] **顺序持久化**：`store.js` 新增 `studyPanelOrder`（11 项），归一化时按保存顺序去重、过滤非法项并补齐缺失项，不再被默认数组覆盖；随导出/导入迁移（`settings.studyPanelOrder`）。
+- [x] **分类排序 UI**：学习面板按页面位置分为「卡片顶部」（音标、构词解析、助记、释义）与「详细内容」（英文释义、词根家族、近义词、派生词、词形变化、词源、例句）两组；每行支持拖动（⠿ 手柄）与 ↑/↓ 按钮，附「恢复默认顺序」。
+- [x] **学习页同步**：`panelOrder()` 决定渲染顺序；卡片顶部四项按顺序插入词条卡片，详细内容按顺序重建 `#study-info` 行；设置面板打开时改动即时反映到学习页。
+- [x] **移动端适配**：24px 箭头按钮 + 可拖拽行；360px 视口下标签、箭头、开关不溢出。
+
+**验证（CDP 实操）**：新增 `verify-order.js` 7/7 通过——默认分组与顺序、卡片顶部箭头排序（`释义` 置顶后 `#word-meaning` 排到最前）、详细内容排序（`词源` 置顶后学习页首行为「词源」）、组内拖动、重置、刷新后保留并过滤非法项、导出携带顺序；`EXCEPTIONS: []`、`CONSOLE_ERRORS: []`。回归：`verify-panel` 6/6、`verify-all` 15/15、`verify-p9` 18/18。截图 `docs/screenshots/{panel-order,study-order}.png`。
+
+**交付**：run `43374060828` → Release `android-14`（target `eb42460`，APK 13,102,468 字节），标题为「Add reorderable study panel with drag and arrow controls」。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -376,6 +389,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `eb42460` | 学习面板拖动/箭头排序 + 顺序持久化与导出导入（P10） |
 | `036b51b` | 修复历史 Release 标题回填（`--json name`）+ pipeline-only 构建标题兜底 |
 | `2e60e7b` | 五套配色主题 + 设置分类 + 我的（统计/设置入口）+ 动态 Release 标题（P9） |
 | `d508f33` | 学习面板 11 项内容开关 + 学习页信息增强 + 柔和进度条 + 词典标签去重 |
@@ -394,4 +408,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-13` APK（五套配色 + 分类设置 + 我的 + 动态 Release 标题）— `https://github.com/mjkyleo/Glance/releases/download/android-13/Glance-android.apk`（13,100,488 字节）；历史版本 `android-2`–`android-12` 保留在 Releases。
+**交付物**：`android-14` APK（学习面板排序 + 五套配色 + 分类设置 + 我的）— `https://github.com/mjkyleo/Glance/releases/download/android-14/Glance-android.apk`（13,102,468 字节）；历史版本 `android-2`–`android-13` 保留在 Releases。
