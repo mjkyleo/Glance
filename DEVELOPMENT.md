@@ -143,10 +143,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`72ab21a`（`main`），测试流程重做：设置收进右上角齿轮面板，入口只留「开始」；答对自动跳题，答错展示全部义项与可点开的选项单词。
-- 最新交付：`android-26` APK → `https://github.com/mjkyleo/Glance/releases/download/android-26/Glance-android.apk`（13,165,506 字节）。
+- 最新提交：`55356ef`（`main`），「我的」支持头像与昵称：图片自动裁剪压缩后仅存本机，昵称最多 16 字符，随备份导出/覆盖导入恢复。
+- 最新交付：`android-27` APK → `https://github.com/mjkyleo/Glance/releases/download/android-27/Glance-android.apk`（13,168,277 字节）。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -572,6 +572,23 @@
 
 **交付**：`android-26`（target `72ab21a`，CI run 43413846494 成功，Range 复核 `com.glance.app` / `versionCode 26` / `versionName 1.0.6+26`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,165,506 字节）。
 
+### 8.17 「我的」头像与昵称 ✅
+
+**数据与存储**
+
+- `DEFAULTS.profile = { nickname: '', avatar: '' }`；`normalize()` 只接受 `data:image/...;base64,` 头像，昵称 trim 后最多 16 个字符。
+- 新增 `Store.setProfile(patch)` 统一写入；`exportData().data.settings.profile` 携带昵称与头像（压缩后约 10KB），覆盖导入时恢复，合并导入保留本机资料。
+
+**界面**
+
+- 「我的」顶部头像改为按钮（无头像时显示眼睛占位与相机角标），昵称旁新增铅笔按钮，二者都打开 `#profile-sheet`。
+- 资料面板包含 84px 圆形预览、点击选图、移除头像、昵称输入与实时预览、保存按钮；支持 `Esc`、点击遮罩或关闭按钮退出。
+- 头像处理：FileReader → Image → canvas 居中裁成 256×256 方形 → 优先 WebP（不支持时回退 JPEG）→ 逐级降低质量直到少于 9 万字符；只保存 data URL，不上传服务器。
+
+**验证**：Electron + CDP（390×844 @2x，blue 主题）实测：昵称保存后即时更新且刷新后保留；模拟上传 600×400 PNG 自动裁成方形 WebP（约 4.6KB），顶部头像与面板预览同步，刷新后保留；移除头像恢复占位；`exportData` 含 profile，覆盖导入可恢复；360px 宽度无横向溢出，资料面板无需滚动即可完整显示；`node --check app/js/app.js app/js/store.js` 通过。文档截图更新为 `me.png` / `profile.png`。
+
+**交付**：`android-27`（target `55356ef`，CI run 43416989592 成功，Range 复核 `com.glance.app` / `versionCode 27` / `versionName 1.0.6+27`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,168,277 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -590,6 +607,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `55356ef` | 「我的」头像与昵称：256px 方形裁剪 + WebP 压缩、仅存本机，随备份导出/覆盖导入恢复 |
 | `72ab21a` | 测试流程重做：设置收进齿轮面板、入口只留开始；答对自动跳题、答错展示全部义项与可点开的选项单词、上一题回顾 |
 | `a65dd82` | 设置并入「我的」：去掉顶栏/工具栏齿轮，六项设置平铺为紧凑列表，面板直开对应分区 |
 | `26b3070` | 详细讲解页重构：自动查词、刷新/删除图标、AI 自动生成开关、词根+词源合并、卡片紧凑化 |
@@ -621,4 +639,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-26` APK（测试流程重做，versionCode 26 / versionName `1.0.6+26`）— `https://github.com/mjkyleo/Glance/releases/download/android-26/Glance-android.apk`（13,165,506 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-25` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-27` APK（头像与昵称编辑，versionCode 27 / versionName `1.0.6+27`）— `https://github.com/mjkyleo/Glance/releases/download/android-27/Glance-android.apk`（13,168,277 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-26` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
