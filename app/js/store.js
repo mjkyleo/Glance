@@ -16,6 +16,10 @@
       phonetic: true, meaning: true, morphemes: true, mnemonic: true, definitions: true,
       examples: true, family: true, synonyms: true, derivatives: true, etymology: true, inflections: true
     },
+    studyPanelOrder: [
+      'phonetic', 'morphemes', 'mnemonic', 'meaning', 'definitions',
+      'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples'
+    ],
     theme: 'blue',
     autoSpeak: false,
     preferAudio: true,
@@ -48,6 +52,10 @@
     if (!d.cardOrder.includes('mnemonic')) { const i = d.cardOrder.indexOf('meaning'); d.cardOrder.splice(i < 0 ? 0 : i + 1, 0, 'mnemonic'); }
     if (!d.studyPanel || typeof d.studyPanel !== 'object' || Array.isArray(d.studyPanel)) d.studyPanel = {};
     d.studyPanel = Object.assign({}, DEFAULTS.studyPanel, d.studyPanel);
+    const panelIds = DEFAULTS.studyPanelOrder;
+    if (!Array.isArray(d.studyPanelOrder)) d.studyPanelOrder = [];
+    const savedOrder = d.studyPanelOrder.filter((id, i) => panelIds.includes(id) && d.studyPanelOrder.indexOf(id) === i);
+    d.studyPanelOrder = savedOrder.concat(panelIds.filter(id => !savedOrder.includes(id)));
     if (!['blue', 'green', 'yellow', 'gray', 'black'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
@@ -299,7 +307,7 @@
         customBooks: clone(data.customBooks || {}),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
-          studyPanel: clone(data.studyPanel || {}), theme: data.theme || 'blue',
+          studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
           ai, dict
         }
@@ -366,6 +374,7 @@
         if (typeof s.activeBook === 'string' && s.activeBook) data.activeBook = s.activeBook;
         if (Array.isArray(s.cardOrder) && s.cardOrder.length) data.cardOrder = s.cardOrder.slice();
         if (isObj(s.studyPanel)) data.studyPanel = Object.assign({}, DEFAULTS.studyPanel, s.studyPanel);
+        if (Array.isArray(s.studyPanelOrder) && s.studyPanelOrder.length) data.studyPanelOrder = s.studyPanelOrder.slice();
         if (['blue', 'green', 'yellow', 'gray', 'black'].includes(s.theme)) data.theme = s.theme;
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;

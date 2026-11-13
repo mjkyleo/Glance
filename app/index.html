@@ -415,51 +415,117 @@
         </section>
         <section class="set-group">
           <h4>学习面板</h4>
-          <p class="field-hint">选择学习页展示的内容，随时可开关。</p>
-          <div class="set-row">
-            <span class="set-row-label">音标与发音<small>音标和朗读按钮</small></span>
-            <label class="switch"><input type="checkbox" data-panel="phonetic" /><span class="slider"></span></label>
+          <p class="field-hint">开关控制学习页展示的内容；拖动或用箭头调整先后顺序，学习页会同步。</p>
+          <div class="panel-order-group" data-panel-group="head">
+            <div class="panel-order-title">卡片顶部</div>
+            <div class="panel-order">
+              <div class="set-row panel-row" data-panel-row="phonetic">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">音标与发音<small>音标和朗读按钮</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="音标与发音上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="音标与发音下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="phonetic" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="morphemes">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">构词解析<small>前缀 / 词根 / 后缀拆解</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="构词解析上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="构词解析下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="morphemes" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="mnemonic">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">助记<small>词根助记钩子</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="助记上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="助记下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="mnemonic" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="meaning">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">释义<small>卡片上的中文释义</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="释义上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="释义下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="meaning" /><span class="slider"></span></label>
+              </div>
+            </div>
           </div>
-          <div class="set-row">
-            <span class="set-row-label">释义<small>卡片上的中文释义</small></span>
-            <label class="switch"><input type="checkbox" data-panel="meaning" /><span class="slider"></span></label>
+          <div class="panel-order-group" data-panel-group="detail">
+            <div class="panel-order-title">详细内容</div>
+            <div class="panel-order">
+              <div class="set-row panel-row" data-panel-row="definitions">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">英文释义<small>词性与英文解释</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="英文释义上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="英文释义下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="definitions" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="family">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">词根家族<small>同根词一览</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="词根家族上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="词根家族下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="family" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="synonyms">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">近义词<small>同义 / 近义表达</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="近义词上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="近义词下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="synonyms" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="derivatives">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">派生词<small>加缀派生词</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="派生词上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="派生词下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="derivatives" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="inflections">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">词形变化<small>复数、时态等形式</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="词形变化上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="词形变化下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="inflections" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="etymology">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">词源<small>单词的来源故事</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="词源上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="词源下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="etymology" /><span class="slider"></span></label>
+              </div>
+              <div class="set-row panel-row" data-panel-row="examples">
+                <span class="panel-grip" aria-hidden="true">⠿</span>
+                <span class="set-row-label">例句<small>单词例句</small></span>
+                <span class="panel-ops">
+                  <button class="op" type="button" data-move="-1" title="上移" aria-label="例句上移">↑</button>
+                  <button class="op" type="button" data-move="1" title="下移" aria-label="例句下移">↓</button>
+                </span>
+                <label class="switch"><input type="checkbox" data-panel="examples" /><span class="slider"></span></label>
+              </div>
+            </div>
           </div>
-          <div class="set-row">
-            <span class="set-row-label">构词解析<small>前缀 / 词根 / 后缀拆解</small></span>
-            <label class="switch"><input type="checkbox" data-panel="morphemes" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">助记<small>词根助记钩子</small></span>
-            <label class="switch"><input type="checkbox" data-panel="mnemonic" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">英文释义<small>词性与英文解释</small></span>
-            <label class="switch"><input type="checkbox" data-panel="definitions" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">例句<small>单词例句</small></span>
-            <label class="switch"><input type="checkbox" data-panel="examples" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">词根家族<small>同根词一览</small></span>
-            <label class="switch"><input type="checkbox" data-panel="family" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">近义词<small>同义 / 近义表达</small></span>
-            <label class="switch"><input type="checkbox" data-panel="synonyms" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">派生词<small>加缀派生词</small></span>
-            <label class="switch"><input type="checkbox" data-panel="derivatives" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">词形变化<small>复数、时态等形式</small></span>
-            <label class="switch"><input type="checkbox" data-panel="inflections" /><span class="slider"></span></label>
-          </div>
-          <div class="set-row">
-            <span class="set-row-label">词源<small>单词的来源故事</small></span>
-            <label class="switch"><input type="checkbox" data-panel="etymology" /><span class="slider"></span></label>
-          </div>
+          <button class="btn-ghost" id="set-panel-reset" type="button">恢复默认顺序</button>
         </section>
       </div>
 
