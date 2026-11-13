@@ -143,7 +143,7 @@
 > 更新（2026-11-13）：P7 全部功能（#52–#62）已完成代码、CDP 实测与文档收尾；#63 仅剩推送触发 CI 与交付 APK。
 
 - 最新提交：`dev/p7` 分支，分类器 `01b7a03`、专项 UI `3f2abb9`、查看次数 `890522c`、导出导入 `5f092ab`、外部词典 `449df3b`，另有清理 + README + 文档收尾提交。
-- 最新交付：`android-6` APK（**不含** P7 新功能）；P7 构建将由 #63 推送 main 触发。
+- 最新交付：`android-8` APK（含 P7 全部新功能）— `https://github.com/mjkyleo/Glance/releases/download/android-8/Glance-android.apk`。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7 需求 #52–#62 全部完成（回归 15/15），#63 推送与发布进行中；**不能按编号折算完成度**，以本文 §4–§8 的实际勾选为准。
 
@@ -314,9 +314,9 @@
 
 **产出**：`README.md` 全中文重写（简介/特色分组/真实徽章/截图表格/安装/使用/导出 JSON 示例/词典 provider 表/构建/目录/许可）；新增 `docs/screenshots/{study,dictionary,themes,stats,books}.png` 入库（源图来自 P7 实测）。
 
-### 8.4 修复 + 重跑 Action 交付（#63）
+### 8.4 修复 + 重跑 Action 交付（#63）✅
 - [x] 针对实测发现的问题逐项优化修复（词典音标双斜杠 → `cleanIpa`；遗留死代码/文件清理；验证脚本修正）。
-- [ ] 重跑 `android-build.yml` 构建 APK → 发布 Release → 通知用户下载链接。
+- [x] 重跑 `android-build.yml` 构建 APK → 发布 Release → 通知用户下载链接（run `43358799647` 成功，`android-8`，target `6d7bb79`，APK 13,149,216 字节）。
 - [x] 推送用专用 SSH 密钥 `id_ed25519_glance`；提交用 noreply 邮箱 `125885091+mjkyleo@users.noreply.github.com`。
 
 ---
@@ -349,4 +349,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-6` APK — `https://github.com/mjkyleo/Glance/releases/download/android-6/Glance-android.apk`（约 12.5MB，不含 P7）；P7 版本由 #63 CI 产出后更新链接。
+**交付物**：`android-8` APK（P7 完整版）— `https://github.com/mjkyleo/Glance/releases/download/android-8/Glance-android.apk`（13,149,216 字节）；旧版 `android-6/7` 保留在 Releases。
