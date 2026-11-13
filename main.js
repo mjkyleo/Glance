@@ -425,6 +425,29 @@ ipcMain.handle('llm-chat', async (_e, args) => {
   }
 });
 
+// 通用 GET + JSON：主进程发起请求，绕过浏览器 CORS（外部词典等）。
+ipcMain.handle('http-get', async (_e, args) => {
+  const { url, headers, timeout } = args || {};
+  let target;
+  try { target = new URL(String(url || '')); } catch { return { ok: false, error: '无效的 URL' }; }
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') return { ok: false, error: '仅支持 http/https' };
+  const ms = Math.min(Math.max(Number(timeout) || 15000, 1000), 60000);
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await net.fetch(target.toString(), { method: 'GET', headers: headers || {}, signal: ctl.signal });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = null; }
+    if (!res.ok) return { ok: false, status: res.status, error: 'HTTP ' + res.status, data };
+    if (data === null) return { ok: false, status: res.status, error: '返回内容不是有效 JSON' };
+    return { ok: true, status: res.status, data };
+  } catch (err) {
+    const msg = String((err && err.message) || err);
+    return { ok: false, error: /abort/i.test(msg) ? '网络超时' : msg };
+  } finally { clearTimeout(to); }
+});
+
 // 导出文本文件（AI 解释等）：弹出保存对话框并写入。
 ipcMain.handle('save-text-file', async (_e, args) => {
   const { name, text } = args || {};

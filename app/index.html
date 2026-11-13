@@ -348,6 +348,13 @@
         <p class="field-hint">支持 OpenAI、Anthropic 及主流国产大模型；Key 只存本地，不上传。</p>
       </section>
       <section class="set-group">
+        <h4>外部词典</h4>
+        <label class="field"><span>服务商</span><select id="set-dict-provider"></select></label>
+        <label class="field" id="set-dict-key-wrap" hidden><span>API Key</span><input type="password" id="set-dict-key" placeholder="仅保存在本机" autocomplete="off" /></label>
+        <label class="field" id="set-dict-base-wrap" hidden><span>API 地址<small>用 {word} 占位</small></span><input type="text" id="set-dict-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
+        <p class="field-hint" id="set-dict-hint">默认使用免费词典，无需 Key；查询结果缓存本地。</p>
+      </section>
+      <section class="set-group">
         <h4>学习卡片</h4>
         <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
       </section>
@@ -373,6 +380,7 @@
   <script src="js/library.js"></script>
   <script src="js/themes.js"></script>
   <script src="js/ai.js"></script>
+  <script src="js/dictionary.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -138,6 +138,40 @@
 
     openOverlay() { if (isElectron) ipc.send('open-overlay-window'); },
 
+    // GET + JSON parse. Routes around browser CORS: Electron IPC → CapacitorHttp → fetch.
+    async fetchJson(url, opts) {
+      opts = opts || {};
+      const headers = opts.headers || {};
+      const timeout = Math.min(Math.max(Number(opts.timeout) || 15000, 1000), 60000);
+      if (isElectron) {
+        try { return await ipc.invoke('http-get', { url, headers, timeout }); }
+        catch (err) { return { ok: false, error: String((err && err.message) || err) }; }
+      }
+      const http = isNative && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+      try {
+        let status, text;
+        if (http) {
+          const r = await http.get({ url, headers, connectTimeout: timeout, readTimeout: timeout });
+          status = r.status; text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+        } else {
+          const ctl = new AbortController();
+          const to = setTimeout(() => ctl.abort(), timeout);
+          try {
+            const res = await fetch(url, { headers, signal: ctl.signal });
+            status = res.status; text = await res.text();
+          } finally { clearTimeout(to); }
+        }
+        let data;
+        try { data = typeof text === 'string' ? JSON.parse(text) : text; } catch { data = null; }
+        if (status < 200 || status >= 300) return { ok: false, status, error: 'HTTP ' + status, data };
+        if (data === null || data === undefined) return { ok: false, status, error: '返回内容不是有效 JSON' };
+        return { ok: true, status, data };
+      } catch (err) {
+        const msg = String((err && err.message) || err);
+        return { ok: false, error: /abort|timeout/i.test(msg) ? '网络超时' : msg };
+      }
+    },
+
     // Unified OpenAI-compatible chat call. Routes around browser CORS per platform.
     // args: { base, key, model, messages, temperature, jsonMode, anthropic }
     // resolves { ok, content } or { ok:false, error }.

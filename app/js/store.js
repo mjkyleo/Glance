@@ -239,6 +239,13 @@
   function deleteAiExplanation(word) { delete data.aiCache[word]; save(); }
   function aiWords() { return Object.keys(data.aiCache).sort((a, b) => (data.aiCache[b].ts || 0) - (data.aiCache[a].ts || 0)); }
 
+  // external dictionary (config + per-word cache, offline-friendly)
+  function setDictConfig(patch) { Object.assign(data.dict, patch || {}); save(); }
+  function dictEntry(word) { return data.dictCache[word] || null; }
+  function saveDictEntry(word, record) { data.dictCache[word] = record; save(); }
+  function deleteDictEntry(word) { delete data.dictCache[word]; save(); }
+  function dictWords() { return Object.keys(data.dictCache).sort((a, b) => (data.dictCache[b].ts || 0) - (data.dictCache[a].ts || 0)); }
+
   // ---- portable backup: universal words table + lossless settings/progress block ----
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
@@ -384,6 +391,7 @@
     addHistory, clearHistory, addError, clearError, errorWords,
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     exportData, importData,
-    setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords
+    setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
+    setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords
   };
 })();

@@ -26,6 +26,7 @@
 | `store.js` | 持久化 + 学习域逻辑（SRS 状态、每日日志、收藏、历史、错题、AI 缓存） |
 | `library.js` | 词库索引、词根家族、词缀、查词、词性解析、助记钩子、详解卡片构建 |
 | `ai.js` | 按需 LLM 单词讲解（多服务商预设、JSON 解析、本地缓存、导出） |
+| `dictionary.js` | 外部词典（免费 / Merriam-Webster / 自定义端点）：归一化、按词缓存、查询 |
 | `app.js` | 应用控制器：视图路由、学习/测试、词卡、词根/词缀、查词、统计、设置、事件 |
 | `themes.js` | 专项分类器（29 个主题，精度优先规则，详见 §4） |
 
@@ -236,23 +237,31 @@
 
 ---
 
-## 7. 外部词典检索 + 缓存 + 设置配置（#59）
+## 7. 外部词典检索 + 缓存 + 设置配置（#59）✅
 
 **需求**：内置免费权威词典，点一下按词检索、结果以卡片弹出（多义项）；本地不够完善时补充；
 可在设置配置其他厂商 API；检索结果按词缓存，避免重复联网。
 
 > URL 约束：只用**真实官方端点**，严禁替换为 routify 等临时代理；每次调用重新核对来源。
 
-- [ ] **网络通道**：`platform.js` 新增 `fetchJson(url,{headers})`，路由 Electron IPC `http-get` / CapacitorHttp GET / 浏览器 fetch；`main.js` 新增 `http-get` handler（`net.fetch` 绕过 CORS，镜像 `llm-chat`）。
-- [ ] **新模块 `dictionary.js`**：providers + 归一化 + lookup + 缓存 + 导出。
+- [x] **网络通道**：`platform.js` 新增 `fetchJson(url,{headers})`，路由 Electron IPC `http-get` / CapacitorHttp GET / 浏览器 fetch；`main.js` 新增 `http-get` handler（`net.fetch` 绕过 CORS，镜像 `llm-chat`，仅允许 http/https，超时 15s）。
+- [x] **新模块 `dictionary.js`**：providers + 归一化 + lookup + 缓存 + 导出。
   - `free`（默认，免 Key）：`https://api.dictionaryapi.dev/api/v2/entries/en/{word}`（Wiktionary 源，含音标/词性/多义项/例句/同义词/真人发音）。
   - `mw`（Merriam-Webster Collegiate，权威，需免费 Key）：`https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={key}`。
   - `custom`（自定义端点）：URL 模板 `{word}` + 可选 Key（Bearer 或 `?key=`），通用 JSON 渲染。
   - 说明：Bing/有道无免费公开 API，作为「自定义端点」可选接入，不臆造接口。
-- [ ] **归一化记录**：`{word, ipa, audio:[urls], meanings:[{pos, defs:[{en, example, synonyms, antonyms}]}], provider, sourceUrl, ts}`。
-- [ ] **缓存**：`store.js` `DEFAULTS.dictCache={}` + `dict={provider:'free',key:'',base:'',enabled:true}`；`setDictConfig/dictExplanation/saveDictExplanation/deleteDictExplanation/dictWords`。命中缓存优先，离线可看。
-- [ ] **UI**：`word-sheet` 增「词典」按钮（镜像 `aiSection`）→ 检索 → 按词性分组卡片弹出；设置页「外部词典」组（启用/服务商/Key/地址）。
-- [ ] `index.html` 增 `dictionary.js` script 标签。
+- [x] **归一化记录**：`{word, ipa, audio:[urls], meanings:[{pos, defs:[{en, example, synonyms, antonyms}]}], provider, sourceUrl, ts}`。
+- [x] **缓存**：`store.js` `DEFAULTS.dictCache={}` + `dict={provider:'free',key:'',base:''}`；`setDictConfig/dictEntry/saveDictEntry/deleteDictEntry/dictWords`。命中缓存优先，离线可看。
+- [x] **UI**：`word-sheet` 增「词典」卡片（含音标、按词性分组义项、例句/近义词、重新查询/删除缓存）→ 检索结果直接展示；设置页「外部词典」组（服务商/Key/地址，按服务商动态显隐）。
+- [x] `index.html` 增 `dictionary.js` script 标签。
+
+**验证（CDP 实操）**：
+- 免费源真实查询 `abandon`：HTTP 200，音标 `əˈbæn.dən`、2 个词性（verb/noun）、9 条释义、真人音频 1 条、来源 Wiktionary。
+- 缓存：二次查询 `cached:true`，`Store.dictEntry('abandon')` 存在；词卡显示「免费词典 · 本地缓存」徽标。
+- MW：无 Key 时提示填写 Key；合成返回正确解析音标/音频 URL/近反义词。
+- 自定义：嵌套 `entries/definitions` 与字符串 `defs` 均能归一化；`{word}`/`{key}` 占位与 Bearer 头正确；无地址时提示配置。
+- 设置页：三项服务商切换、Key/地址显隐、配置持久化正常；错误词返回「词典中未找到该词」。
+- 导出包含 `dictCache` 且 `dict.key` 被剔除；删除缓存生效。无控制台报错。
 
 ---
 

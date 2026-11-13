@@ -625,7 +625,9 @@
     $('word-sheet-title').textContent = word;
     if (!e) {
       $('word-sheet-sub').textContent = '';
-      $('word-sheet-body').innerHTML = '<div class="empty-hint">词库中暂无该词</div>';
+      const body = $('word-sheet-body');
+      body.innerHTML = '<div class="empty-hint">词库中暂无该词，可尝试外部词典查询。</div>';
+      if (window.Dictionary) body.appendChild(dictSection({ word }));
       $('word-study-btn').disabled = true;
       openSheet('word-sheet');
       return;
@@ -642,6 +644,7 @@
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
+    if (window.Dictionary) body.appendChild(dictSection(e));
     body.appendChild(aiSection(e));
     const cardsWrap = el('section', 'cards'); cardsWrap.id = 'cards';
     body.appendChild(cardsWrap);
@@ -695,6 +698,73 @@
     const go = el('button', 'btn-ghost', '前往设置');
     go.addEventListener('click', () => { closeSheet(); openSettings(); });
     actions.appendChild(go);
+  }
+
+  function dictSection(e) {
+    const sec = el('section', 'ai-section dict-section');
+    const head = el('div', 'ai-section-head');
+    head.appendChild(el('span', 'ai-section-title', '词典'));
+    const meta = el('span', 'ai-section-meta');
+    head.appendChild(meta);
+    sec.appendChild(head);
+    const content = el('div', 'ai-section-body');
+    sec.appendChild(content);
+    const actions = el('div', 'ai-actions');
+    sec.appendChild(actions);
+
+    function providerName(id) { return Dictionary.getProvider(id).name; }
+
+    function render(record, cached) {
+      content.innerHTML = ''; actions.innerHTML = '';
+      if (!record) {
+        meta.textContent = providerName(Store.data.dict.provider);
+        content.appendChild(el('p', 'ai-placeholder', '用外部词典补充音标与多义项。查询结果保存在本地，下次直接离线查看。'));
+        const go = el('button', 'btn-primary', '查询词典');
+        go.addEventListener('click', () => run(go));
+        actions.appendChild(go);
+        return;
+      }
+      meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '');
+      if (record.ipa) content.appendChild(el('p', 'dict-ipa', '/' + record.ipa + '/'));
+      (record.meanings || []).forEach(m => {
+        const block = el('div', 'dict-mean');
+        if (m.pos) block.appendChild(el('div', 'dict-pos', m.pos));
+        (m.defs || []).forEach((d, i) => {
+          const row = el('div', 'dict-def');
+          row.appendChild(el('span', 'dict-num', String(i + 1)));
+          const txt = el('div', 'dict-def-text');
+          txt.appendChild(el('span', 'dict-def-en', d.en || ''));
+          if (d.example) txt.appendChild(el('div', 'dict-def-ex', d.example));
+          const syn = (d.synonyms || []).join(' · ');
+          if (syn) txt.appendChild(el('div', 'dict-def-syn', '近义：' + syn));
+          row.appendChild(txt);
+          block.appendChild(row);
+        });
+        content.appendChild(block);
+      });
+      const again = el('button', 'btn-ghost', '重新查询');
+      again.addEventListener('click', () => run(again));
+      const del = el('button', 'btn-ghost danger', '删除缓存');
+      del.addEventListener('click', () => { Store.deleteDictEntry(e.word); render(null, false); });
+      actions.append(again, del);
+    }
+
+    async function run(btn) {
+      if (btn) { btn.disabled = true; btn.textContent = '查询中…'; }
+      content.innerHTML = ''; actions.innerHTML = '';
+      meta.textContent = providerName(Store.data.dict.provider);
+      content.appendChild(el('p', 'ai-placeholder', '正在查询外部词典…'));
+      const res = await Dictionary.lookup(e.word, Store.data.dict);
+      if (res.ok) { render(res.record, res.cached); return; }
+      content.innerHTML = '';
+      content.appendChild(el('p', 'ai-error', '查询失败：' + res.error));
+      const retry = el('button', 'btn-ghost', '重试');
+      retry.addEventListener('click', () => run(retry));
+      actions.appendChild(retry);
+    }
+
+    render(Store.dictEntry(e.word), true);
+    return sec;
   }
 
   function aiSection(e) {
@@ -1140,6 +1210,14 @@
     $('set-ai-base').value = ai.base || '';
     $('set-ai-key').value = ai.key || '';
     syncAiProviderUi();
+    const dict = Store.data.dict;
+    const dsel = $('set-dict-provider');
+    dsel.innerHTML = '';
+    Dictionary.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; dsel.appendChild(o); });
+    dsel.value = dict.provider || 'free';
+    $('set-dict-key').value = dict.key || '';
+    $('set-dict-base').value = dict.base || '';
+    syncDictProviderUi();
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
     openSheet('settings-sheet');
@@ -1149,6 +1227,12 @@
     $('set-ai-base-wrap').hidden = !p.custom;
     $('set-ai-model').placeholder = p.model || '模型名称';
     $('set-ai-model-hint').textContent = p.model ? '留空使用默认：' + p.model : '请填写模型名称';
+  }
+  function syncDictProviderUi() {
+    const p = Dictionary.getProvider($('set-dict-provider').value);
+    $('set-dict-key-wrap').hidden = !(p.needKey || p.custom);
+    $('set-dict-base-wrap').hidden = !p.custom;
+    $('set-dict-hint').textContent = p.hint;
   }
   function applyPlan() {
     const nw = Math.max(0, Math.min(200, parseInt($('set-new').value, 10) || 0));
@@ -1237,6 +1321,9 @@
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
     $('set-ai-key').addEventListener('change', () => Store.setAiConfig({ key: $('set-ai-key').value.trim() }));
     $('set-ai-library').addEventListener('click', () => { closeSheet(); switchView('ai'); });
+    $('set-dict-provider').addEventListener('change', () => { Store.setDictConfig({ provider: $('set-dict-provider').value }); syncDictProviderUi(); });
+    $('set-dict-key').addEventListener('change', () => Store.setDictConfig({ key: $('set-dict-key').value.trim() }));
+    $('set-dict-base').addEventListener('change', () => Store.setDictConfig({ base: $('set-dict-base').value.trim() }));
     $('ai-back').addEventListener('click', () => switchView('study'));
     $('ai-export').addEventListener('click', async () => {
       const btn = $('ai-export'); btn.disabled = true;
