@@ -340,12 +340,19 @@
           <p class="field-hint">复习上限 0 表示不限。已掌握的词会自动减少出现。</p>
         </section>
         <section class="panel">
-          <div class="panel-head"><h3>选择词书</h3><button class="link-btn" id="import-book" type="button">导入自定义</button></div>
+          <div class="panel-head"><h3>选择词书</h3></div>
           <div id="books-list"></div>
         </section>
-        <section class="panel" id="custom-books-panel" hidden>
-          <div class="panel-head"><h3>自定义词书</h3></div>
+        <section class="panel" id="custom-books-panel">
+          <div class="panel-head"><h3>自定义词书</h3><span class="panel-sub">JSON / TSV / CSV / TXT</span></div>
           <div id="custom-books-list"></div>
+          <button class="book-import" id="import-book" type="button">
+            <span class="book-import-icon" aria-hidden="true">＋</span>
+            <span class="book-import-main">
+              <span class="book-import-title">导入自定义词书</span>
+              <span class="book-import-sub">单词 + 释义，可选例句</span>
+            </span>
+          </button>
         </section>
       </div>
     </main>

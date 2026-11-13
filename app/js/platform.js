@@ -123,15 +123,35 @@
       return new Promise(resolve => {
         const inp = document.createElement('input');
         inp.type = 'file';
-        inp.accept = '.json,.tsv,.txt';
-        inp.onchange = () => {
-          const f = inp.files && inp.files[0];
-          if (!f) return resolve(null);
-          const rd = new FileReader();
-          rd.onload = () => resolve({ name: f.name, text: String(rd.result) });
-          rd.onerror = () => resolve(null);
-          rd.readAsText(f);
+        inp.accept = '.json,.tsv,.csv,.txt,application/json,text/plain,text/csv,text/tab-separated-values';
+        inp.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;';
+        document.body.appendChild(inp);
+        let settled = false, timer = 0;
+        const cleanup = () => {
+          clearTimeout(timer);
+          window.removeEventListener('focus', onFocus);
+          inp.remove();
         };
+        const finish = value => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(value);
+        };
+        const onFocus = () => {
+          // The picker closed; give `change` a moment to arrive before treating it as cancel.
+          setTimeout(() => { if (!settled && !(inp.files && inp.files.length)) finish(null); }, 800);
+        };
+        inp.addEventListener('change', () => {
+          const f = inp.files && inp.files[0];
+          if (!f) return finish(null);
+          const rd = new FileReader();
+          rd.onload = () => finish({ name: f.name, text: String(rd.result) });
+          rd.onerror = () => finish(null);
+          rd.readAsText(f);
+        });
+        window.addEventListener('focus', onFocus);
+        timer = setTimeout(() => finish(null), 180000);
         inp.click();
       });
     },

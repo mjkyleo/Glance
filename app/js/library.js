@@ -290,19 +290,50 @@
     }));
     return { entries, affixes: new Map() };
   }
-  function fromTsv(text) {
-    const entries = text.replace(/\r\n/g, '\n').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
-      .map(line => { const p = line.split('\t'); return { word: (p[0] || '').trim(), meaning: (p[1] || '').trim(), example: (p[2] || '').trim(), phonetic: '', cefr: '', rootFamily: null }; })
-      .filter(w => w.word);
+  const HEADER_WORDS = new Set(['word', 'words', 'term', 'terms', 'vocab', 'vocabulary', '单词', '词汇', '英文', '英语']);
+  const HEADER_MEANINGS = new Set(['meaning', 'meanings', 'definition', 'translation', 'zh', 'cn', 'chinese', '释义', '中文', '解释', '意思']);
+  function splitRow(line, delim) {
+    if (delim === '\t') return line.split('\t');
+    const cells = [];
+    let cur = '', quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quoted) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cur += ch;
+      } else if (ch === '"' && !cur) quoted = true;
+      else if (ch === delim) { cells.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    cells.push(cur);
+    return cells;
+  }
+  function fromDelimited(text) {
+    const lines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    const delim = lines[0] && lines[0].includes('\t') ? '\t' : ',';
+    const seen = new Set(), entries = [];
+    lines.forEach((line, i) => {
+      const cells = splitRow(line, delim).map(s => s.trim());
+      const word = cells[0] || '', meaning = cells[1] || '';
+      if (!word) return;
+      const wordHeader = HEADER_WORDS.has(word.toLowerCase());
+      const meaningHeader = HEADER_MEANINGS.has(meaning.toLowerCase());
+      if (i === 0 && wordHeader && (!meaning || meaningHeader)) return;
+      const key = word.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      entries.push({ word, meaning, example: cells[2] || '', phonetic: '', cefr: '', rootFamily: null });
+    });
     return { entries, affixes: new Map() };
   }
   function parse(text, name) {
-    const t = (text || '').trim();
+    const t = String(text || '').replace(/^\uFEFF/, '').trim();
     let base;
     if (t.startsWith('{') || t.startsWith('[')) {
       const json = JSON.parse(t);
       base = Array.isArray(json) ? fromFlat(json) : (json.groups ? fromCet6(json) : fromFlat(json.words || []));
-    } else base = fromTsv(t);
+    } else base = fromDelimited(t);
     const savedAffix = affixMap;
     affixMap = base.affixes;
     for (const e of base.entries) {

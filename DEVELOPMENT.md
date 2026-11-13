@@ -589,6 +589,23 @@
 
 **交付**：`android-27`（target `55356ef`，CI run 43416989592 成功，Range 复核 `com.glance.app` / `versionCode 27` / `versionName 1.0.6+27`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,168,277 字节）。
 
+### 8.18 自定义词书导入修复与格式增强 ✅
+
+**问题**：没有自定义词书时整个面板被隐藏，「自定义词书」区域没有任何可点入口；Android WebView 使用未挂载到 DOM 的 `<input type=file>`，点击可能无响应；解析仅支持 TSV。
+
+**实现**
+
+- `#custom-books-panel` 常驻：标题右侧显示支持格式，空状态提示「还没有自定义词书，可从下方导入。」，底部新增导入卡片（虚线框 + ＋ 图标 +「单词 + 释义，可选例句」）；移除词书列表右上角的「导入自定义」。
+- `Platform.pickLibrary()`：文件输入挂载到 `document.body`（屏幕外 1px），接受 `.json/.tsv/.csv/.txt` 与对应 MIME；`change` 读取文件，窗口重新获得焦点后 800ms 仍无文件视为取消，180s 兜底超时；结束时移除输入并清理监听。
+- `Library.parse/fromDelimited`：剥离 BOM；含制表符按 TSV，否则按 CSV；CSV 支持引号包裹、`""` 转义与引号内逗号；首行表头（word/term/单词 + meaning/释义/中文）自动跳过；按小写单词去重。
+- `importBook()`：文件名去路径与扩展名并截断 24 字；重名自动追加「（2）」；空词库与解析失败提示支持的格式。
+
+**验证**：Electron 390×844 @2x 与 360×800 @2x 实测空状态、底部入口可见、长词书名省略号且无横向溢出；本地 HTTP + 浏览器实测真实 Web 分支：输入挂载 → 带 BOM、CSV 表头与重复单词的文件导入为「我的词书」（2 词，第三列例句保留），自动切换到该词书并清理输入；同名再次导入为「我的词书（2）」；`focus` 取消返回 null 并清理输入；TSV / CSV / 中文表头 / 引号逗号解析通过；`node --check app/js/app.js app/js/platform.js app/js/library.js` 通过。文档截图新增 `custom-books.png`。
+
+**词书重叠（后续）**：按当前质量过滤统计，四级 2694 词中 2504 词出现在六级（92.9%）；六级去掉中考/高考/四级重复后仅剩 1655 词（-62%），考研 87.7%、雅思 68.9%、专四 60.8% 也包含在六级中。直接默认剔除会显著缩小高阶词书，暂不启用；后续可在词书页提供可选的「跳过低阶重复词 / 跳过已掌握」开关，并优先扩充与重整词库。
+
+**交付**：`android-28`（target `<commit>`，CI run `<run>` 成功，Range 复核 `com.glance.app` / `versionCode 28` / `versionName 1.0.6+28`，证书 SHA-256 `82:F7:…:C9:AF`，APK `<size>` 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项

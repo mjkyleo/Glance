@@ -1918,27 +1918,28 @@
     list.appendChild(wrap);
 
     const customKeys = Object.keys(Store.data.customBooks);
-    $('custom-books-panel').hidden = !customKeys.length;
     const cl = $('custom-books-list');
     cl.innerHTML = '';
-    if (customKeys.length) {
-      const cw = el('div', 'list-gap');
-      customKeys.forEach(name => {
-        const cb = Store.data.customBooks[name];
-        const row = el('div', 'row book-row' + (name === Store.data.activeBook ? ' active' : ''));
-        const main = el('div', 'row-main');
-        main.appendChild(el('div', 'row-title', name));
-        main.appendChild(el('div', 'row-sub', cb.entries.length + ' 词 · 自定义'));
-        row.appendChild(main);
-        const del = el('button', 'op', '✕'); del.title = '删除';
-        del.addEventListener('click', ev => { ev.stopPropagation(); delete Store.data.customBooks[name]; Store.save(); if (Store.data.activeBook === name) switchBook('六级'); else renderBooks(); });
-        row.appendChild(del);
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', () => switchBook(name));
-        cw.appendChild(row);
-      });
-      cl.appendChild(cw);
+    if (!customKeys.length) {
+      cl.appendChild(el('div', 'empty-hint', '还没有自定义词书，可从下方导入。'));
+      return;
     }
+    const cw = el('div', 'list-gap');
+    customKeys.forEach(name => {
+      const cb = Store.data.customBooks[name];
+      const row = el('div', 'row book-row' + (name === Store.data.activeBook ? ' active' : ''));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', name));
+      main.appendChild(el('div', 'row-sub', cb.entries.length + ' 词 · 自定义'));
+      row.appendChild(main);
+      const del = el('button', 'op', '✕'); del.title = '删除';
+      del.addEventListener('click', ev => { ev.stopPropagation(); delete Store.data.customBooks[name]; Store.save(); if (Store.data.activeBook === name) switchBook('六级'); else renderBooks(); });
+      row.appendChild(del);
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => switchBook(name));
+      cw.appendChild(row);
+    });
+    cl.appendChild(cw);
   }
   function switchBook(tag) {
     Store.data.activeBook = tag; Store.save();
@@ -1950,17 +1951,36 @@
     switchView('study');
     renderStudy();
   }
+  function bookNameFromFile(fileName) {
+    const base = String(fileName || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '').trim();
+    return Array.from(base).slice(0, 24).join('') || '自定义词书';
+  }
+  function uniqueBookName(base) {
+    const taken = new Set(Object.keys(Store.data.customBooks));
+    Library.listBooks().forEach(b => { taken.add(b.tag); taken.add(b.name); });
+    if (!taken.has(base)) return base;
+    let i = 2;
+    while (taken.has(base + '（' + i + '）')) i++;
+    return base + '（' + i + '）';
+  }
   async function importBook() {
-    const r = await Platform.pickLibrary();
+    let r;
+    try { r = await Platform.pickLibrary(); }
+    catch (e) { alert('无法打开文件选择器：' + ((e && e.message) || e)); return; }
     if (!r) return;
     try {
       const parsed = Library.parse(r.text, r.name);
-      if (!parsed.entries.length) { alert('词库为空 / Empty library'); return; }
-      const name = parsed.name || '自定义词书';
+      if (!parsed.entries.length) {
+        alert('没有识别到单词。请确认每行是「单词 + 释义」，或使用 JSON / TSV / CSV 格式。');
+        return;
+      }
+      const name = uniqueBookName(bookNameFromFile(r.name));
       Store.data.customBooks[name] = { entries: parsed.entries };
       Store.save();
       switchBook(name);
-    } catch (e) { alert('词库解析失败 / Failed to parse: ' + e.message); }
+    } catch (e) {
+      alert('词库解析失败：' + ((e && e.message) || e) + '\n支持 JSON、TSV、CSV、TXT。');
+    }
   }
 
   // ===================== settings =====================
