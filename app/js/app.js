@@ -532,10 +532,11 @@
       box.appendChild(el('span', 'mnemonic-hook', card.text));
       if (card.ai) box.appendChild(el('span', 'mnemonic-src', 'AI 巧记'));
       container.appendChild(box);
-    } else if (card.id === 'family' && interactive && card.root) {
-      const a = el('a', 'card-link', card.text + '  →');
-      a.addEventListener('click', () => openFamily(card.root));
+    } else if (card.id === 'family' && card.root) {
+      const a = el(interactive ? 'a' : 'div', 'card-link', card.text + (interactive ? '  →' : ''));
+      if (interactive) a.addEventListener('click', () => openFamily(card.root));
       container.appendChild(a);
+      if (card.etymology) container.appendChild(el('p', 'card-etymology', card.etymology));
     } else {
       container.textContent = card.text;
     }
@@ -1125,7 +1126,7 @@
       $('word-sheet-sub').textContent = '';
       const body = $('word-sheet-body');
       body.innerHTML = '<div class="empty-hint">词库中暂无该词，可尝试外部词典查询。</div>';
-      if (window.Dictionary) body.appendChild(dictSection({ word }));
+      if (window.Dictionary) body.appendChild(dictSection({ word }, { auto: true }));
       $('word-study-btn').disabled = true;
       openSheet('word-sheet');
       return;
@@ -1142,8 +1143,8 @@
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
-    if (window.Dictionary) body.appendChild(dictSection(e));
-    body.appendChild(aiSection(e));
+    if (window.Dictionary) body.appendChild(dictSection(e, { auto: true }));
+    body.appendChild(aiSection(e, { auto: true }));
     const cardsWrap = el('section', 'cards'); cardsWrap.id = 'cards';
     body.appendChild(cardsWrap);
     cardsEntry = e;
@@ -1198,28 +1199,44 @@
     actions.appendChild(go);
   }
 
-  function dictSection(e) {
+  function dictSection(e, opts) {
+    const auto = !opts || opts.auto !== false;
     const sec = el('section', 'ai-section dict-section');
     const head = el('div', 'ai-section-head');
-    head.appendChild(el('span', 'ai-section-title', '词典'));
+    const titleWrap = el('div', 'ai-section-titlewrap');
+    titleWrap.appendChild(el('span', 'ai-section-title', '词典'));
     const meta = el('span', 'ai-section-meta');
-    head.appendChild(meta);
+    titleWrap.appendChild(meta);
+    head.appendChild(titleWrap);
+    const tools = el('div', 'dict-tools');
+    const refresh = el('button', 'icon-action');
+    refresh.type = 'button'; refresh.title = '刷新词典'; refresh.setAttribute('aria-label', '刷新词典');
+    refresh.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.35 5.65" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4.8V11h-6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const del = el('button', 'icon-action danger');
+    del.type = 'button'; del.title = '删除词典缓存'; del.setAttribute('aria-label', '删除词典缓存');
+    del.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.5h15M9.5 6.5V4.8c0-.45.35-.8.8-.8h3.4c.45 0 .8.35.8.8v1.7M6.5 6.5l.8 12.1c.05.75.65 1.4 1.4 1.4h6.6c.75 0 1.35-.65 1.4-1.4l.8-12.1M10 10.5v6M14 10.5v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    tools.append(refresh, del);
+    head.appendChild(tools);
     sec.appendChild(head);
     const content = el('div', 'ai-section-body');
     sec.appendChild(content);
     const actions = el('div', 'ai-actions');
     sec.appendChild(actions);
 
+    let loading = false;
     function providerName(id) { return Dictionary.getProvider(id).name; }
+    function syncTools(hasRecord) {
+      refresh.disabled = loading;
+      refresh.classList.toggle('spinning', loading);
+      del.hidden = !hasRecord;
+    }
 
     function render(record, cached) {
       content.innerHTML = ''; actions.innerHTML = '';
+      syncTools(!!record);
       if (!record) {
         meta.textContent = providerName(Store.data.dict.provider);
-        content.appendChild(el('p', 'ai-placeholder', '用外部词典补充音标与多义项。查询结果保存在本地，下次直接离线查看。'));
-        const go = el('button', 'btn-primary', '查询词典');
-        go.addEventListener('click', () => run(go));
-        actions.appendChild(go);
+        content.appendChild(el('p', 'ai-placeholder', '暂无本地缓存，点击右上角刷新图标查询词典。'));
         return;
       }
       meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '') +
@@ -1255,32 +1272,38 @@
         });
         content.appendChild(block);
       });
-      const again = el('button', 'btn-ghost', '重新查询');
-      again.addEventListener('click', () => run(again));
-      const del = el('button', 'btn-ghost danger', '删除缓存');
-      del.addEventListener('click', () => { Store.deleteDictEntry(e.word); render(null, false); });
-      actions.append(again, del);
     }
 
-    async function run(btn) {
-      if (btn) { btn.disabled = true; btn.textContent = '查询中…'; }
+    async function run(force) {
+      if (loading) return;
+      loading = true;
+      syncTools(!!Store.dictEntry(e.word));
       content.innerHTML = ''; actions.innerHTML = '';
       meta.textContent = providerName(Store.data.dict.provider);
       content.appendChild(el('p', 'ai-placeholder', '正在查询外部词典…'));
-      const res = await Dictionary.lookup(e.word, Store.data.dict);
+      const res = await Dictionary.lookup(e.word, Store.data.dict, force ? { force: true } : undefined);
+      loading = false;
       if (res.ok) { render(res.record, res.cached); return; }
+      syncTools(!!Store.dictEntry(e.word));
       content.innerHTML = '';
       content.appendChild(el('p', 'ai-error', '查询失败：' + res.error));
       const retry = el('button', 'btn-ghost', '重试');
-      retry.addEventListener('click', () => run(retry));
+      retry.addEventListener('click', () => run(false));
       actions.appendChild(retry);
     }
 
-    render(Store.dictEntry(e.word), true);
+    refresh.addEventListener('click', () => run(true));
+    del.addEventListener('click', () => { Store.deleteDictEntry(e.word); render(null, false); });
+
+    const cachedRecord = Store.dictEntry(e.word);
+    if (cachedRecord) render(cachedRecord, true);
+    else if (auto) run(false);
+    else render(null, false);
     return sec;
   }
 
-  function aiSection(e) {
+  function aiSection(e, opts) {
+    const auto = !opts || opts.auto !== false;
     const sec = el('section', 'ai-section');
     const head = el('div', 'ai-section-head');
     head.appendChild(el('span', 'ai-section-title', 'AI 详解'));
@@ -1291,6 +1314,9 @@
     sec.appendChild(content);
     const actions = el('div', 'ai-actions');
     sec.appendChild(actions);
+
+    let generating = false;
+    let autoStarted = false;
 
     function refresh() {
       const cached = Store.aiExplanation(e.word);
@@ -1306,18 +1332,27 @@
       } else {
         meta.textContent = '';
         content.appendChild(el('p', 'ai-placeholder', '让大模型生成详细讲解：释义、构词、例句、易混词等，结果保存在本地，可离线查看与导出。'));
+        const cfg = Store.data.ai;
+        if (auto && !autoStarted && cfg.autoExplain && cfg.enabled && cfg.key) {
+          autoStarted = true;
+          generate();
+          return;
+        }
         const gen = el('button', 'btn-primary', '生成 AI 解释');
         gen.addEventListener('click', () => generate(gen));
         actions.appendChild(gen);
       }
     }
     async function generate(btn) {
+      if (generating) return;
       const cfg = Store.data.ai;
       if (!cfg.enabled || !cfg.key) { aiConfigPrompt(content, actions); return; }
+      generating = true;
       if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
       content.innerHTML = '';
       content.appendChild(el('p', 'ai-placeholder', '正在调用 AI 生成讲解…'));
       const res = await AI.explainWord(e.word, e, cfg);
+      generating = false;
       if (res.ok) {
         Store.saveAiExplanation(e.word, { data: res.data, ts: Date.now(), provider: res.provider, model: res.model });
         refresh();
@@ -1822,6 +1857,7 @@
     AI.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; sel.appendChild(o); });
     sel.value = ai.provider || 'deepseek';
     $('set-ai-enabled').checked = !!ai.enabled;
+    $('set-ai-auto').checked = !!ai.autoExplain;
     $('set-ai-model').value = ai.model || '';
     $('set-ai-base').value = ai.base || '';
     $('set-ai-key').value = ai.key || '';
@@ -1988,6 +2024,7 @@
     }));
     $('books-back').addEventListener('click', backFromSub);
     $('set-ai-enabled').addEventListener('change', () => Store.setAiConfig({ enabled: $('set-ai-enabled').checked }));
+    $('set-ai-auto').addEventListener('change', () => Store.setAiConfig({ autoExplain: $('set-ai-auto').checked }));
     $('set-ai-provider').addEventListener('change', () => { Store.setAiConfig({ provider: $('set-ai-provider').value }); syncAiProviderUi(); });
     $('set-ai-model').addEventListener('change', () => Store.setAiConfig({ model: $('set-ai-model').value.trim() }));
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
@@ -2004,7 +2041,7 @@
       if (!r.ok && r.error) { btn.textContent = r.error; setTimeout(() => { btn.textContent = '导出全部'; }, 2200); }
     });
     $('set-test-speak').addEventListener('click', () => speak('hello'));
-    $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = ['meaning', 'morphemes', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections']; Store.save(); if (cardsEntry) renderCards(cardsEntry); });
+    $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = Store.defaultCardOrder(); Store.save(); if (cardsEntry) renderCards(cardsEntry); });
     $('set-panel-reset').addEventListener('click', () => savePanelOrder(PANEL_IDS.slice()));
     $('reset-progress').addEventListener('click', () => {
       if (!confirm('确定重置所有学习进度？此操作不可撤销。')) return;

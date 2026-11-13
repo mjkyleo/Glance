@@ -708,9 +708,9 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .exam-tag { font-size: 11.5px; font-weight: 600; color: var(--accent); background: var(--root-bg); padding: 3px 10px; border-radius: var(--r-chip); }
 .view-chip { font-size: 11.5px; font-weight: 600; color: var(--text-3); background: var(--fill); padding: 3px 10px; border-radius: var(--r-chip); }
 .view-rank { flex: 0 0 auto; width: 22px; height: 22px; border-radius: var(--r-chip); display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; color: var(--root-fg); background: var(--root-bg); font-variant-numeric: tabular-nums; }
-.word-detail-btn { margin-top: 14px; display: inline-flex; align-items: center; gap: 6px; border: none; background: var(--fill); color: var(--text-3); font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: var(--r-chip); cursor: pointer; transition: background var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui); }
-.word-detail-btn:hover { background: var(--fill-2); color: var(--text-2); }
-.word-detail-btn svg { width: 14px; height: 14px; }
+.word-detail-btn { margin: 16px 0 0 auto; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid var(--hairline); background: var(--fill); color: var(--accent); border-radius: 50%; cursor: pointer; transition: background var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui), transform var(--dur-ui) var(--ease-ui); }
+.word-detail-btn:hover { background: var(--fill-2); transform: translateY(-1px); }
+.word-detail-btn svg { width: 21px; height: 21px; }
 
 /* ---------- empty state ---------- */
 .empty-state { align-items: center; justify-content: center; text-align: center; gap: 10px; }
@@ -1064,6 +1064,32 @@ button:disabled { opacity: 0.45; cursor: default; }
 .dict-def-syn { font-size: 12px; color: var(--text-3); line-height: 1.5; }
 #ai-list { display: flex; flex-direction: column; gap: 8px; }
 #ai-scroll { gap: 12px; }
+
+/* ---------- word sheet: compact detail layout ---------- */
+.dict-tools { display: flex; align-items: center; gap: 2px; margin-left: auto; flex: 0 0 auto; }
+.ai-section-titlewrap { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.icon-action { width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--text-3); display: grid; place-items: center; cursor: pointer; transition: background var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui); }
+.icon-action:hover { background: var(--fill); color: var(--text-2); }
+.icon-action.danger { color: var(--red-fg); }
+.icon-action.danger:hover { background: rgba(224, 128, 109, 0.14); }
+.icon-action svg { width: 17px; height: 17px; }
+.icon-action:disabled { cursor: default; }
+.icon-action.spinning svg { animation: spin .9s linear infinite; }
+.icon-action[hidden] { display: none; }
+
+#word-sheet-body { gap: 0; padding-top: 12px; }
+#word-sheet-body > .ai-section { background: none; border: none; border-radius: 0; box-shadow: none; padding: 0 0 12px; gap: 8px; border-bottom: 1px solid var(--hairline); }
+#word-sheet-body > .ai-section + .ai-section { padding-top: 12px; }
+#word-sheet-body .ai-section-body { gap: 9px; }
+#word-sheet-body .ai-block { gap: 4px; }
+#word-sheet-body > #cards { background: none; border: none; border-radius: 0; box-shadow: none; padding: 0; gap: 0; }
+#word-sheet-body #cards .card { background: none; border: none; border-bottom: 1px solid var(--hairline); border-radius: 0; box-shadow: none; padding: 11px 0; }
+#word-sheet-body #cards .card:last-child { border-bottom: none; padding-bottom: 2px; }
+#word-sheet-body #cards .card-head { margin-bottom: 5px; }
+#word-sheet-body #cards .card-body { font-size: 14.5px; }
+#word-sheet-body #cards .card-body ul { gap: 4px; }
+#word-sheet-body #cards .card-body li { line-height: 1.5; }
+#word-sheet-body .card-etymology { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
 
 /* ---------- settings hub ---------- */
 #settings-sheet .sheet-head { align-items: center; }

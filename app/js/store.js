@@ -11,7 +11,7 @@
     history: [],
     errors: {},
     customBooks: {},
-    cardOrder: ['meaning', 'mnemonic', 'morphemes', 'definitions', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections'],
+    cardOrder: ['mnemonic', 'morphemes', 'family', 'synonyms', 'derivatives', 'inflections', 'examples', 'collocations', 'definitions'],
     studyPanel: {
       phonetic: true, meaning: true, morphemes: true, mnemonic: true, definitions: true,
       examples: true, family: true, synonyms: true, derivatives: true, etymology: true, inflections: true
@@ -26,7 +26,7 @@
     ttsRate: 1,
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
-    ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
+    ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false },
     aiCache: {},
     dict: { provider: 'freezh', key: '', base: '' },
     dictCache: {},
@@ -58,7 +58,10 @@
     if (!Array.isArray(d.history)) d.history = [];
     if (!d.views || typeof d.views !== 'object') d.views = {};
     if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
-    if (!d.cardOrder.includes('mnemonic')) { const i = d.cardOrder.indexOf('meaning'); d.cardOrder.splice(i < 0 ? 0 : i + 1, 0, 'mnemonic'); }
+    // 旧版默认顺序（含独立的释义/词源卡）升级为新版合并结构；用户自定义顺序保持不动。
+    const OLD_CARD_ORDER = 'meaning,mnemonic,morphemes,definitions,family,synonyms,derivatives,etymology,inflections';
+    if (d.cardOrder.join(',') === OLD_CARD_ORDER) d.cardOrder = DEFAULTS.cardOrder.slice();
+    if (!d.cardOrder.includes('mnemonic')) d.cardOrder.unshift('mnemonic');
     if (!d.studyPanel || typeof d.studyPanel !== 'object' || Array.isArray(d.studyPanel)) d.studyPanel = {};
     d.studyPanel = Object.assign({}, DEFAULTS.studyPanel, d.studyPanel);
     const panelIds = DEFAULTS.studyPanelOrder;
@@ -68,7 +71,8 @@
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
-    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
+    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false };
+    else d.ai = Object.assign({ provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false }, d.ai);
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     if (!d.dict || typeof d.dict !== 'object') d.dict = { provider: 'free', key: '', base: '' };
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
@@ -531,6 +535,7 @@
     addHistory, clearHistory, addError, clearError, errorWords,
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     exportData, importData,
+    defaultCardOrder: () => DEFAULTS.cardOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
     setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground

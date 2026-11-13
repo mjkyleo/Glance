@@ -248,24 +248,27 @@
 
   function buildCards(entry) {
     const cards = [];
-    if (entry.senses && entry.senses.length) cards.push({ id: 'meaning', title: '释义', kind: 'senses', senses: entry.senses });
-    else if (entry.meaning) cards.push({ id: 'meaning', title: '释义', kind: 'text', text: entry.meaning });
     if (entry.mnemonic) cards.push({ id: 'mnemonic', title: '助记', kind: 'mnemonic', text: entry.mnemonic });
     if (entry.morphemes && entry.morphemes.length) {
       const label = { prefix: '前缀', root: '词根', suffix: '后缀' };
       cards.push({ id: 'morphemes', title: '构词解析', kind: 'list', items: entry.morphemes.map(m => m.text + '（' + (label[m.type] || '词素') + '）' + (m.gloss ? '：' + m.gloss : '')) });
     }
-    if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => { const p = posInfo(d[0]); return (p ? p.zh + ' ' + d[0] + ' ' : (d[0] ? d[0] + '. ' : '')) + d[1]; }) });
     if (entry.rootFamily && entry.rootFamily.root) {
       const f = entry.rootFamily;
-      cards.push({ id: 'family', title: '词根家族', kind: 'text', text: `${f.root} · ${f.rootZh || ''}${f.rootEn ? ' (' + f.rootEn + ')' : ''}`, root: f.root });
+      cards.push({
+        id: 'family', title: '词根与词源', kind: 'family', root: f.root,
+        text: `${f.root} · ${f.rootZh || ''}`,
+        etymology: entry.etymology || ''
+      });
+    } else if (entry.etymology) {
+      cards.push({ id: 'etymology', title: '词源', kind: 'text', text: entry.etymology });
     }
     if (entry.synonyms && entry.synonyms.length) cards.push({ id: 'synonyms', title: '近义词', kind: 'list', items: entry.synonyms });
     if (entry.derivatives && entry.derivatives.length) cards.push({ id: 'derivatives', title: '派生词', kind: 'list', items: entry.derivatives.map(d => `${d[0]}${d[1] ? ' (' + d[1] + ')' : ''}`) });
-    if (entry.etymology) cards.push({ id: 'etymology', title: '词源', kind: 'text', text: entry.etymology });
+    if (entry.inflections && entry.inflections.length) cards.push({ id: 'inflections', title: '词形变化', kind: 'list', items: entry.inflections });
     if (entry.examples && entry.examples.length) cards.push({ id: 'examples', title: '例句', kind: 'list', items: entry.examples });
     if (entry.collocations && entry.collocations.length) cards.push({ id: 'collocations', title: '搭配', kind: 'list', items: entry.collocations });
-    if (entry.inflections && entry.inflections.length) cards.push({ id: 'inflections', title: '词形变化', kind: 'list', items: entry.inflections });
+    if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => { const p = posInfo(d[0]); return (p ? p.zh + ' ' + d[0] + ' ' : (d[0] ? d[0] + '. ' : '')) + d[1]; }) });
     return cards;
   }
 

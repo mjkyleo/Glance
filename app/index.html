@@ -60,9 +60,12 @@
           <div class="morphemes" id="morphemes"></div>
           <div class="word-mnemonic" id="word-mnemonic" hidden></div>
           <div class="word-meaning" id="word-meaning"></div>
-          <button class="word-detail-btn" id="word-detail-btn" type="button">
-            <span>详细讲解</span>
-            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.6 5.6 15 12l-6.4 6.4L7.2 17l5-5-5-5z"/></svg>
+          <button class="word-detail-btn" id="word-detail-btn" type="button" title="详细讲解" aria-label="详细讲解">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 6.4C10.3 5.1 8 4.5 5.5 4.7a1 1 0 0 0-.9 1v11.4a1 1 0 0 0 1.1 1c2.3-.2 4.4.4 6.3 1.7 1.9-1.3 4-1.9 6.3-1.7a1 1 0 0 0 1.1-1V5.7a1 1 0 0 0-.9-1c-2.5-.2-4.8.4-6.5 1.7Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M12 6.6v12.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M18.5 1.9l.55 1.55L20.6 4l-1.55.55-.55 1.55-.55-1.55L16.4 4l1.55-.55.55-1.55Z" fill="currentColor"/>
+            </svg>
           </button>
         </section>
         <div class="study-info" id="study-info" hidden></div>
@@ -657,6 +660,10 @@
           <div class="set-row">
             <span class="set-row-label">启用 AI 详解<small>在单词详情中按需生成讲解，结果保存在本地</small></span>
             <label class="switch"><input type="checkbox" id="set-ai-enabled" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">打开详解时自动生成<small>关闭则只在点击「生成 AI 解释」时调用</small></span>
+            <label class="switch"><input type="checkbox" id="set-ai-auto" /><span class="slider"></span></label>
           </div>
           <label class="field"><span>服务商</span><select id="set-ai-provider"></select></label>
           <label class="field"><span>模型<small id="set-ai-model-hint">留空使用默认模型</small></span><input type="text" id="set-ai-model" placeholder="默认模型" autocomplete="off" /></label>
