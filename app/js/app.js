@@ -3,7 +3,6 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
-  function shuffle(a) { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; }
   function fmtMs(ms) { const m = Math.round((ms || 0) / 60000); return m < 1 ? '<1' : String(m); }
 
   let book = null;
@@ -23,8 +22,11 @@
   let cardsEntry = null;
   let subReturn = 'study';
 
-  // quiz state
-  let quiz = { items: [], idx: 0, correct: 0, answered: false, retry: false };
+  // quiz state: 'start' | 'session' | 'done'
+  let quizScreen = 'start';
+  let quizSession = null;
+  let quizBuilding = false;
+  let quizLastWarnings = [];
 
   const speak = (text, audio) => Platform.speak(text, { lang: Store.data.ttsLang || '', rate: Number(Store.data.ttsRate ?? 1), audio, preferAudio: Store.data.preferAudio !== false });
 
@@ -85,6 +87,89 @@
     applyTheme(theme);
   }
 
+  // ===================== background image =====================
+  function applyBackground() {
+    const bg = Store.data.background;
+    const layer = $('app-bg');
+    const on = !!bg.image;
+    document.body.classList.toggle('has-bg', on);
+    if (layer) layer.style.backgroundImage = on ? 'url("' + bg.image + '")' : '';
+    document.documentElement.style.setProperty('--bg-veil', String((bg.veil ?? 38) / 100));
+    document.documentElement.style.setProperty('--bg-blur', (bg.blur || 0) + 'px');
+  }
+  function syncBackgroundUi() {
+    const bg = Store.data.background;
+    const prev = $('bg-preview');
+    if (prev) {
+      prev.style.backgroundImage = bg.image ? 'url("' + bg.image + '")' : '';
+      prev.classList.toggle('has-image', !!bg.image);
+      const empty = prev.querySelector('.bg-preview-empty');
+      if (empty) empty.hidden = !!bg.image;
+    }
+    const remove = $('bg-remove');
+    if (remove) remove.hidden = !bg.image;
+    $('bg-veil').value = bg.veil ?? 38;
+    $('bg-veil-val').textContent = (bg.veil ?? 38) + '%';
+    $('bg-blur').value = bg.blur ?? 0;
+    $('bg-blur-val').textContent = (bg.blur ?? 0) + 'px';
+  }
+  function readBackgroundImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f7fa';
+          const draw = (w, h) => {
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            return c;
+          };
+          let w = img.width, h = img.height;
+          const max = 1440;
+          if (w > max || h > max) {
+            const k = max / Math.max(w, h);
+            w = Math.round(w * k); h = Math.round(h * k);
+          }
+          let canvas = draw(w, h);
+          let q = 0.82;
+          let url = canvas.toDataURL('image/jpeg', q);
+          while (url.length > 480000 && q > 0.42) {
+            q -= 0.08;
+            url = canvas.toDataURL('image/jpeg', q);
+          }
+          let scale = 0.8;
+          while (url.length > 480000 && scale >= 0.5) {
+            canvas = draw(Math.round(w * scale), Math.round(h * scale));
+            url = canvas.toDataURL('image/jpeg', 0.7);
+            scale -= 0.1;
+          }
+          resolve(url);
+        };
+        img.onerror = () => reject(new Error('图片无法解码'));
+        img.src = String(reader.result);
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsDataURL(file);
+    });
+  }
+  async function chooseBackground(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) { alert('请选择图片文件。'); return; }
+    try {
+      const url = await readBackgroundImage(file);
+      Store.setBackground({ image: url });
+      applyBackground();
+      syncBackgroundUi();
+    } catch (err) {
+      alert('背景设置失败：' + ((err && err.message) || err));
+    }
+  }
+
   // ===================== sheets =====================
   let openSheetEl = null;
   function openSheet(id) {
@@ -143,7 +228,10 @@
     const hasItem = inStudy && !!currentItem();
     $('study-panel').hidden = !hasItem;
     $('study-empty').hidden = !(inStudy && !currentItem());
-    $('quiz-panel').hidden = inStudy;
+    const quizOn = !inStudy;
+    $('quiz-start').hidden = !(quizOn && quizScreen === 'start');
+    $('quiz-session').hidden = !(quizOn && quizScreen === 'session');
+    $('quiz-done').hidden = !(quizOn && quizScreen === 'done');
     $('grade-footer').hidden = !hasItem;
     $('mode-study').classList.toggle('active', inStudy);
     $('mode-quiz').classList.toggle('active', !inStudy);
@@ -153,18 +241,29 @@
 
   function setMode(m) {
     mode = m;
-    if (m === 'quiz') buildQuiz();
-    updateStudyVisibility();
-    if (m === 'quiz') renderQuiz();
-    else renderStudy();
+    if (m === 'quiz') {
+      if (quizSession && quizSession.done) quizScreen = 'done';
+      else if (quizSession) quizScreen = 'session';
+      else quizScreen = 'start';
+      renderQuizScreen();
+    } else {
+      updateStudyVisibility();
+      renderStudy();
+    }
+    updatePlanBar();
   }
 
   function updatePlanBar() {
     const bar = $('study-progress');
     const fill = $('study-progress-fill');
     if (!bar || !fill) return;
-    const total = session.length;
-    const pct = total ? Math.round((Math.min(sessionIdx, total) / total) * 100) : 100;
+    let done = sessionIdx, total = session.length;
+    if (mode === 'quiz') {
+      const s = quizSession;
+      total = s ? s.questions.length : 0;
+      done = s ? s.idx + (s.answered ? 1 : 0) : 0;
+    }
+    const pct = total ? Math.round((Math.min(done, total) / total) * 100) : (mode === 'quiz' ? 0 : 100);
     fill.style.width = pct + '%';
     bar.setAttribute('aria-valuenow', String(pct));
   }
@@ -497,113 +596,348 @@
   }
 
   // ===================== quiz =====================
-  function quizPool() {
-    if (quiz.retry) {
-      const words = Store.errorWords();
-      return words.map(w => Library.lookup(w)).filter(Boolean);
-    }
-    const b = activeBook();
-    const now = Date.now();
-    const q = SRS.buildQueue(b.entries, Store.data.srs, { newLeft: Store.planProgress().newLeft, reviewCap: Store.data.plan.reviewCap }, now);
-    let items = q.reviews.concat(q.news);
-    if (items.length < 4) items = b.entries.slice();
-    return shuffle(items).slice(0, Math.max(10, Math.min(items.length, 20)));
+  function quizCfg() { return Store.data.quiz.config; }
+  function quizUpdate(patch) {
+    Store.setQuizConfig(patch);
+    if (quizScreen === 'start') renderQuizStart();
   }
-  function buildQuiz() {
-    quiz.items = quizPool();
-    quiz.idx = 0; quiz.correct = 0; quiz.answered = false;
+  function quizThemeOptions() {
+    const list = window.Themes ? Themes.list().filter(t => t.n > 0) : [];
+    return list;
   }
-  // Root-themed distractors: prefer meanings from the same root family (easily confused
-  // within one root theme), then fill with random book meanings. Dedup by meaning text
-  // so no option duplicates the correct answer.
-  function quizDistractors(e, correct) {
-    const entries = activeBook().entries;
-    const norm = m => (m || '').trim();
-    const seen = new Set([norm(correct)]);
-    const out = [];
-    const add = m => { const t = norm(m); if (t && !seen.has(t)) { seen.add(t); out.push(t); } };
-    const root = e.root || (e.rootFamily && e.rootFamily.root) || '';
-    if (root) {
-      const fam = shuffle(entries.filter(x => x.word !== e.word && (x.root === root || (x.rootFamily && x.rootFamily.root === root))));
-      for (const x of fam) { add(x.meaning || x.zh); if (out.length >= 3) return out; }
-    }
-    for (const x of shuffle(entries)) { if (x.word === e.word) continue; add(x.meaning || x.zh); if (out.length >= 3) break; }
-    return out;
+  function quizDiffLabel(d) {
+    if (d < 0.4) return '简单';
+    if (d < 0.62) return '普通';
+    return '困难';
   }
-  function renderQuiz() {
-    const qw = $('quiz-word'), qp = $('quiz-phonetic'), qo = $('quiz-options');
-    $('quiz-score').textContent = quiz.correct + ' / ' + quiz.items.length;
-    $('quiz-progress').textContent = quiz.items.length ? '第 ' + (quiz.idx + 1) + ' / ' + quiz.items.length + ' 题' : '';
-    $('quiz-feedback').hidden = true;
-    $('quiz-next').hidden = true;
-    if (!quiz.items.length) {
-      qw.textContent = '—'; qp.textContent = '';
-      qo.innerHTML = '<div class="empty-hint">暂无可测试的词。先去学习一些单词，或重练错题。</div>';
-      return;
+
+  function renderQuizEstimate() {
+    const box = $('quiz-estimate');
+    if (!box) return;
+    box.innerHTML = '';
+    const cfg = quizCfg();
+    const info = QuizEngine.estimate(cfg);
+    const line = el('div', 'quiz-est-line');
+    line.appendChild(el('b', null, info.available + ' 题'));
+    line.appendChild(document.createTextNode(' 可用 · 覆盖 ' + info.pool + ' 个词'));
+    box.appendChild(line);
+    const chipRow = el('div', 'quiz-est-types');
+    ['en2zh', 'zh2en', 'cloze'].forEach(t => {
+      if (!cfg.types.includes(t)) return;
+      chipRow.appendChild(el('span', 'quiz-est-chip', QuizEngine.TYPE_LABEL[t] + ' ' + (info.types[t] || 0)));
+    });
+    box.appendChild(chipRow);
+    if (info.onlineCloze) box.appendChild(el('p', 'quiz-est-note', '约 ' + info.onlineCloze + ' 个词需要联网补充例句，离线或失败时自动回退。'));
+    if (!info.available) box.appendChild(el('p', 'quiz-est-warn', '当前范围没有可测试的词，换个范围或先学习一些单词。'));
+    else if (info.available < cfg.count) box.appendChild(el('p', 'quiz-est-warn', '可用题量不足：预计 ' + info.available + ' 题，计划 ' + cfg.count + ' 题，可以缩小范围或减少题数。'));
+    $('quiz-start-btn').disabled = !info.available || quizBuilding;
+  }
+
+  function renderQuizStart() {
+    const cfg = quizCfg();
+    const scopeBox = $('quiz-scope');
+    scopeBox.innerHTML = '';
+    QuizEngine.SCOPES.forEach(s => {
+      const b = el('button', 'chip' + (cfg.scope === s.id ? ' active' : ''), s.name);
+      b.type = 'button';
+      b.addEventListener('click', () => quizUpdate({ scope: s.id }));
+      scopeBox.appendChild(b);
+    });
+
+    const themes = quizThemeOptions();
+    const themeWrap = $('quiz-theme-wrap');
+    themeWrap.hidden = cfg.scope !== 'theme';
+    if (cfg.scope === 'theme' && themes.length) {
+      const sel = $('quiz-theme');
+      sel.innerHTML = '';
+      themes.forEach(t => {
+        const o = el('option', null, t.name + '（' + t.n + '）');
+        o.value = t.id;
+        sel.appendChild(o);
+      });
+      let current = cfg.theme;
+      if (!themes.some(t => t.id === current)) {
+        current = themes[0].id;
+        Store.setQuizConfig({ theme: current });
+      }
+      sel.value = current;
     }
-    const e = quiz.items[quiz.idx];
-    qw.textContent = e.word;
-    qp.textContent = e.phonetic ? '/' + e.phonetic + '/' : '';
-    const correct = e.meaning || e.zh || '（暂无释义）';
-    const meanings = quizDistractors(e, correct);
-    const opts = shuffle([correct].concat(meanings));
-    qo.innerHTML = '';
-    const keys = ['A', 'B', 'C', 'D'];
-    quiz.answered = false;
-    opts.forEach((text, i) => {
+
+    const countBox = $('quiz-count');
+    countBox.innerHTML = '';
+    [5, 10, 20].forEach(n => {
+      const b = el('button', 'chip' + (cfg.count === n ? ' active' : ''), n + ' 题');
+      b.type = 'button';
+      b.addEventListener('click', () => quizUpdate({ count: n }));
+      countBox.appendChild(b);
+    });
+
+    const typeBox = $('quiz-types');
+    typeBox.innerHTML = '';
+    QuizEngine.TYPES.forEach(t => {
+      const on = cfg.types.includes(t);
+      const b = el('button', 'chip' + (on ? ' active' : ''), QuizEngine.TYPE_LABEL[t]);
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        let types = cfg.types.slice();
+        if (types.includes(t)) {
+          if (types.length === 1) return;
+          types = types.filter(x => x !== t);
+        } else types.push(t);
+        quizUpdate({ types });
+      });
+      typeBox.appendChild(b);
+    });
+
+    const diffBox = $('quiz-difficulty');
+    diffBox.innerHTML = '';
+    const DIFFS = [['auto', '自动'], ['easy', '简单'], ['normal', '普通'], ['hard', '困难']];
+    DIFFS.forEach(([id, name]) => {
+      const b = el('button', 'chip' + (cfg.difficulty === id ? ' active' : ''), name);
+      b.type = 'button';
+      b.addEventListener('click', () => quizUpdate({ difficulty: id }));
+      diffBox.appendChild(b);
+    });
+    $('quiz-diff-hint').textContent = cfg.difficulty === 'auto'
+      ? '按历史正确率动态调整（能力值 ' + Math.round(QuizEngine.ability() * 100) + '%）'
+      : '';
+
+    $('quiz-online').checked = cfg.online;
+    renderQuizEstimate();
+    updateStudyVisibility();
+  }
+
+  async function startQuiz() {
+    if (quizBuilding) return;
+    const cfg = QuizEngine.buildConfig(quizCfg());
+    const btn = $('quiz-start-btn');
+    const oldText = btn.textContent;
+    quizBuilding = true;
+    btn.disabled = true;
+    btn.textContent = '正在准备…';
+    let failure = '';
+    try {
+      const res = await QuizEngine.buildSession(cfg, {
+        onProgress: (done, total) => { btn.textContent = '获取例句 ' + done + '/' + total; }
+      });
+      quizLastWarnings = res.warnings || [];
+      if (!res.questions.length) {
+        failure = res.warnings && res.warnings[0] ? res.warnings[0] : '没有生成题目，请调整设置。';
+      } else {
+        quizSession = {
+          questions: res.questions, idx: 0, correct: 0,
+          answered: false, answeredCount: 0, wrong: [], done: false, startedAt: Date.now()
+        };
+        quizScreen = 'session';
+        renderQuizScreen();
+      }
+    } catch (err) {
+      quizLastWarnings = ['生成测试失败：' + String((err && err.message) || err)];
+      failure = quizLastWarnings[0];
+    } finally {
+      quizBuilding = false;
+      btn.textContent = oldText;
+      if (failure) {
+        quizScreen = 'start';
+        renderQuizStart();
+        $('quiz-estimate').appendChild(el('p', 'quiz-est-warn', failure));
+      }
+    }
+  }
+
+  function renderQuizScreen() {
+    updateStudyVisibility();
+    updatePlanBar();
+    if (quizScreen === 'start') renderQuizStart();
+    else if (quizScreen === 'session') renderQuizQuestion();
+    else renderQuizDone();
+  }
+
+  function renderQuizQuestion() {
+    const s = quizSession;
+    if (!s) { quizScreen = 'start'; renderQuizScreen(); return; }
+    const q = s.questions[s.idx];
+    if (!q) { finishQuiz(); return; }
+    $('quiz-score').textContent = s.correct + ' / ' + s.questions.length;
+    $('quiz-progress').textContent = '第 ' + (s.idx + 1) + ' / ' + s.questions.length + ' 题';
+    $('quiz-type-badge').textContent = QuizEngine.TYPE_LABEL[q.type] || '';
+    const diff = $('quiz-diff-badge');
+    diff.textContent = quizDiffLabel(q.difficulty);
+    diff.dataset.level = q.difficulty < 0.4 ? 'easy' : q.difficulty < 0.62 ? 'normal' : 'hard';
+
+    const wordRow = document.querySelector('#quiz-session .word-row');
+    const big = $('quiz-word');
+    const ph = $('quiz-phonetic');
+    const speakBtn = $('quiz-speak');
+    const cloze = $('quiz-cloze');
+    const clozeZh = $('quiz-cloze-zh');
+    big.classList.toggle('quiz-prompt-zh', q.type === 'zh2en');
+    if (q.type === 'cloze') {
+      wordRow.hidden = true;
+      big.hidden = true;
+      ph.hidden = true;
+      ph.textContent = '';
+      speakBtn.hidden = true;
+    } else {
+      wordRow.hidden = false;
+      big.hidden = false;
+      big.textContent = q.type === 'zh2en' ? q.display.word : q.word;
+      const phonetic = q.type === 'en2zh' ? q.display.phonetic : '';
+      ph.hidden = !phonetic;
+      ph.textContent = phonetic ? '/' + phonetic + '/' : '';
+      speakBtn.hidden = q.type !== 'en2zh';
+    }
+    $('quiz-question').textContent = q.display.question || '';
+    if (q.type === 'cloze') {
+      cloze.hidden = false;
+      cloze.innerHTML = '';
+      cloze.appendChild(document.createTextNode(q.display.sentence.before + ' '));
+      cloze.appendChild(el('span', 'quiz-blank', '____'));
+      cloze.appendChild(document.createTextNode(' ' + q.display.sentence.after));
+      clozeZh.hidden = !q.display.sentence.zh;
+      clozeZh.textContent = q.display.sentence.zh || '';
+    } else {
+      cloze.hidden = true;
+      cloze.innerHTML = '';
+      clozeZh.hidden = true;
+      clozeZh.textContent = '';
+    }
+
+    const box = $('quiz-options');
+    box.innerHTML = '';
+    q.options.forEach((text, i) => {
       const b = el('button', 'quiz-option');
       b.type = 'button';
-      b.appendChild(el('span', 'opt-key', keys[i] || ''));
-      b.appendChild(el('span', null, text));
-      b.addEventListener('click', () => answerQuiz(b, text === correct, e, correct));
-      qo.appendChild(b);
+      b.appendChild(el('span', 'opt-key', ['A', 'B', 'C', 'D'][i] || String(i + 1)));
+      b.appendChild(el('span', 'quiz-opt-text', text));
+      b.addEventListener('click', () => answerQuiz(i));
+      box.appendChild(b);
     });
+    $('quiz-feedback').hidden = true;
+    $('quiz-next').hidden = true;
+    s.answered = false;
+    updatePlanBar();
   }
-  function answerQuiz(btn, isCorrect, e, correct) {
-    if (quiz.answered) return;
-    quiz.answered = true;
-    const opts = Array.from($('quiz-options').children);
-    opts.forEach(o => {
-      o.disabled = true;
-      const label = o.lastChild.textContent;
-      if (label === correct) o.classList.add('correct');
-      else if (o === btn && !isCorrect) o.classList.add('wrong');
-      else o.classList.add('dim');
+
+  function answerQuiz(choice) {
+    const s = quizSession;
+    if (!s || s.answered) return;
+    const q = s.questions[s.idx];
+    if (!q) return;
+    const isCorrect = choice === q.correctIndex;
+    s.answered = true;
+    s.answeredCount++;
+    if (isCorrect) s.correct++;
+    Array.from($('quiz-options').children).forEach((b, i) => {
+      b.disabled = true;
+      if (i === q.correctIndex) b.classList.add('correct');
+      else if (i === choice) b.classList.add('wrong');
+      else b.classList.add('dim');
     });
+    const e = q.entry;
+    Store.recordGrade(e.word, SRS.isNew(Store.data.srs[e.word]) ? 'new' : 'review', isCorrect ? SRS.GRADE.KNOW : SRS.GRADE.FORGOT, 0);
+    Store.recordQuizResult(e.word, isCorrect, q.difficulty);
     const fb = $('quiz-feedback');
     fb.hidden = false;
     if (isCorrect) {
-      quiz.correct++;
       fb.className = 'quiz-feedback ok';
-      fb.textContent = '回答正确！';
-      Store.recordGrade(e.word, SRS.isNew(Store.data.srs[e.word]) ? 'new' : 'review', SRS.GRADE.KNOW, 0);
+      fb.textContent = q.type === 'cloze' ? '回答正确！正确答案：' + q.correct : '回答正确！';
     } else {
+      s.wrong.push({ word: e.word, correct: q.correct, type: q.type });
       fb.className = 'quiz-feedback no';
-      const fam = e.rootFamily;
-      const hint = fam && fam.root ? ' · 词根 ' + fam.root + (fam.rootZh ? '（' + fam.rootZh.split(/[；;]/)[0] + '）' : '') : '';
-      fb.textContent = '正确答案：' + correct + hint;
-      Store.recordGrade(e.word, SRS.isNew(Store.data.srs[e.word]) ? 'new' : 'review', SRS.GRADE.FORGOT, 0);
+      fb.textContent = '正确答案：' + q.correct + (q.root ? ' · 词根 ' + q.root : '');
       Store.addError(e.word);
       if (!Store.isFavorite(e.word)) Store.addFavorite(e.word, '错题');
       if (!Store.data.favGroups.includes('错题')) { Store.data.favGroups.push('错题'); Store.save(); }
     }
-    $('quiz-score').textContent = quiz.correct + ' / ' + quiz.items.length;
+    if (q.type === 'cloze') {
+      document.querySelector('#quiz-session .word-row').hidden = false;
+      $('quiz-word').hidden = false;
+      $('quiz-word').textContent = q.word;
+    }
+    if (q.type !== 'en2zh') {
+      const ph = $('quiz-phonetic');
+      if (e.phonetic) { ph.hidden = false; ph.textContent = '/' + e.phonetic + '/'; }
+      $('quiz-speak').hidden = false;
+    }
+    $('quiz-score').textContent = s.correct + ' / ' + s.questions.length;
     $('quiz-next').hidden = false;
-    $('quiz-next').textContent = quiz.idx + 1 >= quiz.items.length ? '完成' : '下一题';
+    $('quiz-next').textContent = s.idx + 1 >= s.questions.length ? '查看结果' : '下一题';
     updatePlanBar();
   }
+
   function nextQuiz() {
-    if (quiz.idx + 1 >= quiz.items.length) {
-      const fb = $('quiz-feedback');
-      fb.hidden = false; fb.className = 'quiz-feedback ok';
-      fb.textContent = '本轮完成：' + quiz.correct + ' / ' + quiz.items.length + ' 正确。错词已加入生词本「错题」。';
-      $('quiz-next').hidden = true;
-      quiz.idx = 0; quiz.correct = 0;
-      setTimeout(() => { buildQuiz(); renderQuiz(); }, 1600);
+    const s = quizSession;
+    if (!s || !s.answered) return;
+    if (s.idx + 1 >= s.questions.length) { finishQuiz(); return; }
+    s.idx++;
+    s.answered = false;
+    renderQuizQuestion();
+    updatePlanBar();
+  }
+
+  function finishQuiz() {
+    const s = quizSession;
+    if (!s) { quizScreen = 'start'; renderQuizScreen(); return; }
+    s.done = true;
+    quizScreen = 'done';
+    renderQuizDone();
+  }
+
+  function renderQuizDone() {
+    const s = quizSession;
+    if (!s) { quizScreen = 'start'; renderQuizStart(); return; }
+    const total = Math.max(1, s.answeredCount || s.questions.length);
+    const pct = Math.round((s.correct / total) * 100);
+    $('quiz-done-ring').style.setProperty('--pct', pct);
+    $('quiz-done-pct').textContent = pct + '%';
+    $('quiz-done-title').textContent = pct >= 90 ? '表现出色' : pct >= 70 ? '测试完成' : '继续加油';
+    const secs = Math.max(0, Math.round((Date.now() - s.startedAt) / 1000));
+    $('quiz-done-sub').textContent = '答对 ' + s.correct + ' / ' + total + ' 题 · 用时 ' + fmtMs(secs * 1000) + ' 分钟' +
+      (s.wrong.length ? ' · 错词已加入「错题」' : '');
+
+    let warnEl = $('quiz-done-warn');
+    if (!warnEl) {
+      warnEl = el('p', 'quiz-est-warn');
+      warnEl.id = 'quiz-done-warn';
+      document.querySelector('.quiz-done-hero').appendChild(warnEl);
+    }
+    warnEl.hidden = !quizLastWarnings.length;
+    warnEl.textContent = quizLastWarnings[0] || '';
+
+    const list = $('quiz-wrong-list');
+    list.innerHTML = '';
+    if (s.wrong.length) {
+      $('quiz-wrong-panel').hidden = false;
+      $('quiz-wrong-count').textContent = s.wrong.length + ' 个';
+      s.wrong.forEach(w => {
+        const row = el('button', 'quiz-wrong-row');
+        row.type = 'button';
+        const main = el('span', 'quiz-wrong-main');
+        main.appendChild(el('b', null, w.word));
+        main.appendChild(el('span', 'quiz-wrong-sub', w.correct + ' · ' + (QuizEngine.TYPE_LABEL[w.type] || '')));
+        row.appendChild(main);
+        row.appendChild(el('span', 'row-arrow', '›'));
+        row.addEventListener('click', () => openWordSheet(w.word));
+        list.appendChild(row);
+      });
+    } else {
+      $('quiz-wrong-panel').hidden = true;
+    }
+    updateStudyVisibility();
+    updatePlanBar();
+  }
+
+  function quitQuiz() {
+    const s = quizSession;
+    if (!s || !s.answeredCount) {
+      quizSession = null;
+      quizScreen = 'start';
+      renderQuizScreen();
       return;
     }
-    quiz.idx++;
-    renderQuiz();
+    if (!confirm('结束本轮测试并查看结果？')) return;
+    finishQuiz();
   }
 
   // ===================== roots & affixes =====================
@@ -1481,6 +1815,7 @@
     document.querySelectorAll('[data-panel]').forEach(cb => { cb.checked = panel[cb.dataset.panel] !== false; });
     renderPanelOrderUi();
     applyTheme(Store.data.theme);
+    syncBackgroundUi();
     const ai = Store.data.ai;
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
@@ -1540,6 +1875,29 @@
     document.querySelectorAll('[data-settings-pane]').forEach(b => b.addEventListener('click', () => showSettingsPane(b.dataset.settingsPane)));
     document.querySelectorAll('[data-settings-books]').forEach(b => b.addEventListener('click', () => { closeSheet(); openSub('books'); }));
     document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
+    $('bg-choose').addEventListener('click', () => $('bg-file').click());
+    $('bg-file').addEventListener('change', () => {
+      const f = $('bg-file').files && $('bg-file').files[0];
+      chooseBackground(f);
+      $('bg-file').value = '';
+    });
+    $('bg-remove').addEventListener('click', () => {
+      Store.setBackground({ image: '' });
+      applyBackground();
+      syncBackgroundUi();
+    });
+    $('bg-veil').addEventListener('input', () => {
+      const v = Number($('bg-veil').value);
+      $('bg-veil-val').textContent = v + '%';
+      document.documentElement.style.setProperty('--bg-veil', String(v / 100));
+    });
+    $('bg-veil').addEventListener('change', () => Store.setBackground({ veil: Number($('bg-veil').value) }));
+    $('bg-blur').addEventListener('input', () => {
+      const v = Number($('bg-blur').value);
+      $('bg-blur-val').textContent = v + 'px';
+      document.documentElement.style.setProperty('--bg-blur', v + 'px');
+    });
+    $('bg-blur').addEventListener('change', () => Store.setBackground({ blur: Number($('bg-blur').value) }));
     wirePanelOrder();
 
     $('me-stats-link').addEventListener('click', () => openSub('stats'));
@@ -1558,9 +1916,24 @@
     $('grade-fuzzy').addEventListener('click', () => grade(SRS.GRADE.FUZZY));
     $('grade-know').addEventListener('click', () => grade(SRS.GRADE.KNOW));
     $('continue-button').addEventListener('click', continueStudy);
-    $('quiz-speak').addEventListener('click', () => { const e = quiz.items[quiz.idx]; if (e) speak(e.word, e.audio); });
+    $('quiz-speak').addEventListener('click', () => {
+      const s = quizSession;
+      const q = s && s.questions[s.idx];
+      if (q) speak(q.entry.word, q.entry.audio);
+    });
     $('quiz-next').addEventListener('click', nextQuiz);
-    $('quiz-retry').addEventListener('click', () => { quiz.retry = !quiz.retry; $('quiz-retry').classList.toggle('active', quiz.retry); $('quiz-retry').textContent = quiz.retry ? '返回常规' : '重练错题'; buildQuiz(); renderQuiz(); });
+    $('quiz-quit').addEventListener('click', quitQuiz);
+    $('quiz-start-btn').addEventListener('click', startQuiz);
+    $('quiz-again').addEventListener('click', () => { quizSession = null; quizScreen = 'start'; startQuiz(); });
+    $('quiz-adjust').addEventListener('click', () => { quizSession = null; quizScreen = 'start'; renderQuizScreen(); });
+    $('quiz-theme').addEventListener('change', () => quizUpdate({ theme: $('quiz-theme').value }));
+    $('quiz-online').addEventListener('change', () => quizUpdate({ online: $('quiz-online').checked }));
+    $('set-open-quiz').addEventListener('click', () => {
+      closeSheet();
+      switchView('study');
+      if (quizSession && quizSession.done) quizSession = null;
+      setMode('quiz');
+    });
 
     $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
     $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
@@ -1676,10 +2049,19 @@
         else if (ev.key === '2') grade(SRS.GRADE.FUZZY);
         else if (ev.key === '3' || ev.key === ' ') { ev.preventDefault(); grade(SRS.GRADE.KNOW); }
         else if (ev.key === 's' || ev.key === 'S') { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); }
+      } else if (quizScreen === 'start') {
+        if (ev.key === 'Enter') startQuiz();
+      } else if (quizScreen === 'done') {
+        if (ev.key === 'Enter') { quizSession = null; quizScreen = 'start'; startQuiz(); }
       } else {
         if (ev.key === 'Enter' && !$('quiz-next').hidden) nextQuiz();
-        else if (['1', '2', '3', '4'].includes(ev.key)) { const opts = $('quiz-options').children; const b = opts[Number(ev.key) - 1]; if (b) b.click(); }
-        else if (ev.key === 's' || ev.key === 'S') { const e = quiz.items[quiz.idx]; if (e) speak(e.word, e.audio); }
+        else if (['1', '2', '3', '4'].includes(ev.key)) {
+          const b = $('quiz-options').children[Number(ev.key) - 1];
+          if (b && !quizSession.answered) b.click();
+        } else if (ev.key === 's' || ev.key === 'S') {
+          const q = quizSession && quizSession.questions[quizSession.idx];
+          if (q) speak(q.entry.word, q.entry.audio);
+        }
       }
     });
 
@@ -1698,6 +2080,7 @@
   window.addEventListener('DOMContentLoaded', async () => {
     await Store.load();
     applyTheme(Store.data.theme);
+    applyBackground();
     wireEvents();
     let ds = null;
     try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }

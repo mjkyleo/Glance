@@ -29,7 +29,16 @@
     ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
     aiCache: {},
     dict: { provider: 'freezh', key: '', base: '' },
-    dictCache: {}
+    dictCache: {},
+    quiz: {
+      config: {
+        scope: 'mixed', count: 10, types: ['en2zh', 'zh2en', 'cloze'],
+        difficulty: 'auto', online: true, theme: ''
+      },
+      ability: 0.5, answered: 0, correct: 0, streak: 0, history: {}
+    },
+    quizExamples: {},
+    background: { image: '', veil: 38, blur: 0 }
   };
 
   let data = null;
@@ -63,6 +72,29 @@
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     if (!d.dict || typeof d.dict !== 'object') d.dict = { provider: 'free', key: '', base: '' };
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
+    if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
+    if (!d.quiz || typeof d.quiz !== 'object') d.quiz = {};
+    const QSCOPES = ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'];
+    const QTYPES = ['en2zh', 'zh2en', 'cloze'];
+    const qc = d.quiz.config && typeof d.quiz.config === 'object' ? d.quiz.config : {};
+    const qtypes = Array.isArray(qc.types) ? qc.types.filter((t, i) => QTYPES.includes(t) && qc.types.indexOf(t) === i) : [];
+    d.quiz.config = {
+      scope: QSCOPES.includes(qc.scope) ? qc.scope : 'mixed',
+      count: [5, 10, 20].includes(qc.count) ? qc.count : 10,
+      types: qtypes.length ? qtypes : QTYPES.slice(),
+      difficulty: ['auto', 'easy', 'normal', 'hard'].includes(qc.difficulty) ? qc.difficulty : 'auto',
+      online: qc.online !== false,
+      theme: typeof qc.theme === 'string' ? qc.theme : ''
+    };
+    d.quiz.ability = typeof d.quiz.ability === 'number' ? Math.max(0.05, Math.min(0.95, d.quiz.ability)) : 0.5;
+    d.quiz.answered = Math.max(0, Number(d.quiz.answered) || 0);
+    d.quiz.correct = Math.max(0, Number(d.quiz.correct) || 0);
+    d.quiz.streak = Math.trunc(Number(d.quiz.streak) || 0);
+    if (!d.quiz.history || typeof d.quiz.history !== 'object' || Array.isArray(d.quiz.history)) d.quiz.history = {};
+    if (!d.background || typeof d.background !== 'object') d.background = { image: '', veil: 38, blur: 0 };
+    d.background.image = typeof d.background.image === 'string' && /^data:image\//.test(d.background.image) ? d.background.image : '';
+    d.background.veil = typeof d.background.veil === 'number' ? Math.max(0, Math.min(80, d.background.veil)) : 38;
+    d.background.blur = typeof d.background.blur === 'number' ? Math.max(0, Math.min(16, d.background.blur)) : 0;
     return d;
   }
 
@@ -262,6 +294,37 @@
   function deleteDictEntry(word) { delete data.dictCache[word]; save(); }
   function dictWords() { return Object.keys(data.dictCache).sort((a, b) => (data.dictCache[b].ts || 0) - (data.dictCache[a].ts || 0)); }
 
+  // quiz: configuration, adaptive ability and per-word test history
+  function setQuizConfig(patch) { Object.assign(data.quiz.config, patch || {}); save(); }
+  function recordQuizResult(word, correct, difficulty) {
+    const q = data.quiz;
+    q.answered = (q.answered || 0) + 1;
+    if (correct) { q.correct = (q.correct || 0) + 1; q.streak = Math.max(1, (q.streak || 0) + 1); }
+    else q.streak = Math.min(-1, (q.streak || 0) - 1);
+    q.ability = Math.max(0.05, Math.min(0.95, (q.ability ?? 0.5) + (correct ? 0.035 : -0.055)));
+    const h = q.history[word] || (q.history[word] = { n: 0, correct: 0, wrong: 0, last: 0 });
+    h.n++; if (correct) h.correct++; else h.wrong++;
+    h.last = Date.now();
+    if (typeof difficulty === 'number') h.diff = difficulty;
+    const keys = Object.keys(q.history);
+    if (keys.length > 2000) {
+      keys.sort((a, b) => (q.history[a].last || 0) - (q.history[b].last || 0))
+        .slice(0, keys.length - 2000).forEach(w => delete q.history[w]);
+    }
+    save();
+  }
+  function quizExamples(word) {
+    const r = data.quizExamples[word];
+    return r && Array.isArray(r.examples) ? r.examples : null;
+  }
+  function saveQuizExamples(word, examples, provider) {
+    data.quizExamples[word] = { examples: (examples || []).slice(0, 6), provider: provider || '', ts: Date.now() };
+    save();
+  }
+
+  // background wallpaper (image stored as a compressed data URL)
+  function setBackground(patch) { Object.assign(data.background, patch || {}); save(); }
+
   // ---- portable backup: universal words table + lossless settings/progress block ----
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
@@ -305,11 +368,13 @@
         favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
         customBooks: clone(data.customBooks || {}),
+        quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
-          ai, dict
+          ai, dict,
+          background: { veil: data.background.veil, blur: data.background.blur }
         }
       }
     };
@@ -324,6 +389,46 @@
     return out.slice(0, 100);
   }
 
+  function mergeQuiz(src, replace) {
+    const q = data.quiz;
+    const clampA = x => Math.max(0.05, Math.min(0.95, Number(x) || 0.5));
+    if (replace) {
+      const c = isObj(src.config) ? src.config : {};
+      const types = Array.isArray(c.types) ? c.types.filter(t => ['en2zh', 'zh2en', 'cloze'].includes(t)) : [];
+      q.config = {
+        scope: ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'].includes(c.scope) ? c.scope : 'mixed',
+        count: [5, 10, 20].includes(c.count) ? c.count : 10,
+        types: types.length ? types : ['en2zh', 'zh2en', 'cloze'],
+        difficulty: ['auto', 'easy', 'normal', 'hard'].includes(c.difficulty) ? c.difficulty : 'auto',
+        online: c.online !== false,
+        theme: typeof c.theme === 'string' ? c.theme : ''
+      };
+      q.ability = clampA(src.ability);
+      q.answered = Math.max(0, Number(src.answered) || 0);
+      q.correct = Math.max(0, Number(src.correct) || 0);
+      q.streak = Math.trunc(Number(src.streak) || 0);
+      q.history = {};
+    } else {
+      const a1 = q.answered || 0, a2 = Math.max(0, Number(src.answered) || 0);
+      if (a2 > 0) q.ability = clampA(((q.ability ?? 0.5) * a1 + clampA(src.ability) * a2) / (a1 + a2));
+      q.answered = a1 + a2;
+      q.correct = (q.correct || 0) + Math.max(0, Number(src.correct) || 0);
+    }
+    if (isObj(src.history)) {
+      for (const w of Object.keys(src.history)) {
+        const h = src.history[w];
+        if (!isObj(h)) continue;
+        const cur = q.history[w];
+        if (!cur) q.history[w] = { n: h.n || 0, correct: h.correct || 0, wrong: h.wrong || 0, last: h.last || 0, diff: h.diff };
+        else {
+          cur.n += h.n || 0; cur.correct += h.correct || 0; cur.wrong += h.wrong || 0;
+          cur.last = Math.max(cur.last || 0, h.last || 0);
+          if (typeof h.diff === 'number') cur.diff = h.diff;
+        }
+      }
+    }
+  }
+
   function importData(payload, mode) {
     if (!isObj(payload) || payload.kind !== 'learning-data') throw new Error('不是 Glance 学习数据文件');
     const replace = mode === 'replace';
@@ -335,6 +440,8 @@
     if (replace) {
       data.srs = {}; data.logs = {}; data.views = {}; data.favorites = {}; data.errors = {};
       data.history = []; data.favGroups = ['默认']; data.aiCache = {}; data.dictCache = {};
+      data.quizExamples = {};
+      data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
     }
 
     if (src) {
@@ -367,6 +474,15 @@
       if (isObj(src.aiCache)) for (const w of Object.keys(src.aiCache)) if (isObj(src.aiCache[w])) data.aiCache[w] = src.aiCache[w];
       if (isObj(src.dictCache)) for (const w of Object.keys(src.dictCache)) if (isObj(src.dictCache[w])) data.dictCache[w] = src.dictCache[w];
       if (isObj(src.customBooks)) for (const k of Object.keys(src.customBooks)) if (isObj(src.customBooks[k])) data.customBooks[k] = src.customBooks[k];
+      if (isObj(src.quiz)) mergeQuiz(src.quiz, replace);
+      if (isObj(src.quizExamples)) {
+        for (const w of Object.keys(src.quizExamples)) {
+          const r = src.quizExamples[w];
+          if (!isObj(r) || !Array.isArray(r.examples)) continue;
+          const cur = data.quizExamples[w];
+          if (!cur || (r.ts || 0) > (cur.ts || 0)) data.quizExamples[w] = r;
+        }
+      }
       if (isObj(src.fsrs) && (replace || !data.fsrs || !data.fsrs.count)) data.fsrs = src.fsrs;
       if (replace && isObj(src.settings)) {
         const s = src.settings;
@@ -383,6 +499,10 @@
         if (isObj(s.ai)) data.ai = Object.assign({}, data.ai, s.ai, { key: keepAi });
         const keepDict = (data.dict && data.dict.key) || '';
         if (isObj(s.dict)) data.dict = Object.assign({}, data.dict, s.dict, { key: keepDict });
+        if (isObj(s.background)) {
+          if (typeof s.background.veil === 'number') data.background.veil = Math.max(0, Math.min(80, s.background.veil));
+          if (typeof s.background.blur === 'number') data.background.blur = Math.max(0, Math.min(16, s.background.blur));
+        }
       }
     } else {
       // generic table only: best-effort rebuild
@@ -412,6 +532,7 @@
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     exportData, importData,
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
-    setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords
+    setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
+    setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground
   };
 })();

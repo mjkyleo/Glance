@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
+  <div class="app-bg" id="app-bg" aria-hidden="true"></div>
   <div class="app">
     <header class="app-header">
       <div class="brand">
@@ -75,26 +76,80 @@
         <button class="btn-primary" id="continue-button" type="button">继续学习</button>
       </div>
 
-      <div class="scroll" id="quiz-panel" hidden>
+      <div class="scroll" id="quiz-start" hidden>
+        <section class="quiz-hero">
+          <h2 class="quiz-hero-title">开始测试</h2>
+          <p class="quiz-hero-sub">按范围、题型和难度抽题，自动避开重复词与连续同根、同题型。</p>
+        </section>
+        <section class="panel quiz-setup">
+          <div class="panel-head"><h3>测试范围</h3></div>
+          <div class="chip-row" id="quiz-scope"></div>
+          <label class="field" id="quiz-theme-wrap" hidden><span>专项主题</span><select id="quiz-theme"></select></label>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>题目数量</h3></div>
+          <div class="chip-row" id="quiz-count"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>题型</h3><span class="panel-sub">可多选</span></div>
+          <div class="chip-row" id="quiz-types"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h3>难度</h3><span class="panel-sub" id="quiz-diff-hint"></span></div>
+          <div class="chip-row" id="quiz-difficulty"></div>
+          <div class="set-row">
+            <span class="set-row-label">联网补充例句<small>离线或失败时自动回退为其他题型</small></span>
+            <label class="switch"><input type="checkbox" id="quiz-online" /><span class="slider"></span></label>
+          </div>
+        </section>
+        <section class="quiz-estimate" id="quiz-estimate"></section>
+        <div class="quiz-start-actions">
+          <button class="btn-primary" id="quiz-start-btn" type="button">开始测试</button>
+        </div>
+      </div>
+
+      <div class="scroll" id="quiz-session" hidden>
         <div class="quiz-head">
           <span class="quiz-score" id="quiz-score">0 / 0</span>
           <span class="quiz-progress" id="quiz-progress"></span>
         </div>
-        <section class="word-block">
+        <div class="quiz-meta-row">
+          <span class="quiz-type-badge" id="quiz-type-badge">英选中</span>
+          <span class="quiz-diff-badge" id="quiz-diff-badge">普通</span>
+        </div>
+        <section class="word-block quiz-card">
           <div class="word-row">
-            <h1 class="word" id="quiz-word">Glance</h1>
-            <button class="speak-btn" id="quiz-speak" type="button" title="朗读" aria-label="朗读">
+            <h1 class="word" id="quiz-word"></h1>
+            <button class="speak-btn" id="quiz-speak" type="button" title="朗读 (S)" aria-label="朗读">
               <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
             </button>
           </div>
           <div class="phonetic" id="quiz-phonetic"></div>
-          <div class="quiz-question">选择正确的释义</div>
+          <div class="quiz-question" id="quiz-question">选择正确的释义</div>
+          <div class="quiz-cloze" id="quiz-cloze" hidden></div>
+          <div class="quiz-cloze-zh" id="quiz-cloze-zh" hidden></div>
         </section>
         <section class="quiz-options" id="quiz-options"></section>
         <div class="quiz-feedback" id="quiz-feedback" hidden></div>
         <div class="quiz-actions">
-          <button class="btn-ghost" id="quiz-retry" type="button">重练错题</button>
+          <button class="btn-ghost" id="quiz-quit" type="button">结束测试</button>
           <button class="btn-primary" id="quiz-next" type="button" hidden>下一题</button>
+        </div>
+      </div>
+
+      <div class="scroll" id="quiz-done" hidden>
+        <section class="quiz-done-hero">
+          <div class="quiz-done-ring" id="quiz-done-ring"><span id="quiz-done-pct">0%</span></div>
+          <h2 class="quiz-done-title" id="quiz-done-title">测试完成</h2>
+          <p class="quiz-done-sub" id="quiz-done-sub"></p>
+        </section>
+        <section class="panel" id="quiz-wrong-panel" hidden>
+          <div class="panel-head"><h3>错题回顾</h3><span class="panel-sub" id="quiz-wrong-count"></span></div>
+          <div id="quiz-wrong-list"></div>
+        </section>
+        <div class="quiz-done-actions">
+          <button class="btn-ghost" id="quiz-adjust" type="button">调整设置</button>
+          <button class="btn-primary" id="quiz-again" type="button">再测一次</button>
         </div>
       </div>
 
@@ -414,6 +469,11 @@
           <label class="field"><span>复习上限（0=不限）</span><input type="number" id="set-review" min="0" max="500" step="10" /></label>
         </section>
         <section class="set-group">
+          <h4>测试</h4>
+          <p class="field-hint">设置测试范围、题型与难度，抽题由测试引擎按掌握度与近期表现自动安排。</p>
+          <button class="btn-ghost" id="set-open-quiz" type="button">打开测试设置</button>
+        </section>
+        <section class="set-group">
           <h4>学习面板</h4>
           <p class="field-hint">开关控制学习页展示的内容；拖动或用箭头调整先后顺序，学习页会同步。</p>
           <div class="panel-order-group" data-panel-group="head">
@@ -545,6 +605,18 @@
           </div>
         </section>
         <section class="set-group">
+          <h4>背景图片</h4>
+          <p class="field-hint">上传一张图片作为应用底色，像聊天背景或手机壁纸一样。图片只保存在本机。</p>
+          <div class="bg-preview" id="bg-preview"><span class="bg-preview-empty">未设置背景</span></div>
+          <input type="file" id="bg-file" accept="image/*" hidden />
+          <div class="bg-actions">
+            <button class="btn-ghost" id="bg-choose" type="button">选择图片</button>
+            <button class="btn-ghost danger" id="bg-remove" type="button" hidden>移除背景</button>
+          </div>
+          <label class="field"><span>蒙版浓度 <b id="bg-veil-val">38%</b></span><input type="range" id="bg-veil" min="0" max="80" step="1" /></label>
+          <label class="field"><span>模糊 <b id="bg-blur-val">0px</b></span><input type="range" id="bg-blur" min="0" max="16" step="1" /></label>
+        </section>
+        <section class="set-group">
           <h4>学习卡片</h4>
           <button class="btn-ghost" id="set-card-reset" type="button">恢复默认卡片顺序</button>
         </section>
@@ -623,6 +695,7 @@
   <script src="js/themes.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/dictionary.js"></script>
+  <script src="js/quiz.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
