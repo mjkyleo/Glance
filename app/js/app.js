@@ -1248,9 +1248,33 @@
     $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = ['meaning', 'morphemes', 'family', 'synonyms', 'derivatives', 'etymology', 'inflections']; Store.save(); if (cardsEntry) renderCards(cardsEntry); });
     $('reset-progress').addEventListener('click', () => {
       if (!confirm('确定重置所有学习进度？此操作不可撤销。')) return;
-      Store.data.srs = {}; Store.data.logs = {}; Store.data.errors = {};
+      Store.data.srs = {}; Store.data.logs = {}; Store.data.errors = {}; Store.data.views = {};
       Store.save(); buildSession(); updatePlanBar(); renderStudy(); renderStats(); renderBooks();
       closeSheet();
+    });
+    $('export-data').addEventListener('click', async () => {
+      const payload = Store.exportData();
+      const name = 'glance-learning-' + Store.today() + '.json';
+      const ok = await Platform.saveTextFile(name, JSON.stringify(payload, null, 2));
+      if (!ok) alert('导出失败，请重试。');
+    });
+    $('import-data').addEventListener('click', async () => {
+      const file = await Platform.pickLibrary();
+      if (!file) return;
+      let payload;
+      try { payload = JSON.parse(file.text); } catch (e) { alert('文件不是有效的 JSON'); return; }
+      const merge = confirm('合并导入：保留现有进度并叠加文件内容。\n\n点击「取消」可选择覆盖恢复。');
+      let mode = 'merge';
+      if (!merge) {
+        if (!confirm('覆盖恢复会清空当前学习进度并用文件内容替换，确定继续？')) return;
+        mode = 'replace';
+      }
+      try {
+        const r = Store.importData(payload, mode);
+        Store.flush();
+        alert('导入完成（' + (mode === 'replace' ? '覆盖' : '合并') + '）：' + r.words + ' 个学习词、' + r.views + ' 条接触记录、' + r.favorites + ' 个生词。');
+        location.reload();
+      } catch (e) { alert('导入失败：' + e.message); }
     });
 
     document.addEventListener('keydown', ev => {

@@ -27,7 +27,7 @@
 | `library.js` | 词库索引、词根家族、词缀、查词、词性解析、助记钩子、详解卡片构建 |
 | `ai.js` | 按需 LLM 单词讲解（多服务商预设、JSON 解析、本地缓存、导出） |
 | `app.js` | 应用控制器：视图路由、学习/测试、词卡、词根/词缀、查词、统计、设置、事件 |
-| `themes.js` | **[~] 主题分类器草稿**（详见 §4，尚未接入、规则待重写） |
+| `themes.js` | 专项分类器（29 个主题，精度优先规则，详见 §4） |
 
 ### 数据（`app/data/`，索引化 JSON）
 
@@ -205,12 +205,12 @@
 
 ---
 
-## 6. 通用格式学习数据导出 / 导入（#58）
+## 6. 通用格式学习数据导出 / 导入（#58）✅
 
 **需求**：安装以来全部学习数据可导出保存、可导入恢复；格式通用、结构清晰、稍作转换即可他用。
 
-- [ ] `store.js`：`exportData()` 生成可移植 payload；`importData(payload, mode)` 合并/覆盖恢复。
-- [ ] **通用格式设计**（双层）：
+- [x] `store.js`：`exportData()` 生成可移植 payload；`importData(payload, mode)` 合并/覆盖恢复。
+- [x] **通用格式设计**（双层）：
   ```jsonc
   {
     "app": "Glance", "kind": "learning-data", "schema": 1,
@@ -222,10 +222,17 @@
     "data": { "srs":{}, "logs":{}, "views":{}, "favorites":{}, "favGroups":[], "history":[], "errors":{}, "fsrs":{}, "aiCache":{}, "dictCache":{}, "customBooks":{}, "settings":{} }
   }
   ```
-- [ ] 导入：优先 `data` 块无损恢复；缺失时由 `words` 表尽力重建 srs/views/favorites。模式 merge（默认，保留现有+叠加）/ replace。
-- [ ] **安全**：导出默认剔除密钥（`ai.key`、`dict.key`），保留 provider/model/base；UI 提示。
-- [ ] 复用 `Platform.saveTextFile`（导出）与 `Platform.pickLibrary`（导入，accept `.json`）。
-- [ ] 设置页「数据」组新增「导出全部数据 / 导入数据」入口 + 事件。
+- [x] 导入：优先 `data` 块无损恢复；缺失时由 `words` 表尽力重建 srs/views/favorites。模式 merge（默认，保留现有+叠加）/ replace。
+- [x] **安全**：导出默认剔除密钥（`ai.key`、`dict.key`），保留 provider/model/base；UI 提示。
+- [x] 复用 `Platform.saveTextFile`（导出）与 `Platform.pickLibrary`（导入，accept `.json`）。
+- [x] 设置页「数据」组新增「导出全部数据 / 导入数据」入口 + 事件。
+
+**验证（CDP 实操）**：
+- 导出 payload：`app/kind/schema/exportedAt/summary/words[]/data` 结构正确；`settings.ai.key`、`settings.dict.key` 已剔除。
+- 合并导入：views 累加（`n` 求和、`first` 取早、`last` 取晚）；收藏/错题/AI 缓存/词典缓存/customBooks 合并；历史按 word 去重且最新在前，上限 100。
+- 覆盖导入：重置 srs/logs/views/favorites/errors/history/favGroups/aiCache/dictCache 后恢复，**本地 API Key 保留**，导入的 plan（33/50）生效。
+- 通用表回退：去掉 `data` 块后由 `words[]` 重建 srs/views/favorites 成功。
+- 异常文件：`kind` 不符 → 抛「不是 Glance 学习数据文件」，不污染现有数据。
 
 ---
 

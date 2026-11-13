@@ -18,7 +18,9 @@
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
     ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
-    aiCache: {}
+    aiCache: {},
+    dict: { provider: 'free', key: '', base: '' },
+    dictCache: {}
   };
 
   let data = null;
@@ -43,6 +45,8 @@
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
+    if (!d.dict || typeof d.dict !== 'object') d.dict = { provider: 'free', key: '', base: '' };
+    if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     return d;
   }
 
@@ -235,12 +239,151 @@
   function deleteAiExplanation(word) { delete data.aiCache[word]; save(); }
   function aiWords() { return Object.keys(data.aiCache).sort((a, b) => (data.aiCache[b].ts || 0) - (data.aiCache[a].ts || 0)); }
 
+  // ---- portable backup: universal words table + lossless settings/progress block ----
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
+  function iso(ms) { return ms ? new Date(ms).toISOString() : null; }
+  function wordState(s) {
+    if (!s || SRS.isNew(s)) return 'new';
+    if (SRS.isKnown(s)) return 'known';
+    return s.state === 'relearn' ? 'relearn' : 'learning';
+  }
+
+  function exportData() {
+    const srs = data.srs || {}, views = data.views || {}, fav = data.favorites || {}, errs = data.errors || {};
+    const all = new Set();
+    [srs, views, fav, errs].forEach(map => Object.keys(map).forEach(w => all.add(w)));
+    (data.history || []).forEach(h => { if (h && h.word) all.add(h.word); });
+    const words = Array.from(all).sort().map(w => {
+      const s = srs[w] || {}, v = views[w] || {}, e = errs[w] || {};
+      return {
+        word: w, state: wordState(s), box: s.box || 0, due: iso(s.due), reps: s.reps || 0, lapses: s.lapses || 0,
+        views: v.n || 0, firstSeen: iso(v.first), lastSeen: iso(v.last),
+        favorite: !!fav[w], favoriteGroup: fav[w] ? (fav[w].group || '') : '', errors: e.count || 0
+      };
+    });
+    const counts = { known: 0, learning: 0, relearn: 0, fresh: 0 };
+    all.forEach(w => { counts[wordState(srs[w])]++; });
+    const daysActive = Object.keys(data.logs || {}).filter(k => {
+      const l = data.logs[k];
+      return l && ((l.know || 0) + (l.fuzzy || 0) + (l.forgot || 0)) > 0;
+    }).length;
+    const ai = Object.assign({}, data.ai || {}); delete ai.key;
+    const dict = Object.assign({}, data.dict || {}); delete dict.key;
+    return {
+      app: 'Glance', kind: 'learning-data', schema: 1, exportedAt: new Date().toISOString(),
+      summary: {
+        totalWords: all.size, known: counts.known, learning: counts.learning, relearn: counts.relearn, fresh: counts.fresh,
+        favorites: Object.keys(fav).length, totalViews: totalViews(), daysActive
+      },
+      words,
+      data: {
+        srs: clone(srs), logs: clone(data.logs || {}), views: clone(views), favorites: clone(fav),
+        favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
+        fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
+        customBooks: clone(data.customBooks || {}),
+        settings: {
+          plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
+          autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
+          ai, dict
+        }
+      }
+    };
+  }
+
+  function mergeHistory(a, b) {
+    const seen = new Set(), out = [];
+    (a || []).concat(b || []).sort((x, y) => (y.ts || 0) - (x.ts || 0)).forEach(h => {
+      if (!h || !h.word || seen.has(h.word)) return;
+      seen.add(h.word); out.push({ word: h.word, ts: h.ts || 0 });
+    });
+    return out.slice(0, 100);
+  }
+
+  function importData(payload, mode) {
+    if (!isObj(payload) || payload.kind !== 'learning-data') throw new Error('不是 Glance 学习数据文件');
+    const replace = mode === 'replace';
+    const src = isObj(payload.data) ? payload.data : null;
+    const now = Date.now();
+    const result = { mode: replace ? 'replace' : 'merge', words: 0, views: 0, favorites: 0 };
+    if (!src && !Array.isArray(payload.words)) throw new Error('文件里没有可导入的学习数据');
+
+    if (replace) {
+      data.srs = {}; data.logs = {}; data.views = {}; data.favorites = {}; data.errors = {};
+      data.history = []; data.favGroups = ['默认']; data.aiCache = {}; data.dictCache = {};
+    }
+
+    if (src) {
+      if (isObj(src.srs)) for (const w of Object.keys(src.srs)) if (isObj(src.srs[w])) { data.srs[w] = src.srs[w]; result.words++; }
+      if (isObj(src.logs)) for (const k of Object.keys(src.logs)) if (isObj(src.logs[k])) data.logs[k] = src.logs[k];
+      if (isObj(src.views)) for (const w of Object.keys(src.views)) {
+        const v = src.views[w]; if (!isObj(v)) continue;
+        const cur = data.views[w];
+        if (!cur) { data.views[w] = { n: v.n || 0, first: v.first || 0, last: v.last || 0 }; result.views++; }
+        else {
+          cur.n += v.n || 0;
+          cur.first = Math.min(cur.first || v.first || now, v.first || cur.first || now);
+          cur.last = Math.max(cur.last || 0, v.last || 0);
+        }
+      }
+      if (isObj(src.favorites)) for (const w of Object.keys(src.favorites)) {
+        if (!isObj(src.favorites[w])) continue;
+        data.favorites[w] = src.favorites[w]; result.favorites++;
+      }
+      if (Array.isArray(src.favGroups)) {
+        src.favGroups.forEach(g => { if (typeof g === 'string' && g.trim() && !data.favGroups.includes(g)) data.favGroups.push(g); });
+      }
+      if (Array.isArray(src.history)) data.history = mergeHistory(data.history, src.history);
+      if (isObj(src.errors)) for (const w of Object.keys(src.errors)) {
+        const e = src.errors[w]; if (!isObj(e)) continue;
+        const cur = data.errors[w];
+        if (!cur || (e.count || 0) > (cur.count || 0)) data.errors[w] = { count: e.count || 0, last: e.last || 0 };
+        else cur.last = Math.max(cur.last || 0, e.last || 0);
+      }
+      if (isObj(src.aiCache)) for (const w of Object.keys(src.aiCache)) if (isObj(src.aiCache[w])) data.aiCache[w] = src.aiCache[w];
+      if (isObj(src.dictCache)) for (const w of Object.keys(src.dictCache)) if (isObj(src.dictCache[w])) data.dictCache[w] = src.dictCache[w];
+      if (isObj(src.customBooks)) for (const k of Object.keys(src.customBooks)) if (isObj(src.customBooks[k])) data.customBooks[k] = src.customBooks[k];
+      if (isObj(src.fsrs) && (replace || !data.fsrs || !data.fsrs.count)) data.fsrs = src.fsrs;
+      if (replace && isObj(src.settings)) {
+        const s = src.settings;
+        if (isObj(s.plan)) data.plan = Object.assign({ newPerDay: 20, reviewCap: 0 }, s.plan);
+        if (typeof s.activeBook === 'string' && s.activeBook) data.activeBook = s.activeBook;
+        if (Array.isArray(s.cardOrder) && s.cardOrder.length) data.cardOrder = s.cardOrder.slice();
+        ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
+        if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;
+        if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;
+        const keepAi = data.ai.key || '';
+        if (isObj(s.ai)) data.ai = Object.assign({}, data.ai, s.ai, { key: keepAi });
+        const keepDict = (data.dict && data.dict.key) || '';
+        if (isObj(s.dict)) data.dict = Object.assign({}, data.dict, s.dict, { key: keepDict });
+      }
+    } else {
+      // generic table only: best-effort rebuild
+      payload.words.forEach(r => {
+        if (!isObj(r) || typeof r.word !== 'string' || !r.word) return;
+        const w = r.word;
+        const st = r.state || 'new';
+        if (st !== 'new') {
+          const box = r.box || (st === 'known' ? SRS.GRADUATED : 1);
+          data.srs[w] = { box, due: Date.parse(r.due) || 0, reps: r.reps || 0, lapses: r.lapses || 0, last: Date.parse(r.lastSeen) || 0, state: st === 'known' ? 'known' : st, S: 0, D: 0 };
+          result.words++;
+        }
+        if (r.views > 0) { data.views[w] = { n: r.views, first: Date.parse(r.firstSeen) || 0, last: Date.parse(r.lastSeen) || 0 }; result.views++; }
+        if (r.favorite) { data.favorites[w] = { ts: Date.parse(r.lastSeen) || now, group: r.favoriteGroup || data.favGroups[0] || '默认' }; result.favorites++; }
+        if (r.errors > 0) data.errors[w] = { count: r.errors, last: Date.parse(r.lastSeen) || 0 };
+      });
+    }
+    save();
+    return result;
+  }
+
   window.Store = {
     load, save, flush, get data() { return data; },
     today, dateKey, getLog, recordGrade, planProgress, streak, mastery, trend,
     isFavorite, addFavorite, removeFavorite, favoriteWords, addFavGroup,
     addHistory, clearHistory, addError, clearError, errorWords,
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
+    exportData, importData,
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords
   };
 })();
