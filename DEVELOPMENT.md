@@ -143,10 +143,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）。
 
-- 最新提交：`26b3070`（`main`），重构详细讲解页：自动查词、刷新/删除图标、AI 自动生成选项、卡片合并与紧凑化。
-- 最新交付：`android-24` APK → `https://github.com/mjkyleo/Glance/releases/download/android-24/Glance-android.apk`（13,163,587 字节）。
+- 最新提交：`a65dd82`（`main`），设置并入「我的」：去掉齿轮入口，六项设置平铺为紧凑列表，面板直开对应分区。
+- 最新交付：`android-25` APK → `https://github.com/mjkyleo/Glance/releases/download/android-25/Glance-android.apk`（13,162,420 字节）。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -529,6 +529,21 @@
 
 **交付**：`android-24`（target `26b3070`，APK 13,163,587 字节）。
 
+### 8.15 设置并入「我的」：去掉齿轮入口 + 紧凑列表 ✅
+
+**导航**：
+
+- 删除顶栏右上角齿轮按钮（`#settings-button`）与学习工具栏重复设置入口（`#study-settings`），不再有独立的「设置」总入口。
+- 「我的」页直接平铺全部设置分组，六行一一对应原设置分区：学习与测试、外观与主题、发音、词典、AI 解释、数据备份；每行带图标、标题与一行副标题，点击直接打开对应分区。
+- 设置面板去掉左侧分区列表（`#settings-nav`）与返回按钮（`#settings-back`），打开即是目标分区，标题/副标题随分区切换；AI 配置提示中的「前往设置」改为直接跳 AI 分区（文案「我的 → AI 解释」）。
+- 面板内重复的四级标题删除（AI 分区只剩「模型与 Key」、数据分区只剩「备份与重置」），避免与分区标题重复。
+
+**样式**：`.me-row` 收紧为 9px/12px 内边距、图标 30px（SVG 16px）、标题 14.5px、副标题 11.5px，行间距 6px，左右缩进 8px；390px 宽下菜单实测 335.2px，比原卡片更窄更紧凑。
+
+**验证**：Electron + CDP 实测顶栏/工具栏无齿轮节点；「我的」共 9 行（3 个统计行 + 6 个设置行）；六个设置行分别打开 `learn/appearance/audio/dict/ai/data` 分区且无残留导航与返回按钮；AI 未配置提示点「前往设置」会关闭词详情并落到 AI 分区；各视图无 JS 报错；390px 视口无横向溢出（菜单宽 335.2px）。
+
+**交付**：`android-25`（target `a65dd82`，CI run 43410386807 成功，Range 复核 `com.glance.app` / `versionCode 25` / `versionName 1.0.6+25`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,162,420 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -547,6 +562,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `a65dd82` | 设置并入「我的」：去掉顶栏/工具栏齿轮，六项设置平铺为紧凑列表，面板直开对应分区 |
 | `26b3070` | 详细讲解页重构：自动查词、刷新/删除图标、AI 自动生成开关、词根+词源合并、卡片紧凑化 |
 | `209d866` | Android 版本名带构建号（`1.0.6+23`）+ CI 断言 APK 版本与签名证书 |
 | `8d89844` | Android 构建注入递增 versionCode + 仓库内固定调试签名，修复新包无法覆盖安装 |
@@ -576,4 +592,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-24` APK（详细讲解页重构，versionCode 24 / versionName `1.0.6+24`）— `https://github.com/mjkyleo/Glance/releases/download/android-24/Glance-android.apk`（13,163,587 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-23` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-25` APK（设置并入「我的」，versionCode 25 / versionName `1.0.6+25`）— `https://github.com/mjkyleo/Glance/releases/download/android-25/Glance-android.apk`（13,162,420 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-24` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
