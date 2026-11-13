@@ -247,6 +247,7 @@
       else quizScreen = 'start';
       renderQuizScreen();
     } else {
+      clearQuizAuto();
       updateStudyVisibility();
       renderStudy();
     }
@@ -266,6 +267,9 @@
     const pct = total ? Math.round((Math.min(done, total) / total) * 100) : (mode === 'quiz' ? 0 : 100);
     fill.style.width = pct + '%';
     bar.setAttribute('aria-valuenow', String(pct));
+    const noProgress = mode === 'quiz' && !quizSession;
+    bar.hidden = noProgress;
+    bar.parentElement.classList.toggle('quiz-no-progress', noProgress);
   }
 
   function renderStudy() {
@@ -601,6 +605,14 @@
   function quizUpdate(patch) {
     Store.setQuizConfig(patch);
     if (quizScreen === 'start') renderQuizStart();
+    renderQuizSettings();
+  }
+  function quizConfigSummary() {
+    const cfg = quizCfg();
+    const scope = (QuizEngine.SCOPES.find(s => s.id === cfg.scope) || {}).name || '';
+    const types = cfg.types.map(t => QuizEngine.TYPE_LABEL[t]).join(' / ');
+    const diff = { auto: '自动难度', easy: '简单难度', normal: '普通难度', hard: '困难难度' }[cfg.difficulty] || '';
+    return [scope, cfg.count + ' 题', types, diff].filter(Boolean).join(' · ');
   }
   function quizThemeOptions() {
     const list = window.Themes ? Themes.list().filter(t => t.n > 0) : [];
@@ -635,6 +647,26 @@
   }
 
   function renderQuizStart() {
+    const cfg = quizCfg();
+    const info = QuizEngine.estimate(cfg);
+    $('quiz-start-config').textContent = quizConfigSummary();
+    $('quiz-start-count').textContent = info.available
+      ? '可用 ' + info.available + ' 题 · 覆盖 ' + info.pool + ' 个词'
+      : '当前范围没有可测试的词';
+    const note = $('quiz-start-note');
+    let noteText = '';
+    if (!info.available) noteText = '换个范围或先学习一些单词；也可以点右上角设置调整范围。';
+    else if (info.available < cfg.count) noteText = '可用题量不足：预计 ' + info.available + ' 题，计划 ' + cfg.count + ' 题，可减少题数或缩小范围。';
+    note.textContent = noteText;
+    note.hidden = !noteText;
+    note.classList.remove('warn');
+    const btn = $('quiz-start-btn');
+    btn.disabled = !info.available || quizBuilding;
+    btn.textContent = quizBuilding ? '正在准备…' : '开始';
+    updateStudyVisibility();
+  }
+
+  function renderQuizSettings() {
     const cfg = quizCfg();
     const scopeBox = $('quiz-scope');
     scopeBox.innerHTML = '';
@@ -705,14 +737,12 @@
 
     $('quiz-online').checked = cfg.online;
     renderQuizEstimate();
-    updateStudyVisibility();
   }
 
   async function startQuiz() {
     if (quizBuilding) return;
     const cfg = QuizEngine.buildConfig(quizCfg());
     const btn = $('quiz-start-btn');
-    const oldText = btn.textContent;
     quizBuilding = true;
     btn.disabled = true;
     btn.textContent = '正在准备…';
@@ -737,11 +767,15 @@
       failure = quizLastWarnings[0];
     } finally {
       quizBuilding = false;
-      btn.textContent = oldText;
       if (failure) {
         quizScreen = 'start';
         renderQuizStart();
-        $('quiz-estimate').appendChild(el('p', 'quiz-est-warn', failure));
+        const note = $('quiz-start-note');
+        note.hidden = false;
+        note.textContent = failure;
+        note.classList.add('warn');
+      } else if (quizScreen === 'start') {
+        renderQuizStart();
       }
     }
   }
@@ -759,12 +793,26 @@
     if (!s) { quizScreen = 'start'; renderQuizScreen(); return; }
     const q = s.questions[s.idx];
     if (!q) { finishQuiz(); return; }
+    clearQuizAuto();
     $('quiz-score').textContent = s.correct + ' / ' + s.questions.length;
     $('quiz-progress').textContent = '第 ' + (s.idx + 1) + ' / ' + s.questions.length + ' 题';
     $('quiz-type-badge').textContent = QuizEngine.TYPE_LABEL[q.type] || '';
     const diff = $('quiz-diff-badge');
     diff.textContent = quizDiffLabel(q.difficulty);
     diff.dataset.level = q.difficulty < 0.4 ? 'easy' : q.difficulty < 0.62 ? 'normal' : 'hard';
+
+    const prev = s.idx > 0 ? s.questions[s.idx - 1] : null;
+    const lastEl = $('quiz-last');
+    lastEl.innerHTML = '';
+    lastEl.hidden = !prev;
+    if (prev) {
+      lastEl.dataset.word = prev.word;
+      lastEl.appendChild(el('span', 'quiz-last-label', '上一题'));
+      lastEl.appendChild(el('b', null, prev.word));
+      lastEl.appendChild(el('span', 'quiz-last-gloss', QuizEngine.primaryGloss(prev.entry)));
+    } else {
+      lastEl.dataset.word = '';
+    }
 
     const wordRow = document.querySelector('#quiz-session .word-row');
     const big = $('quiz-word');
@@ -810,13 +858,25 @@
       const b = el('button', 'quiz-option');
       b.type = 'button';
       b.appendChild(el('span', 'opt-key', ['A', 'B', 'C', 'D'][i] || String(i + 1)));
-      b.appendChild(el('span', 'quiz-opt-text', text));
-      b.addEventListener('click', () => answerQuiz(i));
+      const body = el('span', 'quiz-opt-body');
+      body.appendChild(el('span', 'quiz-opt-text', text));
+      b.appendChild(body);
+      const word = q.optionWords && q.optionWords[i];
+      if (word) b.dataset.word = word;
+      b.addEventListener('click', () => {
+        const cur = quizSession;
+        if (!cur) return;
+        if (!cur.answered) answerQuiz(i);
+        else if (b.dataset.word) openWordSheet(b.dataset.word);
+      });
       box.appendChild(b);
     });
     $('quiz-feedback').hidden = true;
+    $('quiz-reveal').hidden = true;
+    $('quiz-reveal').innerHTML = '';
     $('quiz-next').hidden = true;
     s.answered = false;
+    $('quiz-session').scrollTop = 0;
     updatePlanBar();
   }
 
@@ -830,10 +890,19 @@
     s.answeredCount++;
     if (isCorrect) s.correct++;
     Array.from($('quiz-options').children).forEach((b, i) => {
-      b.disabled = true;
       if (i === q.correctIndex) b.classList.add('correct');
       else if (i === choice) b.classList.add('wrong');
       else b.classList.add('dim');
+      if (!isCorrect && b.dataset.word) {
+        b.classList.add('tap');
+        b.title = '查看 ' + b.dataset.word + ' 的学习卡';
+        const gloss = q.optionGloss && q.optionGloss[i];
+        const body = b.querySelector('.quiz-opt-body');
+        if (gloss && body) body.appendChild(el('span', 'quiz-opt-hint', gloss));
+        b.appendChild(el('span', 'quiz-opt-open', '›'));
+      } else {
+        b.disabled = true;
+      }
     });
     const e = q.entry;
     Store.recordGrade(e.word, SRS.isNew(Store.data.srs[e.word]) ? 'new' : 'review', isCorrect ? SRS.GRADE.KNOW : SRS.GRADE.FORGOT, 0);
@@ -842,14 +911,17 @@
     fb.hidden = false;
     if (isCorrect) {
       fb.className = 'quiz-feedback ok';
-      fb.textContent = q.type === 'cloze' ? '回答正确！正确答案：' + q.correct : '回答正确！';
+      fb.textContent = q.type === 'cloze' ? '回答正确 · ' + q.correct : '回答正确';
+      scheduleQuizAutoNext();
     } else {
       s.wrong.push({ word: e.word, correct: q.correct, type: q.type });
-      fb.className = 'quiz-feedback no';
-      fb.textContent = '正确答案：' + q.correct + (q.root ? ' · 词根 ' + q.root : '');
+      fb.hidden = true;
       Store.addError(e.word);
       if (!Store.isFavorite(e.word)) Store.addFavorite(e.word, '错题');
       if (!Store.data.favGroups.includes('错题')) { Store.data.favGroups.push('错题'); Store.save(); }
+      renderQuizReveal(q);
+      $('quiz-next').hidden = false;
+      $('quiz-next').textContent = s.idx + 1 >= s.questions.length ? '查看结果' : '继续';
     }
     if (q.type === 'cloze') {
       document.querySelector('#quiz-session .word-row').hidden = false;
@@ -862,14 +934,64 @@
       $('quiz-speak').hidden = false;
     }
     $('quiz-score').textContent = s.correct + ' / ' + s.questions.length;
-    $('quiz-next').hidden = false;
-    $('quiz-next').textContent = s.idx + 1 >= s.questions.length ? '查看结果' : '下一题';
     updatePlanBar();
+    if (!isCorrect) {
+      requestAnimationFrame(() => {
+        const session = $('quiz-session');
+        const reveal = $('quiz-reveal');
+        const footer = session.querySelector('.quiz-actions');
+        if (!reveal || reveal.hidden || !footer) return;
+        const delta = reveal.getBoundingClientRect().bottom - footer.getBoundingClientRect().top + 8;
+        if (delta > 0) session.scrollTo({ top: session.scrollTop + delta, behavior: 'smooth' });
+      });
+    }
+  }
+
+  function renderQuizReveal(q) {
+    const box = $('quiz-reveal');
+    box.innerHTML = '';
+    box.hidden = false;
+    const e = q.entry;
+    const card = el('button', 'quiz-reveal-card');
+    card.type = 'button';
+    const head = el('div', 'quiz-reveal-head');
+    head.appendChild(el('span', 'quiz-reveal-tag', '答错'));
+    head.appendChild(el('b', null, e.word));
+    if (e.phonetic) head.appendChild(el('span', 'quiz-reveal-ph', '/' + e.phonetic + '/'));
+    if (q.root && q.root.toLowerCase() !== e.word.toLowerCase()) head.appendChild(el('span', 'quiz-reveal-root', '词根 ' + q.root));
+    head.appendChild(el('span', 'quiz-reveal-open', '学习卡 ›'));
+    card.appendChild(head);
+    const senses = e.senses && e.senses.length ? e.senses : [{ pos: '', domain: '', gloss: e.meaning || e.zh || '' }];
+    const list = el('div', 'quiz-reveal-senses');
+    senses.forEach(s => {
+      const row = el('div', 'quiz-sense');
+      const info = window.Library && Library.posInfo ? Library.posInfo(s.pos) : null;
+      if (info) row.appendChild(el('span', 'quiz-sense-pos', info.zh));
+      else if (s.pos) row.appendChild(el('span', 'quiz-sense-pos', s.pos));
+      row.appendChild(el('span', 'quiz-sense-gloss', (s.domain ? '[' + s.domain + '] ' : '') + s.gloss));
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+    card.addEventListener('click', () => openWordSheet(e.word));
+    box.appendChild(card);
+  }
+
+  let quizAutoTimer = null;
+  function clearQuizAuto() {
+    if (quizAutoTimer) { clearTimeout(quizAutoTimer); quizAutoTimer = null; }
+  }
+  function scheduleQuizAutoNext() {
+    clearQuizAuto();
+    quizAutoTimer = setTimeout(() => {
+      quizAutoTimer = null;
+      if (quizSession && quizSession.answered) nextQuiz();
+    }, 1100);
   }
 
   function nextQuiz() {
     const s = quizSession;
     if (!s || !s.answered) return;
+    clearQuizAuto();
     if (s.idx + 1 >= s.questions.length) { finishQuiz(); return; }
     s.idx++;
     s.answered = false;
@@ -878,6 +1000,7 @@
   }
 
   function finishQuiz() {
+    clearQuizAuto();
     const s = quizSession;
     if (!s) { quizScreen = 'start'; renderQuizScreen(); return; }
     s.done = true;
@@ -930,6 +1053,7 @@
   }
 
   function quitQuiz() {
+    clearQuizAuto();
     const s = quizSession;
     if (!s || !s.answeredCount) {
       quizSession = null;
@@ -1945,14 +2069,20 @@
     $('quiz-quit').addEventListener('click', quitQuiz);
     $('quiz-start-btn').addEventListener('click', startQuiz);
     $('quiz-again').addEventListener('click', () => { quizSession = null; quizScreen = 'start'; startQuiz(); });
-    $('quiz-adjust').addEventListener('click', () => { quizSession = null; quizScreen = 'start'; renderQuizScreen(); });
+    $('quiz-adjust').addEventListener('click', () => {
+      quizSession = null; quizScreen = 'start'; renderQuizScreen();
+      renderQuizSettings(); openSheet('quiz-settings-sheet');
+    });
+    $('quiz-settings-btn').addEventListener('click', () => { renderQuizSettings(); openSheet('quiz-settings-sheet'); });
+    $('quiz-last').addEventListener('click', () => { const w = $('quiz-last').dataset.word; if (w) openWordSheet(w); });
     $('quiz-theme').addEventListener('change', () => quizUpdate({ theme: $('quiz-theme').value }));
     $('quiz-online').addEventListener('change', () => quizUpdate({ online: $('quiz-online').checked }));
     $('set-open-quiz').addEventListener('click', () => {
-      closeSheet();
       switchView('study');
       if (quizSession && quizSession.done) quizSession = null;
       setMode('quiz');
+      renderQuizSettings();
+      openSheet('quiz-settings-sheet');
     });
 
     $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });

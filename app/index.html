@@ -71,36 +71,24 @@
         <button class="btn-primary" id="continue-button" type="button">继续学习</button>
       </div>
 
-      <div class="scroll" id="quiz-start" hidden>
-        <section class="quiz-hero">
-          <h2 class="quiz-hero-title">开始测试</h2>
-          <p class="quiz-hero-sub">按范围、题型和难度抽题，自动避开重复词与连续同根、同题型。</p>
-        </section>
-        <section class="panel quiz-setup">
-          <div class="panel-head"><h3>测试范围</h3></div>
-          <div class="chip-row" id="quiz-scope"></div>
-          <label class="field" id="quiz-theme-wrap" hidden><span>专项主题</span><select id="quiz-theme"></select></label>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h3>题目数量</h3></div>
-          <div class="chip-row" id="quiz-count"></div>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h3>题型</h3><span class="panel-sub">可多选</span></div>
-          <div class="chip-row" id="quiz-types"></div>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h3>难度</h3><span class="panel-sub" id="quiz-diff-hint"></span></div>
-          <div class="chip-row" id="quiz-difficulty"></div>
-          <div class="set-row">
-            <span class="set-row-label">联网补充例句<small>离线或失败时自动回退为其他题型</small></span>
-            <label class="switch"><input type="checkbox" id="quiz-online" /><span class="slider"></span></label>
-          </div>
-        </section>
-        <section class="quiz-estimate" id="quiz-estimate"></section>
-        <div class="quiz-start-actions">
-          <button class="btn-primary" id="quiz-start-btn" type="button">开始测试</button>
+      <div class="scroll quiz-start-page" id="quiz-start" hidden>
+        <div class="quiz-start-top">
+          <section class="quiz-hero">
+            <h2 class="quiz-hero-title">测试</h2>
+            <p class="quiz-hero-sub" id="quiz-start-config"></p>
+          </section>
+          <button class="quiz-gear" id="quiz-settings-btn" type="button" title="测试设置" aria-label="测试设置">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.1"/>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9.1a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/>
+            </svg>
+          </button>
         </div>
+        <section class="quiz-start-panel">
+          <div class="quiz-start-count" id="quiz-start-count"></div>
+          <p class="quiz-start-note" id="quiz-start-note" hidden></p>
+          <button class="btn-primary quiz-start-btn" id="quiz-start-btn" type="button">开始</button>
+        </section>
       </div>
 
       <div class="scroll" id="quiz-session" hidden>
@@ -108,6 +96,7 @@
           <span class="quiz-score" id="quiz-score">0 / 0</span>
           <span class="quiz-progress" id="quiz-progress"></span>
         </div>
+        <button class="quiz-last" id="quiz-last" type="button" hidden></button>
         <div class="quiz-meta-row">
           <span class="quiz-type-badge" id="quiz-type-badge">英选中</span>
           <span class="quiz-diff-badge" id="quiz-diff-badge">普通</span>
@@ -126,9 +115,10 @@
         </section>
         <section class="quiz-options" id="quiz-options"></section>
         <div class="quiz-feedback" id="quiz-feedback" hidden></div>
+        <section class="quiz-reveal" id="quiz-reveal" hidden></section>
         <div class="quiz-actions">
           <button class="btn-ghost" id="quiz-quit" type="button">结束测试</button>
-          <button class="btn-primary" id="quiz-next" type="button" hidden>下一题</button>
+          <button class="btn-primary" id="quiz-next" type="button" hidden>继续</button>
         </div>
       </div>
 
@@ -425,6 +415,37 @@
       <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
     </div>
     <div class="sheet-body" id="affix-body"></div>
+  </div>
+
+  <div class="sheet" id="quiz-settings-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title">测试设置</h2><p class="sheet-sub">范围、题量、题型与难度</p></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <section class="panel quiz-setup">
+        <div class="panel-head"><h3>测试范围</h3></div>
+        <div class="chip-row" id="quiz-scope"></div>
+        <label class="field" id="quiz-theme-wrap" hidden><span>专项主题</span><select id="quiz-theme"></select></label>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h3>题目数量</h3></div>
+        <div class="chip-row" id="quiz-count"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h3>题型</h3><span class="panel-sub">可多选</span></div>
+        <div class="chip-row" id="quiz-types"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h3>难度</h3><span class="panel-sub" id="quiz-diff-hint"></span></div>
+        <div class="chip-row" id="quiz-difficulty"></div>
+        <div class="set-row">
+          <span class="set-row-label">联网补充例句<small>离线或失败时自动回退为其他题型</small></span>
+          <label class="switch"><input type="checkbox" id="quiz-online" /><span class="slider"></span></label>
+        </div>
+      </section>
+      <section class="quiz-estimate" id="quiz-estimate"></section>
+    </div>
   </div>
 
   <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true">

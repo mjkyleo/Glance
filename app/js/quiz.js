@@ -409,7 +409,7 @@
     }
     if (chosen.length < 3) return null;
     const avg = chosen.reduce((n, c) => n + similarity(entry, c), 0) / chosen.length;
-    return { list: chosen.map(c => type === 'en2zh' ? primaryGloss(c) : c.word), avg };
+    return { list: chosen.map(c => type === 'en2zh' ? primaryGloss(c) : c.word), entries: chosen, avg };
   }
 
   // ---------- question construction ----------
@@ -444,18 +444,23 @@
       return {
         word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 7 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
         display: { word: e.word, phonetic: e.phonetic || '', question: '选择正确的释义' },
-        options, correctIndex: options.indexOf(correct), correct, gloss: correct
+        options, optionWords: options.map(() => ''), optionGloss: options.map(() => ''),
+        correctIndex: options.indexOf(correct), correct, gloss: correct
       };
     }
     if (type === 'zh2en') {
       const d = buildDistractors(e, 'zh2en', p, phase);
       if (!d) return null;
+      const byWord = new Map([[e.word, e]]);
+      d.entries.forEach(c => byWord.set(c.word, c));
+      const opts = shuffle([e.word].concat(d.list)).map(w => ({ text: w, word: w, gloss: primaryGloss(byWord.get(w) || e) }));
       const correct = e.word;
-      const options = shuffle([correct].concat(d.list));
+      const options = opts.map(o => o.text);
       return {
         word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 8 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
         display: { word: primaryGloss(e), phonetic: '', question: '选择对应的英文单词' },
-        options, correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+        options, optionWords: opts.map(o => o.word), optionGloss: opts.map(o => o.gloss),
+        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
       };
     }
     const cloze = buildCloze(e, allExamples(e));
@@ -465,17 +470,18 @@
     const inflected = cloze.form.toLowerCase() !== e.word.toLowerCase();
     const correct = inflected ? inflectLike(e.word, cloze.form) : e.word;
     const seen = new Set([correct.toLowerCase()]);
-    const list = [correct];
-    for (const w of d.list) {
-      const f = inflected ? inflectLike(w, cloze.form) : w;
+    const opts = [{ text: correct, word: e.word, gloss: primaryGloss(e) }];
+    for (const c of d.entries) {
+      const f = inflected ? inflectLike(c.word, cloze.form) : c.word;
       const k = f.toLowerCase();
       if (seen.has(k)) continue;
       seen.add(k);
-      list.push(f);
-      if (list.length >= 4) break;
+      opts.push({ text: f, word: c.word, gloss: primaryGloss(c) });
+      if (opts.length >= 4) break;
     }
-    if (list.length < 4) return null;
-    const options = shuffle(list);
+    if (opts.length < 4) return null;
+    const shuffled = shuffle(opts);
+    const options = shuffled.map(o => o.text);
     return {
       word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 8 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
       display: {
@@ -483,7 +489,8 @@
         question: inflected ? '选择正确的单词形式填入空格' : '选择正确的单词填入空格',
         sentence: cloze
       },
-      options, correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+      options, optionWords: shuffled.map(o => o.word), optionGloss: shuffled.map(o => o.gloss),
+      correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
     };
   }
 
