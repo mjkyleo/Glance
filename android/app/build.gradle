@@ -12,7 +12,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode glanceVersionCode
-        versionName glancePkg.version
+        // 版本名带上构建号，安装/应用信息里能直接看出是不是新包。
+        versionName "${glancePkg.version}+${glanceVersionCode}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

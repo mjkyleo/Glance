@@ -48,6 +48,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon -PglanceVersionCode=${{ github.run_number }}
 
+      - name: Verify APK build metadata
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          VERSION=$(node -p "require('./package.json').version")
+          BADGING=$("$ANDROID_HOME/build-tools/34.0.0/aapt2" dump badging "$APK" | head -n1)
+          echo "$BADGING"
+          echo "$BADGING" | grep -q "package: name='com.glance.app' versionCode='${{ github.run_number }}'"
+          echo "$BADGING" | grep -q "versionName='$VERSION+${{ github.run_number }}'"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$APK" | grep -q "CN=Glance Debug"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

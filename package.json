@@ -1,6 +1,6 @@
 {
   "name": "glance",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "词根助记 × 词性详解 × 专项分类的英语词汇学习应用（Windows / Android）。",
   "main": "main.js",
   "scripts": {
