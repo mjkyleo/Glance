@@ -143,10 +143,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。
 
-- 最新提交：`a65dd82`（`main`），设置并入「我的」：去掉齿轮入口，六项设置平铺为紧凑列表，面板直开对应分区。
-- 最新交付：`android-25` APK → `https://github.com/mjkyleo/Glance/releases/download/android-25/Glance-android.apk`（13,162,420 字节）。
+- 最新提交：`72ab21a`（`main`），测试流程重做：设置收进右上角齿轮面板，入口只留「开始」；答对自动跳题，答错展示全部义项与可点开的选项单词。
+- 最新交付：`android-26` APK → `https://github.com/mjkyleo/Glance/releases/download/android-26/Glance-android.apk`（13,165,506 字节）。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -544,6 +544,34 @@
 
 **交付**：`android-25`（target `a65dd82`，CI run 43410386807 成功，Range 复核 `com.glance.app` / `versionCode 25` / `versionName 1.0.6+25`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,162,420 字节）。
 
+### 8.16 测试流程重做：单一开始入口 + 设置面板 + 答错解析 ✅
+
+**入口与设置**
+
+- 测试入口页只保留标题、配置摘要、可用题量卡片与「开始」按钮；右上角新增 38px 圆形齿轮（`#quiz-settings-btn`），打开 `#quiz-settings-sheet`。
+- 范围、专项主题、题量、题型、难度、联网补充例句与题量估算全部迁入面板；任意修改即时写回 Store，并同步刷新入口页摘要（`quizConfigSummary()`）与预计题量。
+- 「我的 → 学习与测试 → 打开测试设置」直接打开同一面板；入口页摘要改为单行配置描述，可用题量显示「可用 N 题 · 覆盖 M 个词」。
+- 测试模式且尚未开局时隐藏学习进度条，顶栏右对齐；开局后进度条恢复显示答题进度。
+
+**作答与反馈**
+
+- 答对：显示「回答正确」提示，1.1 秒后自动进入下一题（`scheduleQuizAutoNext`），不再提供上一题/下一题来回切换。
+- 答错：不再显示单独的「正确答案」横幅，改为在底部展开可点击的解析卡：单词、音标、非重复词根、全部义项（词性徽标 + 领域标注 + 释义），点击进入学习卡。
+- 中选英答错时四个选项都显示简短释义，单词选项带 `›` 提示并可直接点击打开学习卡；其他题型下非单词选项禁用点击。
+- 会话左上角显示「上一题 + 单词 + 简短释义」，点击打开该词学习卡；进入下一题自动回到顶部。
+- 底部操作栏改为 `position: sticky`，始终停在会话底部；解析卡展开后若被遮挡会自动滚动到可见位置。
+
+**样式**：新增 `.quiz-gear`、`.quiz-start-panel`、`.quiz-last`、`.quiz-reveal*`、`.quiz-sense*`、`.quiz-opt-hint` 等；题干字号改为 `clamp(24px, 7.6vw, var(--word-size))` 并禁止词内断行，长单词不再折行。
+
+**验证**：Electron + CDP（390×844 @2x，blue 主题，无壁纸）实测：
+
+- 入口摘要与可用题量随设置实时更新；齿轮与「我的」两个入口均正常；360px 宽度下无横向溢出，长单词单行显示。
+- 英选中答错：全部义项展示、词根与单词重复时不显示、上一题可点开学习卡、继续后回到顶部；中选英答错：四个选项均带释义且可点开学习卡（`rage` 卡片标题正确）。
+- 答对 1.1 秒自动跳题；`node --check app/js/app.js app/js/quiz.js` 通过；控制台无报错。
+- 文档截图更新为 `quiz-start.png` / `quiz-settings.png` / `quiz-session.png`。
+
+**交付**：`android-26`（target `72ab21a`，CI run 43413846494 成功，Range 复核 `com.glance.app` / `versionCode 26` / `versionName 1.0.6+26`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,165,506 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -562,6 +590,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `72ab21a` | 测试流程重做：设置收进齿轮面板、入口只留开始；答对自动跳题、答错展示全部义项与可点开的选项单词、上一题回顾 |
 | `a65dd82` | 设置并入「我的」：去掉顶栏/工具栏齿轮，六项设置平铺为紧凑列表，面板直开对应分区 |
 | `26b3070` | 详细讲解页重构：自动查词、刷新/删除图标、AI 自动生成开关、词根+词源合并、卡片紧凑化 |
 | `209d866` | Android 版本名带构建号（`1.0.6+23`）+ CI 断言 APK 版本与签名证书 |
@@ -592,4 +621,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-25` APK（设置并入「我的」，versionCode 25 / versionName `1.0.6+25`）— `https://github.com/mjkyleo/Glance/releases/download/android-25/Glance-android.apk`（13,162,420 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-24` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-26` APK（测试流程重做，versionCode 26 / versionName `1.0.6+26`）— `https://github.com/mjkyleo/Glance/releases/download/android-26/Glance-android.apk`（13,165,506 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-25` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
