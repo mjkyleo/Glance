@@ -1,7 +1,7 @@
 {
   "name": "glance",
   "version": "1.0.5",
-  "description": "A simple vocabulary learning app.",
+  "description": "词根助记 × 词性详解 × 专项分类的英语词汇学习应用（Windows / Android）。",
   "main": "main.js",
   "scripts": {
     "start": "node scripts/dev-start.js",
@@ -28,16 +28,6 @@
       "!scripts/**/*",
       "!data/**/*",
       "assets/**"
-    ],
-    "extraResources": [
-      {
-        "from": "assets/words.tsv",
-        "to": "words.tsv"
-      },
-      {
-        "from": "assets/sample_en_zh.tsv",
-        "to": "sample_en_zh.tsv"
-      }
     ],
     "win": {
       "target": [

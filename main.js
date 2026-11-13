@@ -1,8 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme, net } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 const { globalShortcut } = require('electron');
 
 
@@ -46,7 +45,7 @@ autoUpdater.on('update-downloaded', (info) => {
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
-let mainWindow, overlayWindow, settingsWindow, aboutWindow;
+let mainWindow;
 
 function loadSettings() {
   try {
@@ -75,30 +74,9 @@ function saveSettings(settings) {
   catch (error) { console.error('Failed to save settings:', error); }
 }
 
-const SEED_MAIN = 'words.tsv';
-const SEED_SAMPLE = 'sample_en_zh.tsv';
-
-function getDefaultTSVFilePath() {
-  const candidates = [
-    path.join(process.resourcesPath || '', SEED_MAIN),
-    path.join(process.resourcesPath || '', SEED_SAMPLE),
-
-    // 开发环境
-    path.join(__dirname, 'assets', SEED_MAIN),
-    path.join(__dirname, 'assets', SEED_SAMPLE)
-  ];
-  for (const dir of candidates) {
-    try { if (fs.existsSync(dir)) return dir; } catch {}
-  }
-  return app.getPath('documents'); // 兜底
-}
-
 function getDefaultDialogPath() {
-  const file = getDefaultTSVFilePath();
-  if (file) return file; // 传文件名时 Windows 会连文件名一起预填
-  // 只想指定文件夹时，可改用下面一行:
-  const dir = process.resourcesPath || path.join(__dirname, 'assets');
-  return fs.existsSync(dir) ? dir : app.getPath('documents');
+  const dir = path.join(app.getPath('documents'));
+  return fs.existsSync(dir) ? dir : app.getPath('home');
 }
 
 // ★ 保证语言默认值
@@ -137,109 +115,9 @@ function createMainWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// 旧的悬浮取词窗，作为学习主窗口的附属窗口保留
-function createOverlayWindow() {
-  if (overlayWindow) { overlayWindow.focus(); return; }
-  overlayWindow = new BrowserWindow({
-    width: 350,
-    height: 200,
-    icon: path.join(__dirname, 'assets/icons/app-icon.png'),
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-    alwaysOnTop: true,
-    minimizable: false,
-    fullscreenable: false,
-    resizable: true,
-    frame: false,
-    title: 'Glance Overlay',
-    transparent: true,
-  });
-
-  overlayWindow.loadFile('index.html');
-  overlayWindow.on('closed', () => { overlayWindow = null; });
-  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
-  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-}
-
-function createSettingsWindow() {
-  if (settingsWindow) { settingsWindow.focus(); return; }
-  settingsWindow = new BrowserWindow({
-    width: 500,
-    height: 680,
-    alwaysOnTop: false,
-    resizable: false,
-    // 🔽 macOS 下确保显示关闭/最小化/放大(红绿灯)按钮
-    frame: true,
-    titleBarStyle: 'default',
-    fullscreenable: false,
-    closable: true,
-    webPreferences: { nodeIntegration: true, contextIsolation: false },
-    title: 'Settings'
-  });
-  settingsWindow.loadFile('settings.html');
-  settingsWindow.on('closed', () => { settingsWindow = null; });
-
-  // 支持 ⌘W 关闭
-  settingsWindow.webContents.on('before-input-event', (e, input) => {
-    if (input.meta && input.key?.toLowerCase() === 'w') {
-      e.preventDefault();
-      settingsWindow.close();
-    }
-  });
-}
-
-function createAboutWindow() {
-  if (aboutWindow) { aboutWindow.focus(); return; }
-  aboutWindow = new BrowserWindow({
-    width: 550,
-    height: 650,
-    alwaysOnTop: true,
-    resizable: false,
-    frame: true,
-    titleBarStyle: 'default',
-    fullscreenable: false,
-    closable: true,
-    webPreferences: { nodeIntegration: true, contextIsolation: false },
-    title: 'About Glance'
-  });
-  aboutWindow.loadFile('about.html');
-  aboutWindow.on('closed', () => { aboutWindow = null; });
-
-  aboutWindow.webContents.on('before-input-event', (e, input) => {
-    if (input.meta && input.key?.toLowerCase() === 'w') {
-      e.preventDefault();
-      aboutWindow.close();
-    }
-  });
-}
-
-const seedName = 'words.tsv';
-function ensureSeedWords() {
-  const userTsv = path.join(app.getPath('userData'), seedName);
-  if (fs.existsSync(userTsv)) return userTsv;
-
-  // 打包版: 走 extraResources → process.resourcesPath/words.tsv
-  // 开发环境: __dirname 下的 assets/words.tsv
-  const candidates = [
-    path.join(process.resourcesPath || __dirname, 'words.tsv'),
-    path.join(process.resourcesPath || __dirname, 'assets', seedName),
-    path.join(__dirname, 'assets', seedName),
-    path.join(__dirname, seedName),
-  ];
-  const src = candidates.find(p => fs.existsSync(p));
-  if (src) {
-    try { fs.copyFileSync(src, userTsv); }
-    catch (e) { console.error('Failed to copy seed words.tsv:', e); }
-  }
-  return fs.existsSync(userTsv) ? userTsv : null;
-}
-
 // ===== whenReady 只注册一次！ =====
 app.whenReady().then(() => {
   ensureLanguageSetting();
-  ensureSeedWords();
   createMainWindow();
   
   
@@ -255,67 +133,11 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('browser-window-created', (_e, win) => {
-  if (win !== overlayWindow) return;
-  win.on('minimize', (ev) => {
-    ev.preventDefault();
-    win.restore();
-    win.show();
-    win.setAlwaysOnTop(true, 'screen-saver');
-  });
-  if (process.platform !== 'darwin') {
-    win.on('hide', () => {
-      win.show();
-      win.setAlwaysOnTop(true, 'screen-saver');
-    });
-  }
-});
-
-// 保险用的看门狗（提高稳定性，不需要可删掉）
-if (process.platform !== 'darwin') {
-  setInterval(() => {
-    if (!overlayWindow) return;
-    if (overlayWindow.isMinimized()) {
-      overlayWindow.restore();
-      overlayWindow.show();
-      overlayWindow.setAlwaysOnTop(true, 'screen-saver');
-    }
-  }, 1000);
-}
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
 // IPC
-ipcMain.on('edit-file', (event, filePath) => {
-  if (!filePath) {
-    dialog.showErrorBox('File Error', 'No file path is available to edit.');
-    return;
-  }
-  try {
-    if (process.platform === 'win32') {
-      // 强制用记事本打开
-      const child = spawn('notepad.exe', [filePath], { detached: true, stdio: 'ignore' });
-      child.unref();
-    } else if (process.platform === 'darwin') {
-      // macOS 用 TextEdit
-      spawn('open', ['-a', 'TextEdit', filePath], { detached: true, stdio: 'ignore' }).unref();
-    } else {
-      // Linux 等: 系统默认程序
-      spawn('xdg-open', [filePath], { detached: true, stdio: 'ignore' }).unref();
-    }
-  } catch (err) {
-    console.error('Failed to open editor explicitly, fallback to shell.openPath', err);
-    shell.openPath(filePath);
-  }
-});
-
-ipcMain.on('open-settings-window', createSettingsWindow);
-ipcMain.on('open-about-window', createAboutWindow);
-ipcMain.on('open-overlay-window', createOverlayWindow);
-ipcMain.on('open-external-link', (_e, url) => shell.openExternal(url));
-
 ipcMain.handle('get-settings', () => loadSettings());
 ipcMain.on('save-settings', (_e, settings) => {
   const merged = Object.assign(loadSettings(), settings);
@@ -324,24 +146,6 @@ ipcMain.on('save-settings', (_e, settings) => {
     win.webContents.send('settings-updated', merged);
   }
 });
-ipcMain.on('learned-words-updated', () => {
-  if (overlayWindow) overlayWindow.webContents.send('reload-words');
-});
-
-ipcMain.handle('dialog:openFile', async () => {
-  const defaultPath = getDefaultDialogPath();
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: 'Open TSV File',
-    defaultPath,                             // ★ 默认路径
-    properties: ['openFile'],
-    filters: [{ name: 'TSV Files', extensions: ['tsv', 'txt'] }]
-  });
-  if (canceled || filePaths.length === 0) return null;
-  const filePath = filePaths[0];
-  const content = fs.readFileSync(filePath, 'utf-8');
-  return { filePath, content };
-});
-
 // 学习主窗口：选择自定义词库（JSON / TSV / TXT）
 ipcMain.handle('dialog:openLibrary', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -358,22 +162,6 @@ ipcMain.handle('dialog:openLibrary', async () => {
   const content = fs.readFileSync(filePath, 'utf-8');
   return { filePath, content };
 });
-
-ipcMain.on('set-language', (_e, lang) => {
-  const next = (lang === 'zh') ? 'zh' : 'en';
-  const s = loadSettings(); s.language = next; saveSettings(s);
-  if (overlayWindow) overlayWindow.webContents.send('settings-updated', s);
-});
-ipcMain.on('set-last-file', (_e, filePath) => {
-  const s = loadSettings();
-  s.lastFilePath = filePath || null;
-  saveSettings(s);
-});
-
-ipcMain.on('close-settings-window', () => { if (settingsWindow) settingsWindow.close(); });
-ipcMain.on('close-about-window',    () => { if (aboutWindow)    aboutWindow.close(); });
-
-ipcMain.handle('get-userData-path', () => app.getPath('userData'));
 
 // 学习主窗口：内置默认词库（主进程 __dirname 即项目根，路径无歧义）
 ipcMain.handle('get-bundled-library', () =>
@@ -394,12 +182,6 @@ ipcMain.handle('get-dataset', () => {
     words: read('words.json'),
     affixes: read('affixes.json')
   };
-});
-
-// 提供自动加载用的路径
-ipcMain.handle('get-default-words-path', () => {
-  const p = path.join(app.getPath('userData'), seedName);
-  return fs.existsSync(p) ? p : null;
 });
 
 // AI 单词解释：主进程发起 HTTP（绕过浏览器 CORS），统一 OpenAI 兼容 /chat/completions。

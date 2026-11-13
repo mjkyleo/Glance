@@ -136,8 +136,6 @@
       });
     },
 
-    openOverlay() { if (isElectron) ipc.send('open-overlay-window'); },
-
     // GET + JSON parse. Routes around browser CORS: Electron IPC → CapacitorHttp → fetch.
     async fetchJson(url, opts) {
       opts = opts || {};

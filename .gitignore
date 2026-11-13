@@ -3,6 +3,13 @@
 
 # Build output
 /dist
+/build
+/android/app/build
+/android/.gradle
+
+# OS junk
+.DS_Store
+Thumbs.db
 
 # User-specific files
 learned.json
