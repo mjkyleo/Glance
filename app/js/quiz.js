@@ -3,8 +3,8 @@
 // All randomness lives here; the UI only renders what this module returns.
 (function () {
   const DAY = 86400000;
-  const TYPE_LABEL = { en2zh: '英选中', zh2en: '中选英', cloze: '例句填空' };
-  const TYPES = ['en2zh', 'zh2en', 'cloze'];
+  const TYPE_LABEL = { en2zh: '英选中', zh2en: '中选英', cloze: '例句填空', audio2word: '听音选词' };
+  const TYPES = ['en2zh', 'zh2en', 'cloze', 'audio2word'];
   const SCOPES = [
     { id: 'book', name: '当前词书' },
     { id: 'theme', name: '当前专项' },
@@ -175,7 +175,7 @@
     return clamp(d, 0, 1);
   }
   function questionDifficulty(e, type) {
-    const typeAdj = type === 'cloze' ? 0.09 : type === 'zh2en' ? 0.035 : 0;
+    const typeAdj = type === 'cloze' ? 0.09 : type === 'zh2en' ? 0.035 : type === 'audio2word' ? 0.07 : 0;
     return clamp(0.48 * intrinsic(e) + 0.4 * stateDifficulty(e) + typeAdj, 0, 1);
   }
   function ability() { return clamp(Store.data.quiz.ability ?? 0.5, 0.05, 0.95); }
@@ -373,7 +373,80 @@
     return s;
   }
 
+  // ---------- listening distractors ----------
+  // IPA strings in the dataset mix several conventions (ә/ə, /slashes/, stress dots),
+  // so canonicalise before comparing. Length and stress marks are dropped so that
+  // near-homophones stay close without collapsing genuinely different words.
+  function canonIpa(raw) {
+    return String(raw || '').toLowerCase()
+      .replace(/[\/\[\]().'ˈˌˑ:ː]/g, '')
+      .replace(/ә/g, 'ə').replace(/ɡ/g, 'g').replace(/ɹ/g, 'r').replace(/ɾ/g, 'r')
+      .replace(/ɪ/g, 'i').replace(/ʊ/g, 'u').replace(/ɔ/g, 'o').replace(/ɒ/g, 'o')
+      .replace(/ɑ/g, 'a').replace(/æ/g, 'a').replace(/ʌ/g, 'a')
+      .replace(/ɜ/g, 'ə').replace(/ɚ/g, 'ə').replace(/ɝ/g, 'ə')
+      .replace(/[^a-zəθðʃʒŋ]/g, '');
+  }
+  function phoneticKey(e) { return canonIpa(e && (e.phonetic || e.ipa)); }
+  function phoneticSim(a, b) {
+    const pa = phoneticKey(a), pb = phoneticKey(b);
+    if (!pa || !pb) return 0;
+    const base = clamp(1 - editDistance(pa, pb) / Math.max(pa.length, pb.length, 1), 0, 1);
+    let pre = 0;
+    while (pre < pa.length && pre < pb.length && pa[pre] === pb[pre]) pre++;
+    let suf = 0;
+    while (suf < pa.length && suf < pb.length && pa[pa.length - 1 - suf] === pb[pb.length - 1 - suf]) suf++;
+    const shared = Math.max(1, Math.min(pa.length, pb.length));
+    return clamp(base * 0.72 + (pre / shared) * 0.16 + (suf / shared) * 0.12, 0, 1);
+  }
+  function buildAudioDistractors(entry, p) {
+    const targetPh = phoneticKey(entry);
+    if (!targetPh) return null;
+    const scored = [];
+    const seenWord = new Set([entry.word.toLowerCase()]);
+    const seenPh = new Set([targetPh]);
+    const targetWord = entry.word.toLowerCase();
+    for (const c of p.entries) {
+      if (!c || !c.word) continue;
+      const w = c.word.toLowerCase();
+      if (seenWord.has(w)) continue;
+      if (semanticNeighbor(entry, c)) continue;
+      // A bare stem match (consider → considerate) hands the answer away.
+      if (w.includes(targetWord) || targetWord.includes(w)) continue;
+      let sharedPrefix = 0;
+      while (sharedPrefix < targetWord.length && sharedPrefix < w.length && targetWord[sharedPrefix] === w[sharedPrefix]) sharedPrefix++;
+      if (sharedPrefix >= 6 && sharedPrefix >= Math.min(targetWord.length, w.length) - 2) continue;
+      const ph = phoneticKey(c);
+      if (ph && seenPh.has(ph)) continue;
+      const phon = ph ? phoneticSim(entry, c) : 0;
+      const spell = 1 - editDistance(entry.word.toLowerCase(), w) / Math.max(4, entry.word.length, c.word.length);
+      const posBonus = posGroup(entry) && posGroup(entry) === posGroup(c) ? 0.08 : 0;
+      scored.push({ c, s: phon + clamp(spell, 0, 1) * 0.34 + posBonus, phon });
+      seenWord.add(w);
+      if (ph) seenPh.add(ph);
+    }
+    scored.sort((a, b) => b.s - a.s);
+    // Only words that actually sound close should become options; otherwise the
+    // listener could pick the answer from obviously unrelated spellings.
+    let close = scored.filter(x => x.phon >= 0.46);
+    if (close.length < 4) close = scored.filter(x => x.phon >= 0.36);
+    if (close.length < 3) return null;
+    const items = close.slice(0, 10);
+    const chosen = [];
+    while (chosen.length < 3 && items.length) {
+      // Cubic weighting keeps the options in the closest sound-alike band while
+      // still varying which three appear across sessions.
+      const weights = items.map(x => Math.max(0.004, Math.pow(Math.max(0.05, x.phon - 0.3), 2.2) * 8));
+      const k = pickWeighted(weights);
+      chosen.push(items[k].c);
+      items.splice(k, 1);
+    }
+    if (chosen.length < 3) return null;
+    const avg = chosen.reduce((n, c) => n + phoneticSim(entry, c), 0) / chosen.length;
+    return { list: chosen.map(c => c.word), entries: chosen, avg };
+  }
+
   function buildDistractors(entry, type, p, phase) {
+    if (type === 'audio2word') return buildAudioDistractors(entry, p);
     const g = posGroup(entry);
     const correctKey = glossKey(entry);
     let candidates;
@@ -430,12 +503,28 @@
       if (n >= 3) out.push('zh2en');
     }
     if (cfg.types.includes('cloze') && hasCloze(e)) out.push('cloze');
+    if (cfg.types.includes('audio2word') && p.entries.length >= 4 && phoneticKey(e)) out.push('audio2word');
     return out;
   }
 
   function buildQuestion(e, type, cfg, p, phase) {
     const diff = questionDifficulty(e, type);
     const root = rootOf(e);
+    if (type === 'audio2word') {
+      const d = buildAudioDistractors(e, p);
+      if (!d) return null;
+      const byWord = new Map([[e.word, e]]);
+      d.entries.forEach(c => byWord.set(c.word, c));
+      const opts = shuffle([e.word].concat(d.list)).map(w => ({ text: w, word: w, gloss: primaryGloss(byWord.get(w) || e) }));
+      const correct = e.word;
+      const options = opts.map(o => o.text);
+      return {
+        word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 0.72 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
+        display: { word: '', phonetic: '', question: '听发音，选择对应的单词' },
+        options, optionWords: opts.map(o => o.word), optionGloss: opts.map(o => o.gloss),
+        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+      };
+    }
     if (type === 'en2zh') {
       const d = buildDistractors(e, 'en2zh', p, phase);
       if (!d) return null;
@@ -596,6 +685,9 @@
     if (cfg.types.includes('cloze') && !types.cloze) {
       warnings.push(cfg.online ? '本轮没有找到可用例句，例句题已自动回退为其他题型。' : '未开启联网补充例句，本轮没有例句题。');
     }
+    if (cfg.types.includes('audio2word') && !types.audio2word) {
+      warnings.push('部分单词缺少近音干扰词，听音题已自动回退为其他题型。');
+    }
     if (cfg.types.length === 1 && questions.length > 2) {
       warnings.push('只选了一种题型，为保证「不连续 3 题同题型」，部分题目放宽了题型限制。');
     }
@@ -623,7 +715,7 @@
     const cfg = buildConfig(input);
     const p = pool();
     const entries = listEntries(scopeWords(cfg));
-    const counts = { en2zh: 0, zh2en: 0, cloze: 0 };
+    const counts = { en2zh: 0, zh2en: 0, cloze: 0, audio2word: 0 };
     let available = 0;
     for (const e of entries) {
       const types = availableTypes(e, cfg, p);
@@ -666,6 +758,7 @@
   window.QuizEngine = {
     TYPES, TYPE_LABEL, SCOPES, DIFFICULTY_TARGET, buildConfig, estimate, buildSession,
     primaryGloss, posGroup, rootOf, pool, scopeWords, listEntries,
-    intrinsic, stateDifficulty, questionDifficulty, targetDifficulty, ability
+    intrinsic, stateDifficulty, questionDifficulty, targetDifficulty, ability,
+    phoneticKey, phoneticSim
   };
 })();

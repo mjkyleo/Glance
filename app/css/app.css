@@ -765,6 +765,11 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .row-badge.green { color: var(--green-fg); background: rgba(52, 199, 89, 0.16); }
 .row-badge.gray { color: var(--text-3); background: var(--fill); }
 .row-arrow { flex: 0 0 auto; color: var(--text-3); opacity: 0.5; font-size: 18px; }
+.row-progress { width: 100%; height: 4px; margin-top: 3px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.row-progress-fill { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width 0.35s var(--ease-ui); }
+.row.row-learned { background: rgba(111, 181, 140, 0.13); }
+.row.row-learned:hover { background: rgba(111, 181, 140, 0.19); }
+.row.row-learned .row-progress-fill { background: var(--green-fg); }
 .state-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--fill-2); }
 .state-dot.learning { background: var(--orange); }
 .state-dot.known { background: var(--green); }
@@ -794,12 +799,19 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .stat-value small { font-size: 14px; font-weight: 600; color: var(--text-3); }
 .streak-pill { font-size: 12px; font-weight: 700; color: var(--orange-fg); background: rgba(255, 149, 0, 0.16); padding: 4px 11px; border-radius: var(--r-chip); }
 
-.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-.cal-cell { aspect-ratio: 1; border-radius: 7px; background: var(--fill); position: relative; }
+.calendar { display: flex; flex-direction: column; gap: 5px; }
+.cal-weekdays, .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-weekdays span { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-3); padding-bottom: 2px; }
+.cal-month { display: flex; align-items: center; gap: 8px; margin: 5px 0 1px; font-size: 12px; font-weight: 600; color: var(--text-3); }
+.cal-month::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--separator); }
+.cal-cell { aspect-ratio: 1; border-radius: 8px; background: var(--fill); position: relative; display: grid; place-items: center; }
+.cal-num { font-size: 11px; font-weight: 600; color: var(--text-3); font-variant-numeric: tabular-nums; line-height: 1; }
 .cal-cell.l1 { background: rgba(52, 199, 89, 0.3); }
 .cal-cell.l2 { background: rgba(52, 199, 89, 0.5); }
 .cal-cell.l3 { background: rgba(52, 199, 89, 0.72); }
 .cal-cell.l4 { background: var(--green); }
+.cal-cell.l1 .cal-num, .cal-cell.l2 .cal-num { color: var(--text-2); }
+.cal-cell.l3 .cal-num, .cal-cell.l4 .cal-num { color: #fff; }
 .cal-cell.today { box-shadow: inset 0 0 0 2px var(--accent); }
 .cal-cell.future { opacity: 0.35; }
 
@@ -859,6 +871,13 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .quiz-exit:hover { background: var(--fill-2); color: var(--text-2); }
 .quiz-exit:active { transform: scale(0.94); }
 .quiz-question { margin-top: 14px; font-size: 14px; color: var(--text-3); }
+.quiz-listen { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; padding: 8px 0 4px; border: none; background: none; color: inherit; cursor: pointer; }
+.quiz-listen[hidden] { display: none; }
+.quiz-listen-icon { display: grid; place-items: center; width: 78px; height: 78px; border-radius: 50%; background: var(--root-bg); color: var(--accent); box-shadow: inset 0 0 0 1px var(--hairline); transition: transform var(--dur-ui) var(--ease-ui), background var(--dur-ui) var(--ease-ui); }
+.quiz-listen:hover .quiz-listen-icon { background: var(--fill-2); }
+.quiz-listen:active .quiz-listen-icon { transform: scale(0.94); }
+.quiz-listen-label { font-size: 15px; font-weight: 600; color: var(--text); }
+.quiz-listen-sub { font-size: 12px; color: var(--text-3); }
 .quiz-options { display: flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
 .quiz-option { display: flex; align-items: center; gap: 12px; width: 100%; padding: 15px 16px; border-radius: var(--r); border: var(--option-border); background: var(--card); box-shadow: var(--shadow-card); color: var(--text-2); font-size: 15px; text-align: left; cursor: pointer; transition: border-color var(--dur-ui) var(--ease-ui), background var(--dur-ui) var(--ease-ui), transform var(--dur-ui) var(--ease-ui); }
 .quiz-option:hover { transform: translateY(var(--hover-lift)); }
@@ -1167,7 +1186,6 @@ button:disabled { opacity: 0.45; cursor: default; }
 .me-avatar-fallback[hidden] { display: none; }
 .me-avatar-img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .me-avatar-img[hidden] { display: none; }
-.me-avatar-badge { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--hairline); color: var(--text-3); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16); }
 .me-hero-main { flex: 1 1 auto; min-width: 0; }
 .me-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .me-name { font-family: var(--font-head); font-size: 23px; font-weight: var(--fw-display); letter-spacing: var(--track-display); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1204,7 +1222,6 @@ button:disabled { opacity: 0.45; cursor: default; }
 .profile-avatar img[hidden] { display: none; }
 .profile-avatar-icon { display: grid; place-items: center; width: 100%; height: 100%; border-radius: inherit; }
 .profile-avatar-icon[hidden] { display: none; }
-.profile-avatar-badge { position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--hairline); color: var(--text-2); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16); }
 .profile-top-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .profile-top-name { max-width: 100%; font-family: var(--font-head); font-size: 20px; font-weight: var(--fw-display); letter-spacing: var(--track-head); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-3); }

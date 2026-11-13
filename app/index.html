@@ -101,6 +101,13 @@
             </button>
           </div>
           <div class="phonetic" id="quiz-phonetic"></div>
+          <button class="quiz-listen" id="quiz-listen" type="button" hidden aria-label="播放发音">
+            <span class="quiz-listen-icon">
+              <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
+            </span>
+            <span class="quiz-listen-label">播放发音</span>
+            <span class="quiz-listen-sub">听音选词 · 点击可重播</span>
+          </button>
           <div class="quiz-question" id="quiz-question">选择正确的释义</div>
           <div class="quiz-cloze" id="quiz-cloze" hidden></div>
           <div class="quiz-cloze-zh" id="quiz-cloze-zh" hidden></div>
@@ -203,9 +210,6 @@
               <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
             </span>
             <img class="me-avatar-img" id="me-avatar-img" alt="" hidden />
-            <span class="me-avatar-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M9 4h6l1.4 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.6L9 4Zm3 4.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Zm0 2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z"/></svg>
-            </span>
           </button>
           <div class="me-hero-main">
             <div class="me-name-row">
@@ -438,9 +442,6 @@
           <span class="profile-avatar-icon" id="profile-avatar-icon">
             <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
           </span>
-          <span class="profile-avatar-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M9 4h6l1.4 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.6L9 4Zm3 4.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Zm0 2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z"/></svg>
-          </span>
         </button>
         <div class="profile-top-main">
           <div class="profile-top-name" id="profile-preview-name">我的</div>
@@ -517,6 +518,13 @@
           <h4>测试</h4>
           <p class="field-hint">设置测试范围、题型与难度，抽题由测试引擎按掌握度与近期表现自动安排。</p>
           <button class="btn-ghost" id="set-open-quiz" type="button">打开测试设置</button>
+        </section>
+        <section class="set-group">
+          <h4>词根与词缀</h4>
+          <div class="set-row">
+            <span class="set-row-label">学习进度条<small>在词根 / 词缀列表中显示已学比例，接近完成时整行变绿</small></span>
+            <label class="switch"><input type="checkbox" id="set-progress-bars" /><span class="slider"></span></label>
+          </div>
         </section>
         <section class="set-group">
           <h4>学习面板</h4>

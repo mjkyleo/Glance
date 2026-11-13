@@ -22,6 +22,7 @@
       'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples'
     ],
     theme: 'blue',
+    progressBars: true,
     autoSpeak: false,
     preferAudio: true,
     ttsRate: 1,
@@ -33,7 +34,7 @@
     dictCache: {},
     quiz: {
       config: {
-        scope: 'mixed', count: 10, types: ['en2zh', 'zh2en', 'cloze'],
+        scope: 'mixed', count: 10, types: ['en2zh', 'zh2en', 'cloze', 'audio2word'],
         difficulty: 'auto', online: true, theme: ''
       },
       ability: 0.5, answered: 0, correct: 0, streak: 0, history: {}
@@ -72,6 +73,7 @@
     if (!Array.isArray(d.studyPanelOrder)) d.studyPanelOrder = [];
     const savedOrder = d.studyPanelOrder.filter((id, i) => panelIds.includes(id) && d.studyPanelOrder.indexOf(id) === i);
     d.studyPanelOrder = savedOrder.concat(panelIds.filter(id => !savedOrder.includes(id)));
+    d.progressBars = d.progressBars !== false;
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
@@ -83,9 +85,12 @@
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
     if (!d.quiz || typeof d.quiz !== 'object') d.quiz = {};
     const QSCOPES = ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'];
-    const QTYPES = ['en2zh', 'zh2en', 'cloze'];
+    const QTYPES = ['en2zh', 'zh2en', 'cloze', 'audio2word'];
     const qc = d.quiz.config && typeof d.quiz.config === 'object' ? d.quiz.config : {};
     const qtypes = Array.isArray(qc.types) ? qc.types.filter((t, i) => QTYPES.includes(t) && qc.types.indexOf(t) === i) : [];
+    // Users who kept the old default trio get the new listening type once; a
+    // deliberate custom subset is left untouched.
+    if (qtypes.length === 3 && ['en2zh', 'zh2en', 'cloze'].every(t => qtypes.includes(t))) qtypes.push('audio2word');
     d.quiz.config = {
       scope: QSCOPES.includes(qc.scope) ? qc.scope : 'mixed',
       count: [5, 10, 20].includes(qc.count) ? qc.count : 10,
@@ -411,11 +416,12 @@
     const clampA = x => Math.max(0.05, Math.min(0.95, Number(x) || 0.5));
     if (replace) {
       const c = isObj(src.config) ? src.config : {};
-      const types = Array.isArray(c.types) ? c.types.filter(t => ['en2zh', 'zh2en', 'cloze'].includes(t)) : [];
+      const types = Array.isArray(c.types) ? c.types.filter(t => ['en2zh', 'zh2en', 'cloze', 'audio2word'].includes(t)) : [];
+      if (types.length === 3 && ['en2zh', 'zh2en', 'cloze'].every(t => types.includes(t))) types.push('audio2word');
       q.config = {
         scope: ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'].includes(c.scope) ? c.scope : 'mixed',
         count: [5, 10, 20].includes(c.count) ? c.count : 10,
-        types: types.length ? types : ['en2zh', 'zh2en', 'cloze'],
+        types: types.length ? types : DEFAULTS.quiz.config.types.slice(),
         difficulty: ['auto', 'easy', 'normal', 'hard'].includes(c.difficulty) ? c.difficulty : 'auto',
         online: c.online !== false,
         theme: typeof c.theme === 'string' ? c.theme : ''

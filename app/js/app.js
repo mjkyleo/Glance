@@ -688,7 +688,7 @@
     line.appendChild(document.createTextNode(' 可用 · 覆盖 ' + info.pool + ' 个词'));
     box.appendChild(line);
     const chipRow = el('div', 'quiz-est-types');
-    ['en2zh', 'zh2en', 'cloze'].forEach(t => {
+    QuizEngine.TYPES.forEach(t => {
       if (!cfg.types.includes(t)) return;
       chipRow.appendChild(el('span', 'quiz-est-chip', QuizEngine.TYPE_LABEL[t] + ' ' + (info.types[t] || 0)));
     });
@@ -871,10 +871,18 @@
     const big = $('quiz-word');
     const ph = $('quiz-phonetic');
     const speakBtn = $('quiz-speak');
+    const listen = $('quiz-listen');
     const cloze = $('quiz-cloze');
     const clozeZh = $('quiz-cloze-zh');
     big.classList.toggle('quiz-prompt-zh', q.type === 'zh2en');
+    listen.hidden = q.type !== 'audio2word';
     if (q.type === 'cloze') {
+      wordRow.hidden = true;
+      big.hidden = true;
+      ph.hidden = true;
+      ph.textContent = '';
+      speakBtn.hidden = true;
+    } else if (q.type === 'audio2word') {
       wordRow.hidden = true;
       big.hidden = true;
       ph.hidden = true;
@@ -931,6 +939,11 @@
     $('quiz-next').hidden = true;
     s.answered = false;
     $('quiz-session').scrollTop = 0;
+    if (q.type === 'audio2word') {
+      setTimeout(() => {
+        if (quizSession && quizSession.questions[quizSession.idx] === q && !quizSession.answered) speak(q.word, q.entry.audio);
+      }, 180);
+    }
     updatePlanBar();
   }
 
@@ -965,7 +978,7 @@
     fb.hidden = false;
     if (isCorrect) {
       fb.className = 'quiz-feedback ok';
-      fb.textContent = q.type === 'cloze' ? '回答正确 · ' + q.correct : '回答正确';
+      fb.textContent = q.type === 'cloze' || q.type === 'audio2word' ? '回答正确 · ' + q.correct : '回答正确';
       scheduleQuizAutoNext();
     } else {
       s.wrong.push({ word: e.word, correct: q.correct, type: q.type });
@@ -978,10 +991,11 @@
       $('quiz-next').hidden = false;
       $('quiz-next').textContent = s.idx + 1 >= s.questions.length ? '查看结果' : '继续';
     }
-    if (q.type === 'cloze') {
+    if (q.type === 'cloze' || q.type === 'audio2word') {
       document.querySelector('#quiz-session .word-row').hidden = false;
       $('quiz-word').hidden = false;
       $('quiz-word').textContent = q.word;
+      $('quiz-listen').hidden = true;
     }
     if (q.type !== 'en2zh') {
       const ph = $('quiz-phonetic');
@@ -1130,6 +1144,42 @@
   }
   function stateDot(word) { const d = el('span', 'state-dot ' + stateOf(word)); d.title = { new: '未学', learning: '学习中', known: '已掌握', relearn: '需重学' }[stateOf(word)]; return d; }
 
+  let affixWordsCache = { tag: '', map: null };
+  function affixWordsMap() {
+    const tag = Store.data.activeBook;
+    if (affixWordsCache.tag === tag) return affixWordsCache.map;
+    const map = new Map();
+    (activeBook().entries || []).forEach(e => {
+      (e.morphemes || []).forEach(m => {
+        if (m.type !== 'prefix' && m.type !== 'suffix') return;
+        const id = m.type === 'prefix' ? m.text + '-' : '-' + m.text;
+        let set = map.get(id);
+        if (!set) { set = new Set(); map.set(id, set); }
+        set.add(e.word);
+      });
+    });
+    affixWordsCache = { tag, map };
+    return map;
+  }
+  function learnProgress(words) {
+    const list = words || [];
+    let learned = 0;
+    list.forEach(w => { const s = Store.data.srs[w]; if (s && !SRS.isNew(s)) learned++; });
+    return { learned, total: list.length, ratio: list.length ? learned / list.length : 0 };
+  }
+  function attachRowProgress(row, main, info) {
+    if (!Store.data.progressBars || !info || !info.total) return false;
+    const track = el('div', 'row-progress');
+    const fill = el('span', 'row-progress-fill');
+    fill.style.width = Math.round(info.ratio * 100) + '%';
+    track.appendChild(fill);
+    main.appendChild(track);
+    const done = info.ratio >= 0.85;
+    row.classList.toggle('row-learned', done);
+    row.title = '已学 ' + info.learned + ' / ' + info.total + ' 个词';
+    return done;
+  }
+
   function renderRoots() {
     const q = $('roots-search').value.trim().toLowerCase();
     let roots = Library.listRoots();
@@ -1144,8 +1194,15 @@
       const title = el('div', 'row-title', r.root);
       main.appendChild(title);
       main.appendChild(el('div', 'row-sub', r.zh || r.g || ''));
+      const fam = Library.getFamily(r.root);
+      const info = fam ? learnProgress(fam.family.map(w => w.word)) : null;
+      const done = attachRowProgress(row, main, info);
       row.appendChild(main);
-      row.appendChild(el('span', 'row-badge', r.size + ' 词'));
+      if (info && Store.data.progressBars && info.total) {
+        row.appendChild(el('span', 'row-badge' + (done ? ' green' : ''), info.learned + '/' + info.total));
+      } else {
+        row.appendChild(el('span', 'row-badge', r.size + ' 词'));
+      }
       row.appendChild(el('span', 'row-arrow', '›'));
       row.addEventListener('click', () => openFamily(r.root));
       wrap.appendChild(row);
@@ -1171,8 +1228,15 @@
       title.appendChild(el('span', 'row-badge gray', a.k === 'prefix' ? '前缀' : a.k === 'suffix' ? '后缀' : '词缀'));
       main.appendChild(title);
       main.appendChild(el('div', 'row-sub', a.zh || a.en || ''));
+      const words = affixWordsMap().get(a.id);
+      const info = words && words.size ? learnProgress(Array.from(words)) : null;
+      const done = attachRowProgress(row, main, info);
       row.appendChild(main);
-      row.appendChild(el('span', 'row-badge', a.count || 0));
+      if (info && Store.data.progressBars) {
+        row.appendChild(el('span', 'row-badge' + (done ? ' green' : ''), info.learned + '/' + info.total));
+      } else {
+        row.appendChild(el('span', 'row-badge', a.count || 0));
+      }
       row.appendChild(el('span', 'row-arrow', '›'));
       row.addEventListener('click', () => openAffixSheet(a));
       wrap.appendChild(row);
@@ -1798,20 +1862,41 @@
     const cal = $('calendar');
     cal.innerHTML = '';
     const now = new Date();
-    const start = new Date(now); start.setDate(now.getDate() - 34);
-    for (let i = 0; i < 35; i++) {
-      const d = new Date(start); d.setDate(start.getDate() + i);
-      const key = Store.dateKey(d);
-      const log = Store.data.logs[key];
-      const graded = log ? (log.know + log.fuzzy + log.forgot) : 0;
-      const cell = el('div', 'cal-cell');
-      let lvl = 0;
-      if (graded > 30) lvl = 4; else if (graded > 15) lvl = 3; else if (graded > 5) lvl = 2; else if (graded > 0) lvl = 1;
-      if (lvl) cell.classList.add('l' + lvl);
-      if (key === Store.today()) cell.classList.add('today');
-      if (d > now) cell.classList.add('future');
-      cell.title = key + ' · ' + graded + ' 次';
-      cal.appendChild(cell);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const rangeStart = new Date(today); rangeStart.setDate(today.getDate() - 34);
+    const start = new Date(rangeStart);
+    start.setDate(rangeStart.getDate() - ((rangeStart.getDay() + 6) % 7));
+    const end = new Date(today);
+    end.setDate(today.getDate() + (6 - ((today.getDay() + 6) % 7)));
+    const head = el('div', 'cal-weekdays');
+    ['一', '二', '三', '四', '五', '六', '日'].forEach(d => head.appendChild(el('span', null, d)));
+    cal.appendChild(head);
+    const cursor = new Date(start);
+    let monthShown = -1;
+    while (cursor <= end) {
+      const m = cursor.getMonth();
+      if (m !== monthShown) {
+        monthShown = m;
+        cal.appendChild(el('div', 'cal-month', cursor.getFullYear() + '年' + (m + 1) + '月'));
+      }
+      const week = el('div', 'cal-week');
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(cursor); d.setDate(cursor.getDate() + i);
+        const key = Store.dateKey(d);
+        const log = Store.data.logs[key];
+        const graded = log ? (log.know + log.fuzzy + log.forgot) : 0;
+        const cell = el('div', 'cal-cell');
+        let lvl = 0;
+        if (graded > 30) lvl = 4; else if (graded > 15) lvl = 3; else if (graded > 5) lvl = 2; else if (graded > 0) lvl = 1;
+        if (lvl) cell.classList.add('l' + lvl);
+        if (key === Store.today()) cell.classList.add('today');
+        if (d > today) cell.classList.add('future');
+        cell.title = key + ' · ' + graded + ' 次';
+        cell.appendChild(el('span', 'cal-num', String(d.getDate())));
+        week.appendChild(cell);
+      }
+      cal.appendChild(week);
+      cursor.setDate(cursor.getDate() + 7);
     }
   }
   function renderMastery() {
@@ -2082,6 +2167,7 @@
     $('set-lang').value = Store.data.ttsLang || '';
     $('set-autospeak').checked = !!Store.data.autoSpeak;
     $('set-prefer-audio').checked = Store.data.preferAudio !== false;
+    $('set-progress-bars').checked = Store.data.progressBars !== false;
     const panel = Store.data.studyPanel || {};
     document.querySelectorAll('[data-panel]').forEach(cb => { cb.checked = panel[cb.dataset.panel] !== false; });
     renderPanelOrderUi();
@@ -2247,6 +2333,11 @@
       const q = s && s.questions[s.idx];
       if (q) speak(q.entry.word, q.entry.audio);
     });
+    $('quiz-listen').addEventListener('click', () => {
+      const s = quizSession;
+      const q = s && s.questions[s.idx];
+      if (q) speak(q.entry.word, q.entry.audio);
+    });
     $('quiz-next').addEventListener('click', nextQuiz);
     $('quiz-quit').addEventListener('click', quitQuiz);
     $('quiz-start-btn').addEventListener('click', startQuiz);
@@ -2313,6 +2404,11 @@
     $('set-lang').addEventListener('change', () => { Store.data.ttsLang = $('set-lang').value; Store.save(); });
     $('set-autospeak').addEventListener('change', () => { Store.data.autoSpeak = $('set-autospeak').checked; Store.save(); });
     $('set-prefer-audio').addEventListener('change', () => { Store.data.preferAudio = $('set-prefer-audio').checked; Store.save(); });
+    $('set-progress-bars').addEventListener('change', () => {
+      Store.data.progressBars = $('set-progress-bars').checked;
+      Store.save();
+      if (currentView === 'roots') { if (rootsTab === 'roots') renderRoots(); else renderAffixes(); }
+    });
     document.querySelectorAll('[data-panel]').forEach(cb => cb.addEventListener('change', () => {
       Store.data.studyPanel[cb.dataset.panel] = cb.checked;
       Store.save();
