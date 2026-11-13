@@ -3,6 +3,10 @@ name: Android APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/workflows/release-order.yml'
   workflow_dispatch:
 
 jobs:
@@ -77,16 +81,3 @@ jobs:
             --title "$TITLE" \
             --notes "$NOTES" \
             --target "${{ github.sha }}"
-
-      - name: Fix generic titles on older releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tags=$(gh release list --limit 100 --json tagName,name --jq '.[] | select(.name | startswith("Glance Android (build")) | .tagName')
-          printf '%s\n' "$tags" | while read -r tag; do
-            [ -z "$tag" ] && continue
-            subject=$(git log -1 --pretty=%s "$tag" -- app main.js package.json android capacitor.config.json 2>/dev/null || true)
-            [ -z "$subject" ] && subject=$(git log -1 --pretty=%s "$tag" 2>/dev/null | cut -c1-90)
-            [ -z "$subject" ] && continue
-            gh release edit "$tag" --title "$subject" >/dev/null && echo "Renamed $tag -> $subject"
-          done

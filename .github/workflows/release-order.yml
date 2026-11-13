@@ -1,0 +1,54 @@
+name: Release order maintenance
+
+# GitHub 偶尔会把少数旧 release 排到最新版之上（服务端排序异常，API 与网页一致）。
+# 该步骤把这些卡在最上方的旧 release 转为草稿（保留 tag 与 APK 资产，可随时恢复发布），
+# 使 Releases 列表回到严格的从新到旧顺序。重复运行是安全的。
+on:
+  push:
+    paths:
+      - .github/workflows/release-order.yml
+  workflow_dispatch:
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Unpublish releases stuck above the latest one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          latest=$(gh api "repos/$repo/releases/latest" --jq '.id')
+          if [ -z "$latest" ] || [ "$latest" = "null" ]; then
+            echo "No published latest release, nothing to do."
+            exit 0
+          fi
+          echo "Latest release id: $latest"
+          gh api "repos/$repo/releases?per_page=100" --jq '.[] | [.id, .tag_name, .draft] | @tsv' > /tmp/releases.tsv
+          echo "Order reported by the API:"
+          cat /tmp/releases.tsv
+
+          stuck=""
+          while IFS=$'\t' read -r id tag draft; do
+            [ "$id" = "$latest" ] && break
+            [ "$draft" = "true" ] && continue
+            stuck="$stuck $id:$tag"
+          done < /tmp/releases.tsv
+
+          if [ -z "$stuck" ]; then
+            echo "Order is already correct."
+            exit 0
+          fi
+
+          for item in $stuck; do
+            id="${item%%:*}"
+            tag="${item##*:}"
+            echo "Unpublishing $tag (id $id)"
+            gh api -X PATCH "repos/$repo/releases/$id" -F draft=true >/dev/null
+          done
+
+          echo "Order after cleanup:"
+          gh api "repos/$repo/releases?per_page=100" --jq '.[] | [.id, .tag_name, .draft] | @tsv'

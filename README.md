@@ -3,9 +3,9 @@
 以**词根助记**和**词性详解**为核心的英语词汇学习应用。同一套 Web 核心同时运行在 **Windows（Electron）** 与 **Android（Capacitor）**，界面简洁、离线可用、数据可迁移。
 
 [![Android Build](https://github.com/mjkyleo/Glance/actions/workflows/android-build.yml/badge.svg)](https://github.com/mjkyleo/Glance/actions/workflows/android-build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/mjkyleo/Glance)](https://github.com/mjkyleo/Glance/releases)
+[![Latest Release](https://img.shields.io/github/v/release/mjkyleo/Glance)](https://github.com/mjkyleo/Glance/releases/latest)
 
-**[下载最新版本](https://github.com/mjkyleo/Glance/releases)**
+**[下载最新版本](https://github.com/mjkyleo/Glance/releases/latest)**
 
 ---
 
@@ -131,9 +131,9 @@
 
 ## 安装
 
-**Windows**：从 [Releases](https://github.com/mjkyleo/Glance/releases) 下载 `glance-setup-*.exe` 安装。应用未做代码签名，SmartScreen 提示时选择「更多信息 → 仍要运行」。
+**Windows**：从 [Releases](https://github.com/mjkyleo/Glance/releases/latest) 下载 `glance-setup-*.exe` 安装。应用未做代码签名，SmartScreen 提示时选择「更多信息 → 仍要运行」。
 
-**Android**：从 [Releases](https://github.com/mjkyleo/Glance/releases) 下载 `Glance-android.apk`，允许「安装未知应用」后安装。APK 由 GitHub Actions 自动构建。
+**Android**：从 [Releases](https://github.com/mjkyleo/Glance/releases/latest) 下载 `Glance-android.apk`，允许「安装未知应用」后安装。APK 由 GitHub Actions 自动构建。
 
 **macOS**：仓库保留了 electron-builder 的 mac 配置，可自行构建，暂未提供签名安装包。
 
