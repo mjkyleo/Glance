@@ -140,10 +140,10 @@
 
 ## 3. 当前真实状态（诚实说明）
 
-> 更新（2026-11-13）：P7 已交付 `android-11`；随后完成 P8（学习面板、柔和进度条、词典标签）与 P9（五套配色、分类设置、「我的」入口、Release 标题），进入最终实测与交付。
+> 更新（2026-11-13）：P7 已交付 `android-11`；P8（学习面板、柔和进度条、词典标签）与 P9（五套配色、分类设置、「我的」入口、Release 标题）已完成并交付 `android-13`。
 
-- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 配色/设置/我的。
-- 最新交付：`android-11` APK（学习面板设置 + 柔和进度条 + 词典标签去重）— `https://github.com/mjkyleo/Glance/releases/download/android-11/Glance-android.apk`；P9 交付见 §8.6。
+- 最新提交：`dev/p7` 分支，P7 全链路 + P8 学习页增强 + P9 配色/设置/我的，Release 标题改为按改动生成。
+- 最新交付：`android-13` APK（五套配色 + 分类设置 + 我的 + 动态 Release 标题）— `https://github.com/mjkyleo/Glance/releases/download/android-13/Glance-android.apk`。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7–P9 功能全部完成，回归与专项验证见 §8.5–§8.6；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -356,7 +356,7 @@
 
 **验证（CDP 实操）**：`verify-p9.js` 18/18 通过——五套配色切换与持久化（含深色）、分类设置 7 入口/6 pane、返回导航、11 项面板开关、词书路由、我的页面 4 指标 + 5 入口、统计/词书/AI 往返；`EXCEPTIONS: []`、`CONSOLE_ERRORS: []`。截图：`docs/screenshots/{me,settings,stats,study}.png` 更新，另存 `p9-theme-*`、`p9-dark-*` 对照图。
 
-**交付**：推送 `main` 触发 CI，Release 标题自动取自本次改动的提交标题。
+**交付**：run `43372482022` → Release `android-13`（target `036b51b`，APK 13,100,488 字节），标题取自本次改动提交。历史上 `Glance Android (build N)` 的 Release 已按标签对应提交标题回填（`android-2`–`android-8`、`android-10`、`android-11`；`android-9` 为 ImgBot 图片优化）。回填依赖 `gh release list --json name`（`title` 字段不存在）与 pipeline-only 构建的标题兜底，修复提交 `036b51b`。
 
 ---
 
@@ -376,6 +376,8 @@
 
 | 提交 | 内容 |
 |---|---|
+| `036b51b` | 修复历史 Release 标题回填（`--json name`）+ pipeline-only 构建标题兜底 |
+| `2e60e7b` | 五套配色主题 + 设置分类 + 我的（统计/设置入口）+ 动态 Release 标题（P9） |
 | `d508f33` | 学习面板 11 项内容开关 + 学习页信息增强 + 柔和进度条 + 词典标签去重 |
 | `365e71e` | 记录有道词典版 APK 交付（`android-10`） |
 | `9948be9` | 合并 ImgBot 图片优化（Android 启动图/图标压缩） |
@@ -392,4 +394,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-11` APK（学习面板设置 + 柔和进度条 + 词典标签去重）— `https://github.com/mjkyleo/Glance/releases/download/android-11/Glance-android.apk`（13,095,753 字节）；历史版本 `android-6`–`android-10` 保留在 Releases。
+**交付物**：`android-13` APK（五套配色 + 分类设置 + 我的 + 动态 Release 标题）— `https://github.com/mjkyleo/Glance/releases/download/android-13/Glance-android.apk`（13,100,488 字节）；历史版本 `android-2`–`android-12` 保留在 Releases。
