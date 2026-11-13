@@ -2,16 +2,60 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportHeight="108"
-    android:viewportWidth="108">
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <!-- Glance 标记：G 形词根 + 主干 + 左右分叉，缩放后落在 66dp 安全区内 -->
     <group
-        android:scaleX="3"
-        android:scaleY="3"
-        android:translateX="18"
-        android:translateY="18">
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:translateX="51.2"
+        android:translateY="51.2">
         <path
-            android:fillColor="#61AFEF"
-            android:fillType="evenOdd"
-            android:pathData="M12,5c-5,0 -9,4.5 -10,7 1,2.5 5,7 10,7s9,-4.5 10,-7c-1,-2.5 -5,-7 -10,-7Zm0,11a4,4 0,1 1,0 -8,4 4,0 0,1 0,8Zm0,-2a2,2 0,1 0,0 -4,2 2,0 0,0 0,4Z" />
+            android:fillColor="#00000000"
+            android:strokeColor="#E6F0F8"
+            android:strokeWidth="28"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M 640.6 259.8 A 200 200 0 1 0 653.4 554.4" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E6F0F8"
+            android:strokeWidth="28"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M 512 413 L 712 413" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E6F0F8"
+            android:strokeWidth="28"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M 712 413 L 712 566 Q 712 634 644 662 Q 586 686 512 680" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E6F0F8"
+            android:strokeWidth="28"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M 512 688 Q 484 712 454 746 Q 428 776 404 798" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E6F0F8"
+            android:strokeWidth="28"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M 512 688 Q 540 712 570 746 Q 596 776 620 798" />
+        <path
+            android:fillColor="#E6F0F8"
+            android:strokeColor="#00000000"
+            android:pathData="M 486 680 a 26 26 0 1 1 52 0 a 26 26 0 1 1 -52 0" />
+        <path
+            android:fillColor="#E6F0F8"
+            android:strokeColor="#00000000"
+            android:pathData="M 382 798 a 22 22 0 1 1 44 0 a 22 22 0 1 1 -44 0" />
+        <path
+            android:fillColor="#E6F0F8"
+            android:strokeColor="#00000000"
+            android:pathData="M 598 798 a 22 22 0 1 1 44 0 a 22 22 0 1 1 -44 0" />
     </group>
 </vector>
