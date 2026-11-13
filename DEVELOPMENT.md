@@ -631,6 +631,24 @@
 
 **验证**：390×844 @2x 逐页实测，四个页面顶部均无品牌栏、无遮挡与横向溢出；词根列表、专项卡片、查词详情、我的资料 / 统计 / 词书、设置弹层与词典服务商切换回归正常；`node --check app/js/app.js` 通过，无控制台错误。截图更新 `me.png / profile.png / stats.png / books.png / themes.png / dictionary.png`。
 
+**交付**：`android-30`（target `60b9e52`，APK 13,171,325 字节）。
+
+### 8.21 听音选词 + 日历日期 + 词根进度 + 头像去角标 ✅
+
+**需求**：测试新增「用英文发音选对应单词」，干扰项必须音近 / 近拼写，不能差别过大或一听即知；打卡日历显示月份并给每格标上日期数字；词根与词缀按已学比例显示绿色进度条、接近学完时整行变绿，并提供设置开关；头像去掉摄像头角标，仍可点击更换。
+
+**实现**
+
+- 听音选词：`quiz.js` 新增 `audio2word` 题型及 `canonIpa / phoneticKey / phoneticSim / buildAudioDistractors`。先规范化 IPA（去重音与长短符号、统一 `ә/ɡ/ɹ`、折叠元音为拉丁近音），音近度 = 编辑距离 0.72 + 首音 0.16 + 尾音 0.12；候选排除同音词、包含/被包含词、长共同前缀派生词与语义近邻后，按 `音近度 + 拼写相似度×0.34 + 同词性 0.08` 排序，仅保留音近度 ≥0.46（不足 4 个时降至 0.36）的前 10 个，用立方权重抽 3 个作干扰项；不足 3 个时跳过该题并回退其他题型。进入题目自动朗读且隐藏拼写，提供「播放发音」重播；作答后恢复单词、音标与发音。
+- 默认题型扩为四种；`store.js` 对保留旧默认三题型的用户做一次性迁移，自定义子集保持不变，预计题量同步统计四类。
+- 打卡日历：改为周一至周日对齐的周网格，跨月插入「2026年10月」式月份分隔，每格显示日期数字；保留 l1–l4 热度与今日/未来状态，深色格数字自动反白。
+- 词根 / 词缀进度：`renderRoots` 用 `Library.getFamily` 统计家族词，`renderAffixes` 从当前词书词条的 `morphemes` 反推关联词；以 SRS 非 new 状态计为已学，行内渲染 4px 绿色进度条，徽标换成「已学/总数」，比例 ≥85% 时整行淡绿（`row-learned`）。设置新增「词根与词缀 → 学习进度条」开关（默认开），关闭后不渲染进度条并恢复原始词数徽标。
+- 头像：移除「我的」资料卡与个人资料弹层头像上的摄像头角标（HTML + CSS），头像仍可点击上传 / 更换并完整显示。
+
+**验证（Electron + CDP，390×844 @1.25 与 360×800）**：听音题作答前不显示单词 / 音标，自动朗读每次进入题目触发一次，重播可重复播放，答后显示单词、音标与发音；干扰项抽样 `object → reject / project / inject`、`mesh → marsh / measure / mess`、`flank → flask / tank / flannel`，无包含词或直接派生词。日历显示「2026年10月」「2026年11月」月份标签、周一至周日表头与 42 个日期数字，热度与今日状态正常。词根 `tone 36/48`、`canny 17/48`、`liqu / theme 44/48`（整行变绿）；词缀 `-ion 7/76`、`-er 2/30`；开关关闭后进度条数量为 0、徽标恢复「48 词」，重开立即恢复。资料卡与弹层头像均无摄像头角标且仍可点击。`node --check` 三个脚本通过，无控制台错误。截图新增 `roots.png / affixes.png / quiz-audio.png / settings-progress.png`，更新 `stats.png / profile.png`。
+
+**交付**：`android-31`（target `c65087d`，CI run 43436045398 成功，Range 复核 `com.glance.app` / `versionCode 31` / `versionName 1.0.6+31`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,174,684 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -649,6 +667,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `c65087d` | 听音选词（音标音近干扰项）+ 打卡日历月份/日期 + 词根词缀学习进度条与开关 + 头像去掉摄像头角标 |
 | `f3fde1d` | 移除词根/专项/查词/我的顶部品牌栏（眼睛图标 + Glance + 词库），首屏直接进入内容 |
 | `a99523d` | 词典服务商改成二级底部弹层卡片选择（推荐/Key 徽章 + 能力说明）；测试「结束」收进顶部胶囊，操作条仅答错时显示 |
 | `7df96ee` | 自定义词书导入修复：底部常驻入口 + 空状态、Android 文件输入挂载 DOM、CSV/BOM/表头/去重与重名处理 |
@@ -684,4 +703,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-27` APK（头像与昵称编辑，versionCode 27 / versionName `1.0.6+27`）— `https://github.com/mjkyleo/Glance/releases/download/android-27/Glance-android.apk`（13,168,277 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-26` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-31` APK（听音选词 / 日历日期 / 词根词缀进度 / 头像去角标，versionCode 31 / versionName `1.0.6+31`）— `https://github.com/mjkyleo/Glance/releases/download/android-31/Glance-android.apk`（13,174,684 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-30` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
