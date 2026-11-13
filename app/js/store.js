@@ -5,6 +5,7 @@
     plan: { newPerDay: 20, reviewCap: 0 },
     srs: {},
     logs: {},
+    views: {},
     favorites: {},
     favGroups: ['默认'],
     history: [],
@@ -35,6 +36,7 @@
     d.plan = Object.assign({ newPerDay: 20, reviewCap: 0 }, d.plan || {});
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
     if (!Array.isArray(d.history)) d.history = [];
+    if (!d.views || typeof d.views !== 'object') d.views = {};
     if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
     if (!d.cardOrder.includes('mnemonic')) { const i = d.cardOrder.indexOf('meaning'); d.cardOrder.splice(i < 0 ? 0 : i + 1, 0, 'mnemonic'); }
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
@@ -188,6 +190,32 @@
   }
   function clearHistory() { data.history = []; save(); }
 
+  // encounters (every time a word is actually shown to the learner)
+  function recordView(word) {
+    if (!word) return;
+    const now = Date.now();
+    const v = data.views[word] || (data.views[word] = { n: 0, first: now, last: 0 });
+    v.n++;
+    if (!v.first) v.first = now;
+    v.last = now;
+    save();
+  }
+  function viewInfo(word) { return data.views[word] || null; }
+  function viewCount(word) { const v = data.views[word]; return v ? v.n : 0; }
+  function topViews(limit) {
+    return Object.keys(data.views)
+      .map(w => ({ word: w, n: data.views[w].n || 0, last: data.views[w].last || 0 }))
+      .filter(x => x.n > 0)
+      .sort((a, b) => b.n - a.n || b.last - a.last)
+      .slice(0, limit || 20);
+  }
+  function totalViews() {
+    let n = 0;
+    for (const w of Object.keys(data.views)) n += data.views[w].n || 0;
+    return n;
+  }
+  function viewedWordCount() { return Object.keys(data.views).length; }
+
   // errors (错题本)
   function addError(word) {
     const e = data.errors[word] || { count: 0, last: 0 };
@@ -212,6 +240,7 @@
     today, dateKey, getLog, recordGrade, planProgress, streak, mastery, trend,
     isFavorite, addFavorite, removeFavorite, favoriteWords, addFavGroup,
     addHistory, clearHistory, addError, clearError, errorWords,
+    recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords
   };
 })();

@@ -19,6 +19,7 @@
   let sheetWord = null;
   let sheetFamily = null;
   let sheetTheme = null;
+  let lastViewKey = null;
   let cardsEntry = null;
 
   // quiz state
@@ -129,6 +130,8 @@
     const item = currentItem();
     if (!item) { renderEmpty(); return; }
     const e = item.entry;
+    const viewKey = e.word + '|' + sessionIdx + '|' + ((session[0] && session[0].entry.word) || '');
+    if (viewKey !== lastViewKey) { lastViewKey = viewKey; Store.recordView(e.word); }
     const st = Store.data.srs[e.word];
     $('word').textContent = e.word;
     $('phonetic').textContent = e.phonetic ? '/' + e.phonetic + '/' + (e.cefr ? '  ·  ' + e.cefr : '') : (e.cefr || '');
@@ -618,6 +621,7 @@
     const e = findEntry(word);
     sheetWord = word;
     if (fromSearch) Store.addHistory(word);
+    Store.recordView(word);
     $('word-sheet-title').textContent = word;
     if (!e) {
       $('word-sheet-sub').textContent = '';
@@ -630,11 +634,11 @@
     $('word-sheet-sub').textContent = (e.phonetic ? '/' + e.phonetic + '/  ' : '') + (e.cefr || '') + (e.root ? '  ·  词根 ' + e.root : '');
     const body = $('word-sheet-body');
     body.innerHTML = '';
-    if (e.tags && e.tags.length) {
-      const tags = el('div', 'exam-tags');
-      e.tags.forEach(t => tags.appendChild(el('span', 'exam-tag', t)));
-      body.appendChild(tags);
-    }
+    const metaRow = el('div', 'exam-tags');
+    if (e.tags && e.tags.length) e.tags.forEach(t => metaRow.appendChild(el('span', 'exam-tag', t)));
+    const vn = Store.viewCount(word);
+    if (vn) metaRow.appendChild(el('span', 'view-chip', '已看 ' + vn + ' 次'));
+    if (metaRow.childNodes.length) body.appendChild(metaRow);
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
@@ -882,7 +886,7 @@
     const rate = p.graded > 0 ? Math.round((p.know / p.graded) * 100) : 0;
     const grid = $('stats-today');
     grid.innerHTML = '';
-    [['今日新学', p.newDone, ''], ['今日复习', p.reviewDone, ''], ['认识率', rate, '%'], ['学习时长', fmtMs(p.ms), '分钟']].forEach(([label, val, unit]) => {
+    [['今日新学', p.newDone, ''], ['今日复习', p.reviewDone, ''], ['认识率', rate, '%'], ['学习时长', fmtMs(p.ms), '分钟'], ['累计接触', Store.totalViews(), '次'], ['接触词数', Store.viewedWordCount(), '词']].forEach(([label, val, unit]) => {
       const c = el('div', 'stat-card');
       c.appendChild(el('div', 'stat-label', label));
       const v = el('div', 'stat-value'); v.innerHTML = esc(val) + (unit ? ' <small>' + unit + '</small>' : '');
@@ -902,7 +906,30 @@
     renderMastery();
     renderRetention();
     renderTrend();
+    renderTopViews();
     renderDayHistory();
+  }
+  function renderTopViews() {
+    const host = $('views-top');
+    if (!host) return;
+    host.innerHTML = '';
+    const top = Store.topViews(12);
+    $('views-total').textContent = '累计 ' + Store.totalViews() + ' 次';
+    if (!top.length) { host.appendChild(el('div', 'empty-hint', '学习或查词后，这里会显示你接触最多的词')); return; }
+    const wrap = el('div', 'list-gap');
+    top.forEach((x, i) => {
+      const st = stateOf(x.word);
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(el('span', 'view-rank', String(i + 1)));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', x.word));
+      main.appendChild(el('div', 'row-sub', themeStateLabel(st) + ' · 最近 ' + Store.dateKey(new Date(x.last))));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge ' + (st === 'known' ? 'green' : 'gray'), x.n + ' 次'));
+      row.addEventListener('click', () => openWordSheet(x.word));
+      wrap.appendChild(row);
+    });
+    host.appendChild(wrap);
   }
   function renderCalendar() {
     const cal = $('calendar');

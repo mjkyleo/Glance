@@ -189,18 +189,19 @@
 **需求**：每次点开单词都计一次学习接触（查词检索点开、学习页渲染该词、词卡/家族/专项详情点开），
 后台可看每个词看了多少次、有没有记住。
 
-### 5.1 计数持久化（#56）
-- [ ] `store.js`：`DEFAULTS.views={}`；`normalize` 兜底；新增
+### 5.1 计数持久化（#56）✅
+- [x] `store.js`：`DEFAULTS.views={}`；`normalize` 兜底；新增
   - `recordView(word)` → `views[word]={n,first,last}`；
-  - `viewCount(word)` / `viewInfo(word)` / `topViews(limit)` / `totalViews()`。
-- [ ] `app.js` 触发点：
-  - `openWordSheet(word)`（`app.js:558`）开头 `Store.recordView(word)`——覆盖查词/历史/收藏/家族/专项/学习详情按钮等所有「打开词卡」路径。
-  - 学习页呈现：`renderStudy`（`app.js:125`）用「呈现令牌」去抖（`sessionToken:sessionIdx:word`），同一词同次呈现只计一次，翻卡/新会话才再计。`buildSession`/`studyWords` 递增 token。
+  - `viewCount(word)` / `viewInfo(word)` / `topViews(limit)` / `totalViews()` / `viewedWordCount()`。
+- [x] `app.js` 触发点：
+  - `openWordSheet(word)` 开头 `Store.recordView(word)`——覆盖查词/历史/收藏/家族/专项/学习详情按钮等所有「打开词卡」路径。
+  - 学习页呈现：`renderStudy` 用呈现令牌 `word|sessionIdx|会话首词` 去抖，同一词同次呈现只计一次，翻卡/换会话才再计。
 
-### 5.2 可视化（#57）
-- [ ] 统计页新增「高频接触词」榜单：单词 + 查看次数 + 掌握状态（未学/学习中/已掌握/重学）+ 最近查看时间。
-- [ ] `word-sheet` 头部显示「已看 N 次」徽标。
-- [ ] （可选）生词本/查词历史行显示次数徽标。
+### 5.2 可视化（#57）✅
+- [x] 统计页新增「高频接触词」榜单：排名 + 单词 + 掌握状态 + 最近查看日期 + 查看次数（Top 12，可点开词卡）。
+- [x] 统计页顶部新增「累计接触」「接触词数」卡片；面板标题显示累计次数。
+- [x] `word-sheet` 头部显示「已看 N 次」徽标（与考试标签同排）。
+- [ ] （可选）生词本/查词历史行显示次数徽标（暂不做，避免列表过密）。
 
 ---
 
