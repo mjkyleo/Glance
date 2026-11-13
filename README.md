@@ -52,6 +52,10 @@
 | --- | --- |
 | <img src="docs/screenshots/settings.png" width="280" alt="设置分类与主题风格" /> | <img src="docs/screenshots/dictionary.png" width="280" alt="词典卡片" /> |
 
+| 词典服务商 |
+| --- |
+| <img src="docs/screenshots/dict-provider.png" width="280" alt="底部弹出的服务商选择器：推荐标记、Key 状态、能力说明与当前选中状态" /> |
+
 | 纸白主题 | 樱粉主题 |
 | --- | --- |
 | <img src="docs/screenshots/theme-paper.png" width="280" alt="纸白主题" /> | <img src="docs/screenshots/theme-sakura.png" width="280" alt="樱粉主题" /> |
@@ -74,7 +78,7 @@
 
 | 答错解析 |
 | --- |
-| <img src="docs/screenshots/quiz-session.png" width="280" alt="答错后显示全部词义、上一题回顾与其他选项释义" /> |
+| <img src="docs/screenshots/quiz-session.png" width="280" alt="右上角独立「结束」按钮；答错后显示全部词义、上一题回顾与其他选项释义，底部仅保留继续" /> |
 
 | 背景图片 |
 | --- |
