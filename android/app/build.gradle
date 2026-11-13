@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+def glancePkg = new groovy.json.JsonSlurper().parseText(rootProject.file('../package.json').text)
+// CI 传入构建序号，保证每次安装包 versionCode 递增；本地构建默认 1。
+def glanceVersionCode = (project.findProperty('glanceVersionCode') ?: '1') as Integer
+
 android {
     namespace "com.glance.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,13 +11,23 @@ android {
         applicationId "com.glance.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode glanceVersionCode
+        versionName glancePkg.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // 固定调试签名：GitHub Actions 每次都是全新机器，不指定则每个 APK 签名不同，
+    // 无法覆盖安装旧版本（提示“应用未安装”）。此密钥仅用于 debug 包。
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('keystore/glance-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
         }
     }
     buildTypes {
