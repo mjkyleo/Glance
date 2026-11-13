@@ -58,8 +58,13 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk Glance-android.apk
           PREV=$(git tag --list 'android-*' --sort=-v:refname | head -n1)
           if [ -n "$PREV" ]; then RANGE="$PREV..HEAD"; else RANGE="HEAD~1..HEAD"; fi
-          TITLE=$(git log -1 --pretty=%s -- app main.js package.json android capacitor.config.json)
-          [ -z "$TITLE" ] && TITLE=$(git log -1 --pretty=%s)
+          LAST_PRODUCT=$(git log -1 --format=%H -- app main.js package.json android capacitor.config.json || true)
+          TITLE=""
+          [ -n "$LAST_PRODUCT" ] && TITLE=$(git log -1 --pretty=%s "$LAST_PRODUCT")
+          # Pipeline-only commits (no product change since the previous release) use their own subject.
+          PIPELINE_ONLY=0
+          if [ -n "$PREV" ] && [ -n "$LAST_PRODUCT" ] && git merge-base --is-ancestor "$LAST_PRODUCT" "$PREV"; then PIPELINE_ONLY=1; fi
+          if [ "$PIPELINE_ONLY" = 1 ] || [ -z "$TITLE" ]; then TITLE=$(git log -1 --pretty=%s); fi
           CHANGES=$(git log "$RANGE" --no-merges --pretty=format:'- %s' -- app main.js package.json android capacitor.config.json)
           [ -z "$CHANGES" ] && CHANGES=$(git log "$RANGE" --no-merges --pretty=format:'- %s')
           [ -z "$CHANGES" ] && CHANGES="- $(git log -1 --pretty=%s)"
@@ -77,7 +82,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release list --limit 100 --json tagName,title --jq '.[] | select(.title | startswith("Glance Android (build")) | .tagName' | while read -r tag; do
+          tags=$(gh release list --limit 100 --json tagName,name --jq '.[] | select(.name | startswith("Glance Android (build")) | .tagName')
+          printf '%s\n' "$tags" | while read -r tag; do
             [ -z "$tag" ] && continue
             subject=$(git log -1 --pretty=%s "$tag" -- app main.js package.json android capacitor.config.json 2>/dev/null || true)
             [ -z "$subject" ] && subject=$(git log -1 --pretty=%s "$tag" 2>/dev/null | cut -c1-90)
