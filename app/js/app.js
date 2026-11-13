@@ -33,8 +33,6 @@
   // ===================== view router =====================
   function switchView(v) {
     currentView = v;
-    const app = document.querySelector('.app');
-    if (app) app.dataset.current = v;
     ['study', 'roots', 'themes', 'search', 'me', 'stats', 'books', 'ai'].forEach(name => {
       $('view-' + name).hidden = name !== v;
     });
@@ -1967,7 +1965,6 @@
   function switchBook(tag) {
     Store.data.activeBook = tag; Store.save();
     book = activeBook();
-    $('lib-name').textContent = book.name;
     buildSession();
     setMode('study');
     renderBooks();
@@ -2429,7 +2426,6 @@
       return;
     }
     book = activeBook();
-    $('lib-name').textContent = book.name;
     buildSession();
     updatePlanBar();
     renderStudy();

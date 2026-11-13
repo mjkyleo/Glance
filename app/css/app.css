@@ -547,12 +547,6 @@ body.has-bg { background-color: transparent; background-image: none; }
 }
 
 /* ---------- header ---------- */
-.app-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 0 0 auto; }
-.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
-.brand-mark { display: grid; place-items: center; width: var(--mark-size); height: var(--mark-size); flex: 0 0 auto; border-radius: var(--r-icon); color: var(--accent); background: var(--root-bg); }
-.brand-text { display: flex; flex-direction: column; min-width: 0; }
-.brand-name { font-family: var(--font-head); font-size: var(--brand-size); font-weight: var(--brand-weight); letter-spacing: var(--brand-track); text-transform: var(--brand-transform); line-height: 1.15; }
-.lib-name { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
 .icon-btn { display: grid; place-items: center; width: var(--icon-size); height: var(--icon-size); border-radius: var(--r-iconbtn); border: none; background: var(--fill); color: var(--text-2); cursor: pointer; transition: background var(--dur-ui) var(--ease-ui), transform var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui); }
 .icon-btn:hover { background: var(--fill-2); }
 .icon-btn:active { transform: scale(var(--press-scale)); opacity: var(--press-opacity); }
@@ -642,8 +636,6 @@ body.has-bg { background-color: transparent; background-image: none; }
 .grade-btn.know { background: rgba(111, 181, 140, 0.18); color: var(--green-fg); }
 
 /* ---------- clean study page ---------- */
-/* hide global header while studying; a slim quiet top bar remains */
-.app[data-current="study"] .app-header { display: none; }
 .study-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; }
 .study-top.quiz-no-progress { justify-content: flex-end; }
 .study-progress { flex: 1 1 auto; max-width: 220px; height: var(--progress-h); border-radius: var(--r-progress); background: var(--fill); overflow: hidden; }
@@ -1063,7 +1055,6 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 @media (max-width: 480px) {
   .app { padding: calc(10px + var(--safe-t)) 12px calc(6px + var(--safe-b)); gap: var(--gap-ui); }
   .word-block { padding: var(--word-pad); }
-  .lib-name { max-width: 40vw; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .grade-btn { height: var(--grade-h); }
 }/* ---------- day history details ---------- */
