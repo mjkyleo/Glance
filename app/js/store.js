@@ -2,6 +2,7 @@
 (function () {
   const DEFAULTS = {
     activeBook: '六级',
+    profile: { nickname: '', avatar: '' },
     plan: { newPerDay: 20, reviewCap: 0 },
     srs: {},
     logs: {},
@@ -54,6 +55,9 @@
       if (d[k] === undefined || d[k] === null) d[k] = JSON.parse(JSON.stringify(DEFAULTS[k]));
     }
     d.plan = Object.assign({ newPerDay: 20, reviewCap: 0 }, d.plan || {});
+    if (!d.profile || typeof d.profile !== 'object' || Array.isArray(d.profile)) d.profile = { nickname: '', avatar: '' };
+    d.profile.nickname = typeof d.profile.nickname === 'string' ? d.profile.nickname.trim().slice(0, 16) : '';
+    d.profile.avatar = typeof d.profile.avatar === 'string' && /^data:image\/[a-z]+;base64,/i.test(d.profile.avatar) ? d.profile.avatar : '';
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
     if (!Array.isArray(d.history)) d.history = [];
     if (!d.views || typeof d.views !== 'object') d.views = {};
@@ -329,6 +333,14 @@
   // background wallpaper (image stored as a compressed data URL)
   function setBackground(patch) { Object.assign(data.background, patch || {}); save(); }
 
+  function setProfile(patch) {
+    const p = patch || {};
+    if (!data.profile) data.profile = { nickname: '', avatar: '' };
+    if (typeof p.nickname === 'string') data.profile.nickname = p.nickname.trim().slice(0, 16);
+    if (typeof p.avatar === 'string') data.profile.avatar = /^data:image\/[a-z]+;base64,/i.test(p.avatar) ? p.avatar : '';
+    save();
+  }
+
   // ---- portable backup: universal words table + lossless settings/progress block ----
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
@@ -377,6 +389,7 @@
           plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
+          profile: { nickname: data.profile.nickname, avatar: data.profile.avatar },
           ai, dict,
           background: { veil: data.background.veil, blur: data.background.blur }
         }
@@ -507,6 +520,10 @@
           if (typeof s.background.veil === 'number') data.background.veil = Math.max(0, Math.min(80, s.background.veil));
           if (typeof s.background.blur === 'number') data.background.blur = Math.max(0, Math.min(16, s.background.blur));
         }
+        if (isObj(s.profile)) {
+          if (typeof s.profile.nickname === 'string') data.profile.nickname = s.profile.nickname.trim().slice(0, 16);
+          if (typeof s.profile.avatar === 'string' && /^data:image\/[a-z]+;base64,/i.test(s.profile.avatar)) data.profile.avatar = s.profile.avatar;
+        }
       }
     } else {
       // generic table only: best-effort rebuild
@@ -538,6 +555,6 @@
     defaultCardOrder: () => DEFAULTS.cardOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
-    setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground
+    setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile
   };
 })();

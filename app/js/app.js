@@ -170,8 +170,42 @@
     }
   }
 
+  function readAvatarImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const size = 256;
+          const side = Math.min(img.width, img.height);
+          const sx = Math.round((img.width - side) / 2);
+          const sy = Math.round((img.height - side) / 2);
+          const c = document.createElement('canvas');
+          c.width = size; c.height = size;
+          const ctx = c.getContext('2d');
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+          let fmt = 'image/webp';
+          let url = c.toDataURL(fmt, 0.86);
+          if (!/^data:image\/webp/.test(url)) { fmt = 'image/jpeg'; url = c.toDataURL(fmt, 0.86); }
+          let q = 0.86;
+          while (url.length > 90000 && q > 0.5) {
+            q -= 0.1;
+            url = c.toDataURL(fmt, q);
+          }
+          resolve(url);
+        };
+        img.onerror = () => reject(new Error('图片无法解码'));
+        img.src = String(reader.result);
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ===================== sheets =====================
   let openSheetEl = null;
+  let profileDraft = null;
   function openSheet(id) {
     closeSheet(true);
     const s = $(id);
@@ -1623,7 +1657,55 @@
   }
 
   // ===================== me =====================
+  function renderMeProfile() {
+    const p = Store.data.profile || { nickname: '', avatar: '' };
+    $('me-name').textContent = p.nickname || '我的';
+    const img = $('me-avatar-img');
+    const fb = $('me-avatar-fallback');
+    if (p.avatar) {
+      img.src = p.avatar; img.hidden = false; fb.hidden = true;
+    } else {
+      img.removeAttribute('src'); img.hidden = true; fb.hidden = false;
+    }
+    $('me-avatar-btn').title = p.avatar ? '更换头像' : '设置头像';
+  }
+  function syncProfileSheet() {
+    const d = profileDraft || { nickname: '', avatar: '' };
+    $('profile-nickname').value = d.nickname;
+    $('profile-preview-name').textContent = d.nickname.trim() || '我的';
+    const img = $('profile-avatar-img');
+    const icon = $('profile-avatar-icon');
+    const remove = $('profile-remove');
+    if (d.avatar) { img.src = d.avatar; img.hidden = false; icon.hidden = true; }
+    else { img.removeAttribute('src'); img.hidden = true; icon.hidden = false; }
+    remove.hidden = !d.avatar;
+  }
+  function openProfileSheet() {
+    const p = Store.data.profile || {};
+    profileDraft = { nickname: p.nickname || '', avatar: p.avatar || '' };
+    syncProfileSheet();
+    openSheet('profile-sheet');
+  }
+  async function chooseAvatar(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) { alert('请选择图片文件。'); return; }
+    try {
+      const url = await readAvatarImage(file);
+      if (!profileDraft) profileDraft = { nickname: Store.data.profile.nickname || '', avatar: '' };
+      profileDraft.avatar = url;
+      syncProfileSheet();
+    } catch (err) {
+      alert('头像设置失败：' + ((err && err.message) || err));
+    }
+  }
+  function saveProfile() {
+    const nickname = $('profile-nickname').value;
+    Store.setProfile({ nickname, avatar: (profileDraft && profileDraft.avatar) || '' });
+    renderMeProfile();
+    closeSheet();
+  }
   function renderMe() {
+    renderMeProfile();
     const p = Store.planProgress();
     const b = book || activeBook();
     $('me-book').textContent = b.name + ' · 词根背单词';
@@ -2045,6 +2127,27 @@
       document.documentElement.style.setProperty('--bg-blur', v + 'px');
     });
     $('bg-blur').addEventListener('change', () => Store.setBackground({ blur: Number($('bg-blur').value) }));
+    $('me-avatar-btn').addEventListener('click', openProfileSheet);
+    $('me-profile-btn').addEventListener('click', openProfileSheet);
+    $('profile-avatar-btn').addEventListener('click', () => $('profile-file').click());
+    $('profile-file').addEventListener('change', () => {
+      const f = $('profile-file').files && $('profile-file').files[0];
+      chooseAvatar(f);
+      $('profile-file').value = '';
+    });
+    $('profile-remove').addEventListener('click', () => {
+      if (profileDraft) profileDraft.avatar = '';
+      syncProfileSheet();
+    });
+    $('profile-nickname').addEventListener('input', () => {
+      const v = $('profile-nickname').value;
+      if (profileDraft) profileDraft.nickname = v;
+      $('profile-preview-name').textContent = v.trim() || '我的';
+    });
+    $('profile-nickname').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); saveProfile(); }
+    });
+    $('profile-save').addEventListener('click', saveProfile);
     wirePanelOrder();
 
     $('me-stats-link').addEventListener('click', () => openSub('stats'));

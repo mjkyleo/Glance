@@ -207,11 +207,22 @@
     <main class="view" id="view-me" hidden>
       <div class="scroll" id="me-scroll">
         <section class="me-hero">
-          <div class="me-avatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
-          </div>
+          <button class="me-avatar" id="me-avatar-btn" type="button" title="更换头像" aria-label="更换头像">
+            <span class="me-avatar-fallback" id="me-avatar-fallback">
+              <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+            </span>
+            <img class="me-avatar-img" id="me-avatar-img" alt="" hidden />
+            <span class="me-avatar-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M9 4h6l1.4 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.6L9 4Zm3 4.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Zm0 2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z"/></svg>
+            </span>
+          </button>
           <div class="me-hero-main">
-            <h1 class="me-name">我的</h1>
+            <div class="me-name-row">
+              <h1 class="me-name" id="me-name">我的</h1>
+              <button class="me-name-edit" id="me-profile-btn" type="button" title="编辑昵称与头像" aria-label="编辑昵称与头像">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17 9.8 14.2 7 4 17.2Zm15.7-9.9a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0l-1.4 1.4L18.3 8l1.4-1.4Z"/></svg>
+              </button>
+            </div>
             <p class="me-sub" id="me-book">Glance · 词根背单词</p>
           </div>
           <span class="me-streak" id="me-streak">连续 0 天</span>
@@ -415,6 +426,35 @@
       <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
     </div>
     <div class="sheet-body" id="affix-body"></div>
+  </div>
+
+  <div class="sheet" id="profile-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title">个人资料</h2><p class="sheet-sub">头像与昵称只保存在本机</p></div>
+      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="profile-top">
+        <button class="profile-avatar" id="profile-avatar-btn" type="button" title="选择头像" aria-label="选择头像">
+          <img id="profile-avatar-img" alt="" hidden />
+          <span class="profile-avatar-icon" id="profile-avatar-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+          </span>
+          <span class="profile-avatar-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M9 4h6l1.4 2H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.6L9 4Zm3 4.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Zm0 2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z"/></svg>
+          </span>
+        </button>
+        <div class="profile-top-main">
+          <div class="profile-top-name" id="profile-preview-name">我的</div>
+          <p class="profile-hint">点击头像选择图片，会自动裁剪并压缩后保存在本机。</p>
+          <button class="btn-ghost profile-remove" id="profile-remove" type="button" hidden>移除头像</button>
+        </div>
+      </div>
+      <label class="field profile-field"><span>昵称</span><input id="profile-nickname" type="text" maxlength="16" placeholder="给自己起个名字" autocomplete="nickname" /></label>
+      <p class="profile-tip">昵称会显示在「我的」顶部，最多 16 个字符。</p>
+      <button class="btn-primary profile-save" id="profile-save" type="button">保存</button>
+      <input type="file" id="profile-file" accept="image/*" hidden />
+    </div>
   </div>
 
   <div class="sheet" id="quiz-settings-sheet" hidden role="dialog" aria-modal="true">
