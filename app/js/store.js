@@ -19,7 +19,7 @@
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
     ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
     aiCache: {},
-    dict: { provider: 'free', key: '', base: '' },
+    dict: { provider: 'freezh', key: '', base: '' },
     dictCache: {}
   };
 

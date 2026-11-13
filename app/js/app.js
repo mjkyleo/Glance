@@ -724,8 +724,22 @@
         actions.appendChild(go);
         return;
       }
-      meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '');
-      if (record.ipa) content.appendChild(el('p', 'dict-ipa', '/' + record.ipa + '/'));
+      meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '') +
+        (record.fallbackFrom ? ' · 有道不可用已回退' : '');
+      if (record.ipa) {
+        const ipaText = record.ipaUk && record.ipaUk !== record.ipa
+          ? '美 /' + record.ipa + '/ · 英 /' + record.ipaUk + '/'
+          : '/' + record.ipa + '/';
+        content.appendChild(el('p', 'dict-ipa', ipaText));
+      }
+      const ownTags = new Set((e && e.tags) || []);
+      const exam = (record.exam || []).filter(t => !ownTags.has(t));
+      if (exam.length) {
+        const tags = el('div', 'exam-tags dict-exam');
+        exam.forEach(t => tags.appendChild(el('span', 'exam-tag', t)));
+        content.appendChild(tags);
+      }
+      if (record.mnemonic) content.appendChild(el('p', 'dict-mnemonic', '助记：' + record.mnemonic));
       (record.meanings || []).forEach(m => {
         const block = el('div', 'dict-mean');
         if (m.pos) block.appendChild(el('div', 'dict-pos', m.pos));
@@ -733,7 +747,8 @@
           const row = el('div', 'dict-def');
           row.appendChild(el('span', 'dict-num', String(i + 1)));
           const txt = el('div', 'dict-def-text');
-          txt.appendChild(el('span', 'dict-def-en', d.en || ''));
+          txt.appendChild(el('span', 'dict-def-en', d.zh || d.en || ''));
+          if (d.zh && d.en) txt.appendChild(el('div', 'dict-def-en2', d.en));
           if (d.example) txt.appendChild(el('div', 'dict-def-ex', d.example));
           const syn = (d.synonyms || []).join(' · ');
           if (syn) txt.appendChild(el('div', 'dict-def-syn', '近义：' + syn));
@@ -1214,7 +1229,7 @@
     const dsel = $('set-dict-provider');
     dsel.innerHTML = '';
     Dictionary.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; dsel.appendChild(o); });
-    dsel.value = dict.provider || 'free';
+    dsel.value = dict.provider || 'freezh';
     $('set-dict-key').value = dict.key || '';
     $('set-dict-base').value = dict.base || '';
     syncDictProviderUi();

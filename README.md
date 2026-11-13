@@ -85,11 +85,14 @@
 
 | 服务商 | 地址 | Key |
 | --- | --- | --- |
-| 免费词典（默认） | `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` | 不需要 |
+| 中英词典（有道，默认） | `https://dict.youdao.com/jsonapi?q={word}` | 不需要 |
+| 免费英文词典 | `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` | 不需要 |
 | Merriam-Webster | `https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={key}` | 需在 dictionaryapi.com 免费申请 |
 | 自定义端点 | 任意返回 JSON 的地址，用 `{word}` 占位 | 可选，默认以 `Bearer` 发送 |
 
-免费词典返回音标、词性、多义项、例句、同义词与真人发音，来源为 Wiktionary。查询结果按词缓存在本地，同一单词不会重复联网。
+有道源提供中文释义、美/英双音标、双语例句、考试标签与词根助记，支持英文单词、短语（如 `take off`）和中译英（如 `苹果`）。查询结果按词缓存在本地，同一单词不会重复联网。
+
+> 有道接口不校验 Key，但会拒绝带 `Origin` 头的浏览器请求；Windows/Android 端走原生网络通道不受影响，纯浏览器预览会自动回退到免费英文词典。
 
 ## 构建
 

@@ -26,7 +26,7 @@
 | `store.js` | 持久化 + 学习域逻辑（SRS 状态、每日日志、收藏、历史、错题、AI 缓存） |
 | `library.js` | 词库索引、词根家族、词缀、查词、词性解析、助记钩子、详解卡片构建 |
 | `ai.js` | 按需 LLM 单词讲解（多服务商预设、JSON 解析、本地缓存、导出） |
-| `dictionary.js` | 外部词典（免费 / Merriam-Webster / 自定义端点）：归一化、按词缓存、查询 |
+| `dictionary.js` | 外部词典（有道 / 免费 / Merriam-Webster / 自定义端点）：归一化、按词缓存、查询与回退 |
 | `app.js` | 应用控制器：视图路由、学习/测试、词卡、词根/词缀、查词、统计、设置、事件 |
 | `themes.js` | 专项分类器（29 个主题，精度优先规则，详见 §4） |
 
@@ -142,8 +142,8 @@
 
 > 更新（2026-11-13）：P7 全部功能（#52–#62）已完成代码、CDP 实测与文档收尾；#63 仅剩推送触发 CI 与交付 APK。
 
-- 最新提交：`dev/p7` 分支，分类器 `01b7a03`、专项 UI `3f2abb9`、查看次数 `890522c`、导出导入 `5f092ab`、外部词典 `449df3b`，另有清理 + README + 文档收尾提交。
-- 最新交付：`android-8` APK（含 P7 全部新功能）— `https://github.com/mjkyleo/Glance/releases/download/android-8/Glance-android.apk`。
+- 最新提交：`dev/p7` 分支，分类器 `01b7a03`、专项 UI `3f2abb9`、查看次数 `890522c`、导出导入 `5f092ab`、外部词典 `449df3b`、清理 + README + 文档收尾 `6d7bb79`、有道中英词典（本次）。
+- 最新交付：`android-8` APK（P7 完整版）；有道词典版本将由本次推送触发的新 CI 产出。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略）。
 - 任务清单：P7 需求 #52–#62 全部完成（回归 15/15），#63 推送与发布进行中；**不能按编号折算完成度**，以本文 §4–§8 的实际勾选为准。
 
@@ -246,22 +246,30 @@
 
 - [x] **网络通道**：`platform.js` 新增 `fetchJson(url,{headers})`，路由 Electron IPC `http-get` / CapacitorHttp GET / 浏览器 fetch；`main.js` 新增 `http-get` handler（`net.fetch` 绕过 CORS，镜像 `llm-chat`，仅允许 http/https，超时 15s）。
 - [x] **新模块 `dictionary.js`**：providers + 归一化 + lookup + 缓存 + 导出。
-  - `free`（默认，免 Key）：`https://api.dictionaryapi.dev/api/v2/entries/en/{word}`（Wiktionary 源，含音标/词性/多义项/例句/同义词/真人发音）。
+  - `freezh`（**默认**，免 Key）：`https://dict.youdao.com/jsonapi?q={word}`（有道在线词典私有 JSON 接口），中文释义、美/英双音标、双语例句、考试标签、词根助记、同义词；支持短语与中译英（`meta.guessLanguage==='zh'` 走 `ce` 段）。
+  - `free`（备用，免 Key）：`https://api.dictionaryapi.dev/api/v2/entries/en/{word}`（Wiktionary 源，含音标/词性/多义项/例句/同义词/真人发音）。
   - `mw`（Merriam-Webster Collegiate，权威，需免费 Key）：`https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={key}`。
   - `custom`（自定义端点）：URL 模板 `{word}` + 可选 Key（Bearer 或 `?key=`），通用 JSON 渲染。
-  - 说明：Bing/有道无免费公开 API，作为「自定义端点」可选接入，不臆造接口。
-- [x] **归一化记录**：`{word, ipa, audio:[urls], meanings:[{pos, defs:[{en, example, synonyms, antonyms}]}], provider, sourceUrl, ts}`。
-- [x] **缓存**：`store.js` `DEFAULTS.dictCache={}` + `dict={provider:'free',key:'',base:''}`；`setDictConfig/dictEntry/saveDictEntry/deleteDictEntry/dictWords`。命中缓存优先，离线可看。
-- [x] **UI**：`word-sheet` 增「词典」卡片（含音标、按词性分组义项、例句/近义词、重新查询/删除缓存）→ 检索结果直接展示；设置页「外部词典」组（服务商/Key/地址，按服务商动态显隐）。
+  - 说明：Bing/有道智云无免费公开正式 API，有道网页接口作为首选增强源；不臆造接口。
+- [x] **归一化记录**：`{word, ipa, ipaUk, audio:[urls], meanings:[{pos, defs:[{zh, en, example, synonyms, antonyms}]}], lang, exam, mnemonic, provider, sourceUrl, ts}`。
+  - 有道取值兼容 `string` / `{"#text": ...}` / 数组；`ec.trs[].tr[].l.i` 按中文分号拆义项；`ee` 合并英文释义；`blng_sents_part` 双语例句；`syno` 近义；`exam_type` 映射为应用内中文标签。
+  - 命中判定：存在 `ec` / `ee` / `ce` 才算收录；假词仅返回 `input/meta/le/lang`，直接判未找到。
+  - 有道失败或未收录时自动回退 `free`，记录标记 `fallbackFrom`，UI 显示「有道不可用已回退」。
+- [x] **缓存**：`store.js` `DEFAULTS.dictCache={}` + `dict={provider:'freezh',key:'',base:''}`；`setDictConfig/dictEntry/saveDictEntry/deleteDictEntry/dictWords`。命中缓存优先，离线可看。
+- [x] **UI**：`word-sheet` 增「词典」卡片（美/英双音标、中文释义优先 + 英文释义副行、按词性分组义项、例句/近义词、考试标签、助记；重新查询/删除缓存）→ 检索结果直接展示；设置页「外部词典」组（服务商/Key/地址，按服务商动态显隐）。
 - [x] `index.html` 增 `dictionary.js` script 标签。
 
 **验证（CDP 实操）**：
-- 免费源真实查询 `abandon`：HTTP 200，音标 `əˈbæn.dən`、2 个词性（verb/noun）、9 条释义、真人音频 1 条、来源 Wiktionary。
-- 缓存：二次查询 `cached:true`，`Store.dictEntry('abandon')` 存在；词卡显示「免费词典 · 本地缓存」徽标。
+- 有道真实查询 `abandon`（Electron IPC）：中文释义「抛弃，遗弃」+ 英文释义 + 2 个词性 11 条义项、美/英音标、2 条真人发音、9 个考试标签（映射为高考/四级/六级等）、词根助记、双语例句。
+- `schedule` 双音标：美 `ˈskedʒuːl` / 英 `ˈʃedjuːl`；`take off` 短语：`ˈteɪk ɔːf`、CET4/CET6、中文义项与 `take+off` 发音；`苹果` 中译英：`lang:zh`、`apple — 苹果；苹果树；苹果公司`、双语例句。
+- 假词 `zzzqqqxx`：有道仅返回 `input/meta/le/lang` → 判未收录并回退免费词典 → 「词典中未找到该词」。
+- 缓存：二次查询 `cached:true`，词卡显示「中英词典 (有道 · 免费) · 本地缓存」；删除缓存生效。
+- 免费源 `abandon`：HTTP 200，音标 `əˈbæn.dən`、2 个词性、9 条释义、真人音频 1 条、来源 Wiktionary。
 - MW：无 Key 时提示填写 Key；合成返回正确解析音标/音频 URL/近反义词。
 - 自定义：嵌套 `entries/definitions` 与字符串 `defs` 均能归一化；`{word}`/`{key}` 占位与 Bearer 头正确；无地址时提示配置。
-- 设置页：三项服务商切换、Key/地址显隐、配置持久化正常；错误词返回「词典中未找到该词」。
-- 导出包含 `dictCache` 且 `dict.key` 被剔除；删除缓存生效。无控制台报错。
+- 设置页：四项服务商切换、Key/地址显隐、配置持久化正常。
+- 导出包含 `dictCache` 且 `dict.key` 被剔除。无控制台报错。
+- 归一化单测（真实响应样本）24/24 通过；全量回归 15/15 通过。
 
 ---
 
@@ -337,7 +345,8 @@
 
 | 提交 | 内容 |
 |---|---|
-| _本次收尾提交_ | 目录清理 + main.js 死代码移除 + README 重写 + 截图入库 + 文档收尾 |
+| _本次提交_ | 接入有道中英词典（中文释义/双音标/双语例句/考试标签/助记/中译英 + 免费源自动回退） |
+| `3c6ae43` | 记录 P7 APK 交付（`android-8`） |
 | `449df3b` | 外部词典检索（免费/MW/自定义）+ 本地缓存 + 设置配置（P7-E） |
 | `5f092ab` | 通用格式学习数据导出 / 导入恢复（P7-D） |
 | `890522c` | 单词接触次数记录 + 统计榜单/徽标（P7-C） |
