@@ -224,7 +224,7 @@ DEVELOPMENT.md      开发清单与详细变更记录
 
 ## 文档
 
-开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)；Logo 图形、图标安全区与启动页规范见 [docs/LOGO-SPEC.md](docs/LOGO-SPEC.md)。
 
 ## License
 
