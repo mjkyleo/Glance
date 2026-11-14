@@ -146,7 +146,7 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`a12ba4e`（`main`），QNAI 免费 AI 服务商预设（DEV-ONLY，双模型下拉）（§8.31）。
+- 最新提交：`94ae892`（`main`），文档 `文件:行号` 引用全量复核修正（仅 md，不触发 CI）;功能最新提交仍为 `a12ba4e`（QNAI 免费 AI 服务商预设，§8.31）。
 - 最新交付：`android-42` APK → `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`（13,236,662 字节，versionCode 42 / versionName `1.0.6+42`）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.31；**不能按编号折算完成度**，以本文实际勾选为准。
@@ -888,6 +888,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `94ae892` | 文档引用复核：用符号定义审计脚本重算 FEATURES.md / DATA.md / DEVELOPMENT.md 中全部 `文件:行号`，修正约 100 处随功能落地而漂移的指针（srs.js 公式区、app.js 渲染函数区、library.js 官方与解析区、platform.js 网络与存储适配区、store.js 导出导入区），并把功能矩阵速查的整段范围对齐当前代码;纯 md 改动，`paths-ignore` 不触发 CI，最新交付仍为 `android-42` |
 | `a12ba4e` | QNAI 免费 AI 服务商预设（DEV-ONLY，§8.31）：`ai.js` 同区追加 `QNAI_FREE_API`（`api.qnaigc.com/v1`，`id:'qnafree'`，双模型下拉 `qiniu/conatus-free`（默认，实测可用 + JSON 模式;免费档全局限流 429）/ `nvidia/nemotron-3-ultra-550b-a55b0-free`（上游暂不可用，待恢复）+ 内置开发 Key），复用 §8.27 的 `dev/devKey/models` 数据驱动机制，零 UI/schema 改动，服务商 14→15 项;开发期默认仍 devfree;DEVELOPMENT §8.25/§8.31/§9 + FEATURES §6.1/矩阵同步（并修正 FEATURES 中 app.js/platform.js 的过期行号引用） |
 | `91f5ef3` | 查词在线化 + UAPI 中英词典 + 多源回退（§8.30）：查词页对本地未收录词置顶「在线查词」入口，点击即联网查询并按词缓存（复用 `Dictionary.lookup → saveDictEntry`）;新增 UAPI 服务商（免 Key，中英双释义/英美音标音频/考试标签/词形/词组/近义/双语例句），`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签;多源回退 有道→UAPI→dictionaryapi.dev，命中「未找到该词」即停省积分，词卡显示「已从〈源〉回退」;词卡新增词形变化/常见词组渲染;默认仍 freezh，无 schema 改动;DEVELOPMENT §8.30 + FEATURES §5/矩阵 + README 同步 |
 | `4b1dde0` | 导航/返回栈 + 原生震动 + 词书选择与过滤增强（§8.29）：选书停留「词书与计划」不再跳学习页;新增 `@capacitor/app` 统一硬件返回优先级（嵌套弹层→弹层→子页→测试态→tab 历史→根节点退出）;新增 `@capacitor/haptics`，评分/答题 success/warn/error、tab/模式/选书/过滤 light tap（仅原生）;词书过滤新增「过滤基础词」（326 个小学/初中极基础词，默认开、可关）+ 多选其它词书排除 chip，仅裁剪每日队列;DEVELOPMENT §8.29 + FEATURES §1.5/§2.6/§12.3/矩阵 + README 同步 |
