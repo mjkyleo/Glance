@@ -146,10 +146,10 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`91f5ef3`（`main`），查词在线入口 + UAPI 中英词典集成 + 多源回退（有道→UAPI→dictionaryapi.dev）（§8.30）。
-- 最新交付：`android-41` APK → `https://github.com/mjkyleo/Glance/releases/download/android-41/Glance-android.apk`（13,236,335 字节，versionCode 41 / versionName `1.0.6+41`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
+- 最新提交：`a12ba4e`（`main`），QNAI 免费 AI 服务商预设（DEV-ONLY，双模型下拉）（§8.31）。
+- 最新交付：`android-42` APK → `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`（13,236,662 字节，versionCode 42 / versionName `1.0.6+42`）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.29；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.31；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -693,9 +693,9 @@
 
 **集成（官方书为根 + 对比）**
 
-- `library.js`：新增官方区（[library.js:219-312](app/js/library.js#L219-L312)）——`officialForms` 归一化（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号）、`officialWordSet/officialCount/officialBook`（缓存）、`compareToOfficial(entries,level)` 返回 covered/beyond/missing + 双向覆盖率 + 三份词表。`listBooks` 把「考纲四级（官方）/ 考纲六级（官方）」**置顶**（[library.js:186-197](app/js/library.js#L186-L197)）;`getBook` 加官方分支（[library.js:163-164](app/js/library.js#L163-L164)），官方书经 `enrich` 可正常学习、标 `official:true`，**绕过** CEFR 质量过滤与 skipLower（官方 tag 不在 BOOK_RANK）。`init` 清官方缓存。
-- 数据通道：`platform.js loadDataset` 与 `main.js get-dataset` 均加 `official`（[platform.js:109](app/js/platform.js#L109)）。
-- `app.js`：`resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:256-260](app/js/app.js#L256-L260)）;`cmpSourceOptions/cmpSection/renderCompare`（[app.js:2008-2068](app/js/app.js#L2008-L2068)）渲染对比面板，`renderBooks` 末尾调用 `renderCompare`，官方书行标注「官方考纲」。
+- `library.js`：新增官方区（[library.js:245-334](app/js/library.js#L219-L312)）——`officialForms` 归一化（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号）、`officialWordSet/officialCount/officialBook`（缓存）、`compareToOfficial(entries,level)` 返回 covered/beyond/missing + 双向覆盖率 + 三份词表。`listBooks` 把「考纲四级（官方）/ 考纲六级（官方）」**置顶**（[library.js:186-196](app/js/library.js#L186-L197)）;`getBook` 加官方分支（[library.js:163-164](app/js/library.js#L163-L164)），官方书经 `enrich` 可正常学习、标 `official:true`，**绕过** CEFR 质量过滤与 skipLower（官方 tag 不在 BOOK_RANK）。`init` 清官方缓存。
+- 数据通道：`platform.js loadDataset` 与 `main.js get-dataset` 均加 `official`（[platform.js:123](app/js/platform.js#L123)）。
+- `app.js`：`resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:275-278](app/js/app.js#L256-L260)）;`cmpSourceOptions/cmpSection/renderCompare`（[app.js:2071-2130](app/js/app.js#L2008-L2068)）渲染对比面板，`renderBooks` 末尾调用 `renderCompare`，官方书行标注「官方考纲」。
 - `index.html`：词书与计划页加「考纲对比」面板（源书选择 `cmp-source` + 级别选择 `cmp-level` 四级/六级 + 结果区 `cmp-result`）;`app.css` 加摘要 / 覆盖率条 / 三个可折叠词表（考纲内绿 / 超纲琥珀 / 考纲缺失灰，每段限 300 词可展开全部）样式。
 
 **验证（浏览器 + browser-use，127.0.0.1:8123）**：官方书置顶且可学习（abandon → 释义「vt. 放弃, 抛弃…」CEFR B1、词素 1）;考纲四级自比 100%;自定义导入 6 词 TSV（abandon/apple/mould/according to/adviser/zzzcustom）→ 对比四级 covered 5 / beyond 1（zzzcustom）/ coverageBook 83%，归一化正确命中 `mould↔mo(u)ld`、`adviser↔advisor/adviser`、短语 `according to`;三个折叠段展开 / 收起、展开全部词、级别切换均正常;五 tab 巡览无控制台错误。`officialCount` cet4=6,552（6,632 原始去重约 80 同形异义）、cet6=1,264;`officialWordSet` cet4=6,735 形、cet6=1,284 形。
@@ -711,16 +711,17 @@
 - Base URL：`https://developer.amd.com.cn/radeon/api/v1`（OpenAI 兼容 `/chat/completions`，Bearer 鉴权）。
 - 模型（三选一，默认 `DeepSeek-V4-Flash`）：`DeepSeek-V4-Flash`、`DeepSeek-V4.1-Flash`、`GLM-5.3-Flash`。前两者支持 `response_format:{type:'json_object'}`;`GLM-5.3-Flash` 为推理模型（含 `reasoning` 字段，需更大 token 预算，应用未设 `max_tokens` 故可用）。
 - Key：内置开发密钥见 [ai.js `DEV_FREE_API.devKey`](app/js/ai.js)（前缀 `rc-366f…f7c`，完整值仅存于该处，本文不重复明文）。**该 Key 随客户端代码公开分发，属公开开发密钥。**
+- QNAI 免费端点（2026-11-14 增补，同为 DEV-ONLY）：Base URL `https://api.qnaigc.com/v1`（OpenAI 兼容 `/chat/completions`，Bearer 鉴权）。模型（二选一，默认 `qiniu/conatus-free`）：`qiniu/conatus-free`、`nvidia/nemotron-3-ultra-550b-a55b0-free`;Key 内置开发密钥见 [ai.js `QNAI_FREE_API.devKey`](app/js/ai.js)（前缀 `sk-9177…5691`，完整值仅存于该处，本文不重复明文）。**该 Key 同样随客户端代码公开分发。** `conatus-free` 实测可用且支持 `response_format:{type:'json_object'}`（推理模型，带 `reasoning_content`）;免费模型有**全局限流**（`429 free_campaign_global_limit`，命中后约数十秒可恢复）。`nemotron-3-ultra-550b-a55b0-free` 接入时上游持续返回 `upstream_error「service temporarily unavailable」`，含 25s/20s 退避的三次重试均未恢复——保留在清单中，上游恢复后可从下拉直接切换。
 
-**实现（单一移除点）**
+**实现（DEV-ONLY 区块集中于 ai.js，删块即移除）**
 
-- [ai.js](app/js/ai.js)：新增 `DEV-ONLY` 标记块——`DEV_FREE_API` 常量（`id:'devfree'`、`dev:true`、`base/model/models/devKey/jsonMode`）+ `if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API)`，把「开发免费（发布前移除）」置顶为第一个服务商。`resolveConfig` 增加 `key = cfg.key || p.devKey`（用户 Key 优先，留空回退内置开发 Key）;新增 `effectiveKey(cfg)` 助手并导出;`explainWord` 改用解析后的 `rc.key`。
+- [ai.js](app/js/ai.js)：新增 `DEV-ONLY` 标记块——`DEV_FREE_API` 常量（[ai.js:29-37](app/js/ai.js#L29-L37)，`id:'devfree'`、`dev:true`、`base/model/models/devKey/jsonMode`）+ `if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API)`，把「开发免费（发布前移除）」置顶。同区域内再注入 `QNAI_FREE_API`（[ai.js:42-50](app/js/ai.js#L42-L50)，`id:'qnafree'`、双模型 `models` 清单），现列服务商首位。`resolveConfig` 增加 `key = cfg.key || p.devKey`（用户 Key 优先，留空回退内置开发 Key）;新增 `effectiveKey(cfg)` 助手并导出;`explainWord` 改用解析后的 `rc.key`。**两个 DEV-ONLY 块共用同一套 `dev/devKey/models` 机制，新增免费预设只需再 `unshift` 一个常量。**
 - [app.js](app/js/app.js)：两处生成守卫（`aiSection` 自动生成 / 手动生成）由 `cfg.key` 改为 `AI.effectiveKey(cfg)`，使内置 Key 也能触发生成;`syncAiProviderUi`（[app.js:2358](app/js/app.js#L2358)）对带 `models` 清单的服务商渲染**模型下拉选择器**（`#set-ai-model-select`，同时隐藏自由文本框），其余服务商保留文本输入，切换服务商自动切换形态并持久化所选模型;dev 服务商另显示 Key 占位符「内置开发密钥，留空即可」与开发提示条。
-- [index.html](app/index.html)：AI 设置面板加 `#set-ai-dev-note` 提示条（默认隐藏，选 devfree 时显示）与模型下拉 `#set-ai-model-select`（[index.html:746](app/index.html#L746)，默认隐藏）;[app.css](app/css/app.css) 加 `.dev-note` 琥珀色柔和样式与 `.field span small` 次级提示间距。
-- [store.js](app/js/store.js)：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`（[store.js:32](app/js/store.js#L32) 及 migrate 默认、app.js 回退），使三个免费模型开箱可见;**发布移除时须改回 `deepseek`**（见移除清单）。
-- **移除方法**：删除 ai.js 的 `DEV_FREE_API` 整块（常量 + `if` 注入）即彻底移除;`resolveConfig/effectiveKey` 与 UI 的 `devKey/models` 回退随之自动失效（无服务商再带 `devKey`/`models`，模型栏自动回到文本输入）。**另须把 store.js / app.js 的默认 `ai.provider` 改回 `deepseek`**（见移除清单第 1 步）。
+- [index.html](app/index.html)：AI 设置面板加 `#set-ai-dev-note` 提示条（默认隐藏，选任一 `dev:true` 服务商时显示，即 devfree 与 qnafree）与模型下拉 `#set-ai-model-select`（[index.html:746](app/index.html#L746)，默认隐藏）;[app.css](app/css/app.css) 加 `.dev-note` 琥珀色柔和样式与 `.field span small` 次级提示间距。
+- [store.js](app/js/store.js)：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`（[store.js:32](app/js/store.js#L32) 及 migrate 默认、app.js 回退），使免费模型开箱可见（devfree 三模型;QNAI Free 另二模型，需手动切换）;**发布移除时须改回 `deepseek`**（见移除清单）。
+- **移除方法**：删除 ai.js 的 `DEV_FREE_API` 与 `QNAI_FREE_API` 两个整块（常量 + `if` 注入）即彻底移除;`resolveConfig/effectiveKey` 与 UI 的 `devKey/models` 回退随之自动失效（商用服务商都不带 `devKey`/`models`，模型栏自动回到文本输入）。**另须把 store.js / app.js 的默认 `ai.provider` 改回 `deepseek`**（见移除清单第 1 步）。
 
-**用法**：我的 → AI 解释（开发期默认已选「开发免费（发布前移除）」）→ 开启「启用 AI 详解」→ Key 留空 → 在「模型」下拉三选一（默认 DeepSeek-V4-Flash）→ 单词详情点「生成 AI 解释」。
+**用法**：我的 → AI 解释（开发期默认已选「开发免费（发布前移除）」）→ 开启「启用 AI 详解」→ Key 留空 → 在「模型」下拉三选一（默认 DeepSeek-V4-Flash）→ 单词详情点「生成 AI 解释」。可选「QNAI Free（发布前移除）」，下拉二选一（默认 `qiniu/conatus-free`），同样 Key 留空即用。
 
 **验证**
 
@@ -729,14 +730,15 @@
 - 单元逻辑：devfree 置顶、留空回退 `rc-` Key、用户 Key 覆盖、模型覆盖、普通服务商（deepseek）不受影响（空 Key 仍为空）。
 - 浏览器 UI（browser-use，no-cache 服务 127.0.0.1:8123）：选 devfree → 提示条显示、Key 占位符与模型清单正确、`effectiveKey` 解析为 `rc-`;mock 网络层后点真实「生成 AI 解释」按钮 → AI 详解区渲染释义/构词/巧记/例句/搭配/近义/词源，meta 显示「开发免费（发布前移除） · DeepSeek-V4-Flash」，缓存 provider=devfree。
 - 模型选择器（browser-use，ignoreCache 重载）：devfree 默认选中、`#set-ai-model-select` 显示三模型且自由文本框隐藏;选 `GLM-5.3-Flash` 持久化到 `settings.ai.model`;切到 deepseek 自动隐藏下拉、恢复文本框与「留空使用默认」提示、隐藏开发提示条;切回 devfree 恢复下拉并保留所选模型;`resolveConfig` 对三模型均解析出正确 base/model/内置 Key。
+- **QNAI 预设（2026-11-14）**：连通性 `curl` 实测 `qiniu/conatus-free` HTTP 200，带 `response_format:json_object` 返回合法 JSON;`nemotron-…-free` 三次重试均 `upstream_error`（见上）。端到端实跑（Node 无 CORS 路径）`AI.explainWord('conduct',…,{provider:'qnafree'})` 16.7s 返回完整讲解（meanings 3 / morphemes 2 / examples 3 / synonyms 6，ipa `ˈkɑːndʌkt`、cefr B2），首次尝试命中 `429` 全局限流、退避 40s 后成功。单元：`resolveConfig({provider:'qnafree'})` 解析出正确 base/model/内置 `sk-` Key 且 `jsonMode:true`、用户 Key 可覆盖、`explainWord` 回包 `provider='qnafree'`。浏览器 UI（ignoreCache 重载）：服务商下拉首位「QNAI Free（发布前移除）」、选中海绵提示「2 个模型可选，默认 qiniu/conatus-free」、下拉两模型且文本框隐藏、Key 占位符「内置开发密钥，留空即可」、开发提示条显示、`settings.ai.provider` 持久化;切 devfree 自动换回其三模型清单，切回 qnafree 回到其默认模型。控制台无报错。
 - **平台限制**：该端点**不返回 CORS 头**且 OPTIONS 预检 405，故**浏览器直连 fetch 被 CORS 拦截**（对所有服务商一致，非本预设特有）;**Electron 走 IPC `llm-chat`、Android 走 CapacitorHttp，均无 CORS，可正常调用**（已由 Node 实跑证实）。
 
 **发布前移除清单（务必执行）**
 
-1. 删除 [ai.js](app/js/ai.js) 的 `DEV_FREE_API` 整块（含 `if` 注入）;把 [store.js](app/js/store.js) 三处与 [app.js](app/js/app.js) 回退的默认 `ai.provider` 由 `devfree` 改回 `deepseek`;可选清理 `resolveConfig/effectiveKey` 的 `p.devKey` 回退与 UI 的 `p.dev/p.models` 分支（不清理亦无害，模型栏会自动回到文本输入）。
-2. **到服务端作废 / 轮换该 Key**：Key 一旦推送到公开仓库即进入 git 历史，**删代码并不能抹除历史**，仅删代码不足以保密。
-3. 重跑 CI 构建确认 APK 不含 devfree 服务商与内置 Key（可 `grep -r "DEV_FREE_API\|rc-366f" app/` 应为空）。
-4. 注意：开发期若以 devfree 导出过学习数据，备份 `settings.ai.provider='devfree'`;移除后导入会回退到首个服务商（deepseek），属预期降级。
+1. 删除 [ai.js](app/js/ai.js) 的 `DEV_FREE_API` 与 `QNAI_FREE_API` 两个整块（含各自 `if` 注入）;把 [store.js](app/js/store.js) 三处与 [app.js](app/js/app.js) 回退的默认 `ai.provider` 由 `devfree` 改回 `deepseek`;可选清理 `resolveConfig/effectiveKey` 的 `p.devKey` 回退与 UI 的 `p.dev/p.models` 分支（不清理亦无害，模型栏会自动回到文本输入）。
+2. **到服务端作废 / 轮换这两个 Key**（devfree `rc-366f…`、QNAI `sk-9177…`）：Key 一旦推送到公开仓库即进入 git 历史，**删代码并不能抹除历史**，仅删代码不足以保密。
+3. 重跑 CI 构建确认 APK 不含开发预设与内置 Key（可 `grep -rE "DEV_FREE_API|QNAI_FREE_API|rc-366f|sk-91774e" app/` 应为空）。
+4. 注意：开发期若以 devfree / qnafree 导出过学习数据，备份 `settings.ai.provider`;移除后导入会回退到首个服务商（deepseek），属预期降级。
 
 **交付**：`android-36`（target `ac3fc5b`，CI run 43554509635 成功;CI apksigner 断言 `com.glance.app` / `versionCode 36` / `versionName 1.0.6+36` / 证书 `CN=Glance Debug`，APK 13,224,727 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-36/Glance-android.apk`。**此包内含 devfree 开发预设，仅供开发试用，非正式发布包。**
 
@@ -785,9 +787,9 @@
 **实现**
 
 - [index.html:746](app/index.html#L746)：「模型」栏新增下拉 `#set-ai-model-select`（默认隐藏），与自由文本框 `#set-ai-model` 并存。
-- [app.js:2358 syncAiProviderUi](app/js/app.js#L2358)：服务商带固定 `models` 清单时渲染下拉（列出全部模型、回填已选或默认值）并隐藏文本框;否则隐藏下拉、恢复文本框与「留空使用默认」提示。切换服务商自动切换形态。
-- [app.js:2612-2618](app/js/app.js#L2612-L2618)：服务商 change 时若为固定清单则持久化所选模型;新增 `#set-ai-model-select` change 持久化所选模型。
-- [store.js:32](app/js/store.js#L32)（含 migrate 默认）与 [app.js:2341](app/js/app.js#L2341) 回退：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`，三个免费模型开箱可见。**发布移除时改回 `deepseek`**（§8.25 清单第 1 步）。
+- [app.js:2454 syncAiProviderUi](app/js/app.js#L2454)：服务商带固定 `models` 清单时渲染下拉（列出全部模型、回填已选或默认值）并隐藏文本框;否则隐藏下拉、恢复文本框与「留空使用默认」提示。切换服务商自动切换形态。
+- [app.js:2723-2730](app/js/app.js#L2612-L2618)：服务商 change 时若为固定清单则持久化所选模型;新增 `#set-ai-model-select` change 持久化所选模型。
+- [store.js:32](app/js/store.js#L32)（含 migrate 默认）与 [app.js:2437](app/js/app.js#L2437) 回退：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`，三个免费模型开箱可见。**发布移除时改回 `deepseek`**（§8.25 清单第 1 步）。
 - [app.css:855](app/css/app.css#L855)：`.field span small` 次级提示加 6px 间距 + 12px 浅色，标签与提示不再粘连。
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：devfree 默认选中、下拉显示 `DeepSeek-V4-Flash / DeepSeek-V4.1-Flash / GLM-5.3-Flash` 且文本框隐藏;选 `GLM-5.3-Flash` 持久化到 `settings.ai.model`;切 deepseek 隐藏下拉、恢复文本框与「留空使用默认」提示、隐藏开发提示条;切回 devfree 恢复下拉并保留所选模型;`resolveConfig` 对三模型均解析出正确 base/model/内置 Key。控制台仅既有 devfree 端点浏览器直连 CORS 报错（§8.25 平台限制，Electron/Android 正常），与本次改动无关。
@@ -804,9 +806,9 @@
 
 - [index.html:747-750](app/index.html#L747-L750)：「模型」栏下方新增测试行 `#set-ai-test`（测试连通性按钮）+ `#set-ai-test-result`（结果文本）。
 - [app.css:1123-1126](app/css/app.css#L1123-L1126)：`.ai-test-row` 横向 flex 换行;`.ai-test-result` 12px 浅色，`.ok` 绿 / `.bad` 红。
-- [app.js:2624-2637](app/js/app.js#L2624-L2637)：测试监听器——`AI.resolveConfig` 取当前服务商/模型/Key，缺 base/model 或 key 时给出填写提示;否则发一条 `ping` 最小请求（`temperature:0`、不开 jsonMode），计时并显示 `✓ 连通正常 · 模型 · 耗时s` 或 `✗ 错误`;测试期间禁用按钮防重复点击。
-- [app.js:2381-2382](app/js/app.js#L2381-L2382)：`syncAiProviderUi` 切换服务商时清空测试结果与配色，避免残留上一服务商的结论。
-- [platform.js:206](app/js/platform.js#L206)、[platform.js:210](app/js/platform.js#L210)、[platform.js:213-219](app/js/platform.js#L213-L219)：`llmChat` 统一 `timeout=120000`;CapacitorHttp `connectTimeout/readTimeout` 由 60s 提至 120s;浏览器 fetch 包 `AbortController` 120s 超时。
+- [app.js:2733-2746](app/js/app.js#L2624-L2637)：测试监听器——`AI.resolveConfig` 取当前服务商/模型/Key，缺 base/model 或 key 时给出填写提示;否则发一条 `ping` 最小请求（`temperature:0`、不开 jsonMode），计时并显示 `✓ 连通正常 · 模型 · 耗时s` 或 `✗ 错误`;测试期间禁用按钮防重复点击。
+- [app.js:2477-2478](app/js/app.js#L2381-L2382)：`syncAiProviderUi` 切换服务商时清空测试结果与配色，避免残留上一服务商的结论。
+- [platform.js:210](app/js/platform.js#L210)、[platform.js:220](app/js/platform.js#L220)、[platform.js:224](app/js/platform.js#L224)、[platform.js:227-233](app/js/platform.js#L227-L233)：`llmChat` 统一 `timeout=120000`;CapacitorHttp `connectTimeout/readTimeout` 由 60s 提至 120s;浏览器 fetch 包 `AbortController` 120s 超时。
 - [platform.js:226-233](app/js/platform.js#L226-L233)：错误分类——`abort/timeout` → 「请求超时（120 秒无响应）…」;纯浏览器且 `Failed to fetch/NetworkError/…` → 「浏览器直连失败（CORS 拦截或网络不可达）…请改用 Windows（Electron）或 Android 端…」;其余原样返回。学习页生成失败因此自动显示可操作提示而非裸 `Failed to fetch`。
 - [main.js:337-340](main.js#L337-L340)、[main.js:348-352](main.js#L348-L352)：Electron `llm-chat` 同样加 `AbortController` 120s + `finally clearTimeout`，catch 增加超时分类，与 web 端口径一致。
 
@@ -820,11 +822,11 @@
 
 **实现**
 
-- **选书不跳转**：[app.js:2212 switchBook](app/js/app.js#L2212) 移除 `setMode('study')/switchView('study')/renderStudy()`，仅更新 activeBook + 重建会话 + 重渲染词书页 + 刷新计划条，停留在「词书与计划」。
-- **返回栈（Android）**：新增依赖 `@capacitor/app`。[app.js:34-36](app/js/app.js#L34-L36) 定义 `TOP_VIEWS/SUB_VIEWS/navStack`;[app.js:37 switchView](app/js/app.js#L37) 仅在「顶层 tab → 顶层 tab」时压栈（`fromBack` 不压）;[app.js:68 handleBack](app/js/app.js#L68) 统一返回优先级：嵌套弹层 → 弹层 → 子页（books/stats/ai 回 subReturn）→ 测试态回学习态 → 弹 tab 历史 → 根节点才退出;[app.js:2513](app/js/app.js#L2513) 原生注册 `App.backButton`，`handleBack()` 返回 false 时 `App.exitApp()`。浏览器/Electron 不注册，无副作用。
+- **选书不跳转**：[app.js:2246 switchBook](app/js/app.js#L2246) 移除 `setMode('study')/switchView('study')/renderStudy()`，仅更新 activeBook + 重建会话 + 重渲染词书页 + 刷新计划条，停留在「词书与计划」。
+- **返回栈（Android）**：新增依赖 `@capacitor/app`。[app.js:34-36](app/js/app.js#L34-L36) 定义 `TOP_VIEWS/SUB_VIEWS/navStack`;[app.js:37 switchView](app/js/app.js#L37) 仅在「顶层 tab → 顶层 tab」时压栈（`fromBack` 不压）;[app.js:68 handleBack](app/js/app.js#L68) 统一返回优先级：嵌套弹层 → 弹层 → 子页（books/stats/ai 回 subReturn）→ 测试态回学习态 → 弹 tab 历史 → 根节点才退出;[app.js:2546-2548](app/js/app.js#L2546-2548) 原生注册 `App.backButton`，`handleBack()` 返回 false 时 `App.exitApp()`。浏览器/Electron 不注册，无副作用。
 - **原生震动**：新增依赖 `@capacitor/haptics`（插件 manifest自带 `VIBRATE` 权限）。[platform.js:92 haptic](app/js/platform.js#L92) 仅原生生效（impact/notification），Electron/浏览器 no-op。触点：评分 [app.js:541](app/js/app.js#L541)（认识=success/模糊=warn/忘记=error）、答题 [app.js:1000](app/js/app.js#L1000)（对=success/错=error）、tab/模式切换/选书/过滤开关/排除词书 chip 均为 light tap。
 - **过滤基础词（默认开）**：[library.js:221 BASIC_WORDS](app/js/library.js#L221)（326 个小学/初中极基础词）+ [library.js:223 basicWordSet](app/js/library.js#L223);[store.js:26](app/js/store.js#L26)、[store.js:80-84](app/js/store.js#L80-L84) `bookFilter.skipBasic` 默认 true（旧数据缺省视为开）;[app.js:282 studyEntries](app/js/app.js#L282) 裁剪每日队列;[index.html:349](app/index.html#L349) 开关 + [app.js:2120](app/js/app.js#L2120) 回填。
-- **多书排除过滤**：[library.js:229 excludeWordSet](app/js/library.js#L229)（多选词书词集并集，带缓存）;`bookFilter.excludeBooks[]` 持久化;[app.js:2187 renderExcludeChips](app/js/app.js#L2187) 在过滤面板渲染除当前书外的全部词书 chip（可多选、选中高亮）;[index.html:351-353](app/index.html#L351-L353) 容器 + [app.css:1035-1039](app/css/app.css#L1035-L1039) chip 样式（随主题圆角/配色）;[app.js:282](app/js/app.js#L282) 队列裁剪;过滤 hint 汇总「基础词/低阶重复/词书重复/已掌握」四类裁剪数与剩余词数。
+- **多书排除过滤**：[library.js:229 excludeWordSet](app/js/library.js#L229)（多选词书词集并集，带缓存）;`bookFilter.excludeBooks[]` 持久化;[app.js:2221 renderExcludeChips](app/js/app.js#L2221) 在过滤面板渲染除当前书外的全部词书 chip（可多选、选中高亮）;[index.html:351-353](app/index.html#L351-L353) 容器 + [app.css:1035-1039](app/css/app.css#L1035-L1039) chip 样式（随主题圆角/配色）;[app.js:282](app/js/app.js#L282) 队列裁剪;过滤 hint 汇总「基础词/低阶重复/词书重复/已掌握」四类裁剪数与剩余词数。
 - 过滤仍**只裁剪每日学习队列**，词书本身与测试范围不变（沿用 §1.5 约定）。
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：选「考纲四级（官方）」后仍停留词书页（`view-books` 可见、`view-study` 隐藏）;`skipBasic` 默认勾选、基础词集 326;排除 chip 14 个，选「四级词库」后 `excludeBooks=['四级']`、hint「词书重复 2300」；基础词开=312/关=0 且剩余词数相应变化;`books-back` 回「我的」、tab 切换正常;控制台无报错;`node --check` 全通过;`npx cap sync android` 识别 3 插件（text-to-speech/app/haptics）。震动与硬件返回为原生能力，浏览器仅验证 no-op 与逻辑不回归，实机效果随 APK 交付。
@@ -843,7 +845,7 @@
 
 **实现**
 
-- **UAPI 服务商**：[dictionary.js:9](app/js/dictionary.js#L9) PROVIDERS 新增 `uapis`;[dictionary.js:209 normalizeUapis](app/js/dictionary.js#L209) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:382 buildUrl](app/js/dictionary.js#L382)、[:416 attempt 路由](app/js/dictionary.js#L416)、[:464 导出](app/js/dictionary.js#L464)。
+- **UAPI 服务商**：[dictionary.js:9](app/js/dictionary.js#L9) PROVIDERS 新增 `uapis`;[dictionary.js:209 normalizeUapis](app/js/dictionary.js#L209) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:369 buildUrl](app/js/dictionary.js#L369)、[:404 attempt 路由](app/js/dictionary.js#L416)、[:464 导出](app/js/dictionary.js#L464)。
 - **多源回退**：[dictionary.js:451 FALLBACK](app/js/dictionary.js#L451) 有道→UAPI→dictionaryapi.dev（UAPI→有道→free，free→UAPI→有道）;命中「未找到该词」即停，省 UAPI 积分;回退来源记于 `record.fallbackFrom`，[app.js:1531](app/js/app.js#L1531) 显示「已从〈源〉回退」。
 - **查词在线入口**：[app.js:1716](app/js/app.js#L1716) 无本地精确匹配时置顶「在线查词：〈query〉」行（[app.js:1720](app/js/app.js#L1720)），点击 `openWordSheet(query,true)` 复用既有联网 + 缓存;[app.css:1040](app/css/app.css#L1040) 标题用主题强调色。
 - **词典渲染增强**：[app.js:1563](app/js/app.js#L1563) 词形变化、[:1571](app/js/app.js#L1571) 常见词组（复用既有 dict-* 样式，无新增 CSS）;服务商选择器 [app.js:2482 简介](app/js/app.js#L2482)、[:2499 标记 U](app/js/app.js#L2499)。
@@ -856,6 +858,16 @@
 
 **交付**：`android-41`（target `91f5ef3`，CI run 43567367381 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 41` / `versionName 1.0.6+41` / 证书 `CN=Glance Debug`，APK 13,236,335 字节，较 android-40 +1,747 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-41/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
 
+### 8.31 QNAI 免费 AI 服务商（DEV-ONLY 第二预设 + 双模型下拉）✅
+
+**需求**：把 QNAI（`api.qnaigc.com`）配置成一个服务商，模型栏可选其两个免费模型（用户提供 curl 示例与 Key）。
+
+**实现**：`ai.js` 在同一 DEV-ONLY 区域内追加 `QNAI_FREE_API` 常量并 `unshift`（[ai.js:42-50](app/js/ai.js#L42-L50)）——`id:'qnafree'`、`name:'QNAI Free（发布前移除）'`、`dev:true`、`base:'https://api.qnaigc.com/v1'`、`model:'qiniu/conatus-free'`、`models:['qiniu/conatus-free','nvidia/nemotron-3-ultra-550b-a55b0-free']`、`devKey`（前缀 `sk-9177…5691`）、`jsonMode:true`。**零 UI/schema 改动**：模型下拉、Key 占位符、开发提示条全部沿用 §8.27 的 `models`/`dev` 数据驱动机制，服务商清单由 14 → 15 项（qnafree 现列首位）。开发期默认仍为 devfree，未改。
+
+**实测**（详见 §8.25「QNAI 预设」验证条）：`qiniu/conatus-free` 可用且支持 JSON 模式（端到端 16.7s 返回完整讲解），免费档有全局限流 `429 free_campaign_global_limit`;`nvidia/nemotron-3-ultra-550b-a55b0-free` 接入时上游持续 `upstream_error`，已保留在清单中待其恢复。
+
+**交付**：`android-42`（target `a12ba4e`，CI run 43571028601 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 42` / `versionName 1.0.6+42` / 证书 `CN=Glance Debug`，APK 13,236,662 字节，较 android-41 +327 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -863,7 +875,7 @@
 - **URL 完整性**：工具 URL 必须匹配当前任务目标，严禁替换为 routify 等临时代理；历史调用不代表正确，每次重新核对来源。
 - **推送安全**：仅 SSH（HTTPS 被墙）+ 专用密钥 `id_ed25519_glance`（comment `mjkyleo-glance`），`GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_glance -o IdentitiesOnly=yes"`。**不得触碰/使用** `sczhang0504` 的默认密钥 `~/.ssh/id_ed25519`。
 - **提交隐私**：用 noreply 邮箱，勿暴露私有 `437257976@qq.com`。
-- **开发期免费 AI（发布前移除）**：`ai.js` 内置 `DEV_FREE_API`（devfree 服务商 + 公开开发 Key，见 §8.25）。**正式发布前必须删除该整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -r "DEV_FREE_API\|rc-366f" app/` 须为空。
+- **开发期免费 AI（发布前移除）**：`ai.js` 内置两个 DEV-ONLY 预设 `DEV_FREE_API`（devfree）与 `QNAI_FREE_API`（qnafree，QNAI 双模型），各带公开开发 Key（见 §8.25）。**正式发布前必须删除这两整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -rE "DEV_FREE_API|QNAI_FREE_API|rc-366f|sk-91774e" app/` 须为空。
 - **FSRS 对照旁路（dev-only）**：`app/dev/` 与 `app/js/vendor/ts-fsrs.js` 仅供对照验证（§8.26），**不得进入正式包**——Electron 由 `build.files` 排除、Android 由 CI `Strip dev-only FSRS contrast side-path` 步骤删除;**不得据旁路直接替换在用调度器**（迁移需另行评估用户数据兼容性）。改 `srs.js` 公式或 ts-fsrs 版本后须重跑 `npm run contrast:fsrs` 刷新报告。
 - **本地工具链**：无 Android SDK（靠 CI）；WMI 启动 Electron；CDP（端口 9222）截图/smoke；npmmirror；本机无 `gh`，repo 公开（api.github.com 可达）。
 - **渲染层改动**：renderer-only 改动 `Page.reload` 即可；`main.js` 改动需重启 Electron。
@@ -876,6 +888,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `a12ba4e` | QNAI 免费 AI 服务商预设（DEV-ONLY，§8.31）：`ai.js` 同区追加 `QNAI_FREE_API`（`api.qnaigc.com/v1`，`id:'qnafree'`，双模型下拉 `qiniu/conatus-free`（默认，实测可用 + JSON 模式;免费档全局限流 429）/ `nvidia/nemotron-3-ultra-550b-a55b0-free`（上游暂不可用，待恢复）+ 内置开发 Key），复用 §8.27 的 `dev/devKey/models` 数据驱动机制，零 UI/schema 改动，服务商 14→15 项;开发期默认仍 devfree;DEVELOPMENT §8.25/§8.31/§9 + FEATURES §6.1/矩阵同步（并修正 FEATURES 中 app.js/platform.js 的过期行号引用） |
 | `91f5ef3` | 查词在线化 + UAPI 中英词典 + 多源回退（§8.30）：查词页对本地未收录词置顶「在线查词」入口，点击即联网查询并按词缓存（复用 `Dictionary.lookup → saveDictEntry`）;新增 UAPI 服务商（免 Key，中英双释义/英美音标音频/考试标签/词形/词组/近义/双语例句），`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签;多源回退 有道→UAPI→dictionaryapi.dev，命中「未找到该词」即停省积分，词卡显示「已从〈源〉回退」;词卡新增词形变化/常见词组渲染;默认仍 freezh，无 schema 改动;DEVELOPMENT §8.30 + FEATURES §5/矩阵 + README 同步 |
 | `4b1dde0` | 导航/返回栈 + 原生震动 + 词书选择与过滤增强（§8.29）：选书停留「词书与计划」不再跳学习页;新增 `@capacitor/app` 统一硬件返回优先级（嵌套弹层→弹层→子页→测试态→tab 历史→根节点退出）;新增 `@capacitor/haptics`，评分/答题 success/warn/error、tab/模式/选书/过滤 light tap（仅原生）;词书过滤新增「过滤基础词」（326 个小学/初中极基础词，默认开、可关）+ 多选其它词书排除 chip，仅裁剪每日队列;DEVELOPMENT §8.29 + FEATURES §1.5/§2.6/§12.3/矩阵 + README 同步 |
 | `b63a4ff` | AI 连通性测试 + 可操作网络错误（§8.28）：模型栏新增「测试连通性」按钮（最小 ping 请求 + 耗时/错误显示，切换服务商清空）;`llmChat`/`llm-chat` 错误分类为超时（120s）与浏览器 CORS 可操作提示，取代裸 `Failed to fetch`;三端 LLM 超时统一 120s（CapacitorHttp connect/read、浏览器 AbortController、Electron net.fetch）适配慢端点;DEVELOPMENT §8.28 + FEATURES §6.1/矩阵 + README 同步 |
