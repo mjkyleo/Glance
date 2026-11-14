@@ -13,12 +13,14 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 
+import androidx.activity.result.ActivityResult;
 import androidx.documentfile.provider.DocumentFile;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
@@ -46,8 +48,6 @@ public class GlanceStorage extends Plugin {
 
     private static final String NAME = "Glance-learning-data.json";
     private static final String REL = "Documents/Glance/";
-    private static final int RC_TREE = 9001;
-    private PluginCall pendingPick;
 
     private SharedPreferences prefs() {
         return getContext().getSharedPreferences("glance_storage", Activity.MODE_PRIVATE);
@@ -284,20 +284,18 @@ public class GlanceStorage extends Plugin {
 
     @PluginMethod
     public void pickFolder(PluginCall call) {
-        pendingPick = call;
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
             | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        startActivityForResult(intent, RC_TREE);
+        startActivityForResult(call, intent, "pickFolderResult");
     }
 
-    @Override
-    public void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode != RC_TREE || pendingPick == null) return;
-        PluginCall call = pendingPick;
-        pendingPick = null;
-        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
+    @ActivityCallback
+    private void pickFolderResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Intent data = result.getData();
+        if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
             call.resolve(new JSObject().put("canceled", true));
             return;
         }
