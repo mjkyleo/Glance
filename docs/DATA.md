@@ -18,9 +18,9 @@
 
 加载路径：
 
-- Electron：IPC `get-dataset` / `get-settings`（[main.js:311](../main.js#L311)、[main.js:226](../main.js#L226)），设置文件为 `currentDataDir()/settings.json`（[main.js:57](../main.js#L57)），默认目录 `userData`、可改自定义目录（§5.4）。
-- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes,official}.json`（[platform.js:121-130](../app/js/platform.js#L107-L116)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
-- 启动顺序：`Store.load()` → `Library.init(ds)` → `Themes.init(ds.words)`（[app.js:2859-2885](../app/js/app.js#L2639-L2665)）。
+- Electron：IPC `get-dataset` / `get-settings`（[main.js:342](../main.js#L342)、[main.js:257](../main.js#L257)），设置文件为 `currentDataDir()/settings.json`（[main.js:50-56](../main.js#L50-L56)），默认目录 `userData`、可改自定义目录（§5.4）。
+- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes,official}.json`（[platform.js:121-130](../app/js/platform.js#L121-L130)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
+- 启动顺序：`Store.load()` → `Library.init(ds)` → `Themes.init(ds.words)`（[app.js:3048-3074](../app/js/app.js#L3048-L3074)）。
 
 **词库与用户状态完全分离**：清状态不伤词库，换机不丢词库;自定义词书属于用户状态，随备份迁移。
 
@@ -141,15 +141,15 @@
   - `senses`：按 `/` 切义项，识别 `pos.` 与 `[域]` 前缀（[library.js:90-105](../app/js/library.js#L90-L105)）;
   - `mnemonic`：≥2 个词素释义时合成「词素链 → 核心义」助记（[library.js:116-122](../app/js/library.js#L116-L122)）。
 - `buildCards(entry)` 依 `cardOrder` 生成详解卡片（助记/构词/词根词源/近义/派生/词形/例句/搭配/英释）。
-- 考试阶梯 `BOOK_RANK`（中考 0 → GRE 9）：`lowerTags / lowerWordSet` 取**严格低阶**词书词集并缓存，供「跳过低阶重复词」（[library.js:208-217](../app/js/library.js#L208-L217)）。
-- **官方考纲书**：`officialBook(level)` 把 `official.json` 的原始词条经 `officialForms` 归一化取首形、按首形去重，再 `enrich` 成可学习词条（标 `official:true` 与 `officialText` 原文），缓存为 `{tag,name,n,entries,groups:[],official:true}`（[library.js:286-301](../app/js/library.js#L263-L279)）。`listBooks` 将「考纲四级（官方）/ 考纲六级（官方）」**置顶**于考试书之前（[library.js:186-196](../app/js/library.js#L186-L197)）;`getBook('考纲四级'|'考纲六级')` 走官方分支（[library.js:163-164](../app/js/library.js#L163-L164)）。官方书**绕过** CEFR 质量过滤与 `skipLower`（官方 tag 不在 `BOOK_RANK`）。
-- **考纲对比**：`compareToOfficial(entries, level)` 把任意词书词条与官方词集 `officialWordSet(level)` 比对，返回 `covered`（考纲内）/ `beyond`（超纲）/ `missing`（考纲有而本书缺）及两个覆盖率 `coverageBook`（本书被考纲覆盖比例）/ `coverageOfficial`（考纲被本书覆盖比例）与三份词表（[library.js:305-334](../app/js/library.js#L282-L312)）。归一化 `officialForms`：去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号（`mo(u)ld` → `mould`+`mold`）（[library.js:253-265](../app/js/library.js#L230-L243)）。UI 在「词书与计划」页「考纲对比」面板：选源书 + 选考纲级别（四级 / 六级），渲染摘要 + 覆盖率条 + 三个可折叠词表（考纲内 / 超纲 / 考纲缺失），每段限 300 词并可展开全部（[app.js:2071-2130](../app/js/app.js#L2008-L2068)）。
-- 自定义词书不走 `getBook`：`activeBook()` 直接返回 `customBooks[tag]`（[app.js:269-273](../app/js/app.js#L250-L255)）;对比面板用 `resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:275-278](../app/js/app.js#L256-L260)）。
-- 词书过滤只作用于每日队列输入 `studyEntries`，词书本身与测试范围不变（[app.js:282-300](../app/js/app.js#L263-L272)）。
+- 考试阶梯 `BOOK_RANK`（中考 0 → GRE 9）：`lowerTags / lowerWordSet` 取**严格低阶**词书词集并缓存，供「跳过低阶重复词」（[library.js:201](../app/js/library.js#L201)）。
+- **官方考纲书**：`officialBook(level)` 把 `official.json` 的原始词条经 `officialForms` 归一化取首形、按首形去重，再 `enrich` 成可学习词条（标 `official:true` 与 `officialText` 原文），缓存为 `{tag,name,n,entries,groups:[],official:true}`（[library.js:286-302](../app/js/library.js#L286-L302)）。`listBooks` 将「考纲四级（官方）/ 考纲六级（官方）」**置顶**于考试书之前（[library.js:186-196](../app/js/library.js#L186-L196)）;`getBook('考纲四级'|'考纲六级')` 走官方分支（[library.js:161-184](../app/js/library.js#L161-L184)）。官方书**绕过** CEFR 质量过滤与 `skipLower`（官方 tag 不在 `BOOK_RANK`）。
+- **考纲对比**：`compareToOfficial(entries, level)` 把任意词书词条与官方词集 `officialWordSet(level)` 比对，返回 `covered`（考纲内）/ `beyond`（超纲）/ `missing`（考纲有而本书缺）及两个覆盖率 `coverageBook`（本书被考纲覆盖比例）/ `coverageOfficial`（考纲被本书覆盖比例）与三份词表（[library.js:305-334](../app/js/library.js#L305-L334)）。归一化 `officialForms`：去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号（`mo(u)ld` → `mould`+`mold`）（[library.js:253-264](../app/js/library.js#L253-L264)）。UI 在「词书与计划」页「考纲对比」面板：选源书 + 选考纲级别（四级 / 六级），渲染摘要 + 覆盖率条 + 三个可折叠词表（考纲内 / 超纲 / 考纲缺失），每段限 300 词并可展开全部（[app.js:2121-2181](../app/js/app.js#L2121-L2181)）。
+- 自定义词书不走 `getBook`：`activeBook()` 直接返回 `customBooks[tag]`（[app.js:269-274](../app/js/app.js#L269-L274)）;对比面板用 `resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:275-279](../app/js/app.js#L275-L279)）。
+- 词书过滤只作用于每日队列输入 `studyEntries`，词书本身与测试范围不变（[app.js:282-299](../app/js/app.js#L282-L299)）。
 
 ## 4. 自定义词书导入规范
 
-入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:140](../app/js/platform.js#L140)）。统一解析器 `Library.parse`（[library.js:475-489](../app/js/library.js#L452-L467)）。
+入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:140](../app/js/platform.js#L140)）。统一解析器 `Library.parse`（[library.js:475-493](../app/js/library.js#L475-L493)）。
 
 ### 4.1 JSON：扁平数组（推荐）
 
@@ -179,7 +179,7 @@
 
 ### 4.3 分隔文本（TSV / CSV / TXT）
 
-规则（[library.js:440-474](../app/js/library.js#L314-L350)）：
+规则（[library.js:440-474](../app/js/library.js#L440-L474)）：
 
 1. 首行含 `\t` → TSV，否则 CSV；CSV 支持双引号包裹与 `""` 转义；
 2. 去 BOM、去空行、跳过 `#` 注释行；
@@ -199,7 +199,7 @@
 
 ## 5. 本地存储规范（用户状态）
 
-单一 JSON 文档；写入 250 ms 防抖（[store.js:125-133](../app/js/store.js#L125-L133)）;读取经 `normalize` 缺省补齐、类型纠正与旧版迁移（[store.js:56-123](../app/js/store.js#L56-L123)）。落盘后经 flush hook 触发共享目录镜像（§5.4）。
+单一 JSON 文档；写入 250 ms 防抖（[store.js:182-185](../app/js/store.js#L182-L185)）;读取经 `normalize` 缺省补齐、类型纠正与旧版迁移（[store.js:108-174](../app/js/store.js#L108-L174)）。落盘后经 flush hook 触发共享目录镜像（§5.4）。
 
 ### 5.1 顶层块
 
@@ -218,13 +218,34 @@
 | `aiCache` / `dictCache` | `{word: record}` | AI 解释 / 外部词典按词缓存 |
 | 偏好 | `plan, activeBook, profile, theme, studyPanel, studyPanelOrder, cardOrder, bookFilter, progressBars, autoSpeak, preferAudio, ttsRate, ttsLang, background, ai, dict` | 本机设置 |
 
+**`dict` 块（多词典）**（[store.js:34](../app/js/store.js#L34)、[store.js:61-106 normalizeDict](../app/js/store.js#L61-L106)）：
+
+```jsonc
+{
+  "provider": "freezh",          // 主镜像 = enabled[0]，仅为兼容旧字段，由 syncDictPrimary 自动同步
+  "enabled": ["freezh", "uapis", "free", "custom-1"],  // 已开启的源，数组顺序即优先级
+  "merge": true,                 // true 并行合并去重；false 串行、命中即停
+  "custom": [                    // 用户添加的端点，id 取首个空闲的 custom-N
+    { "id": "custom-1", "name": "英文备用源", "base": "https://…/{word}",
+      "format": "auto",          // auto | youdao | uapis | free | mw
+      "auth": "bearer",          // none | bearer | query | header
+      "headerName": "" }         // auth=header 时的头名，留空用 X-API-Key
+  ],
+  "keys": { "mw": "…", "custom-1": "…" }   // 全部词典 Key 集中在此，落盘时整体换成 keysEnc
+}
+```
+
+- 内置 id 固定 `freezh / uapis / free / mw`;`enabled` 只接受已知 id、自动去重，未知 id 丢弃（[store.js:58-60](../app/js/store.js#L58-L60)）。
+- **旧版迁移**：单服务商时代的 `dict.provider` 转为 `enabled:[provider]`;`dict.key` 迁入 `keys[provider]`;旧的 `provider:'custom' + base` 自动转成一条 `custom-N` 并把 Key 一并搬过去（[store.js:84-96](../app/js/store.js#L84-L96)）。
+- `dictCache[word]` 除释义外还存 `providers[]`（参与合并的源）、`sources[]`（各源原始记录）与 `sig`（启用集合签名）;`sig` 与当前配置不符即视为过期，自动重查（[dictionary.js:38](../app/js/dictionary.js#L38)、[dictionary.js:620-624](../app/js/dictionary.js#L620-L624)）。
+
 ### 5.2 SRS 状态与判定
 
 状态对象（[srs.js:66](../app/js/srs.js#L66)）：`{box, due, reps, lapses, last, state, S, D}`。
 
 - `S/D`：FSRS 稳定度（天）/ 难度;`box/state` 为兼容层（直方图与「已掌握」 cutoff）。
 - `due/last`：epoch ms;`state ∈ new | learning | relearn | known`。
-- 判定（[srs.js:69-71](../app/js/srs.js#L67-L69)）：`isNew = 无状态或 reps=0 且 box=0`；`isKnown = box ≥ 5`（稳定度 ≥ 15 天）；`isDue = 非 new 且 due ≤ now`。
+- 判定（[srs.js:69-71](../app/js/srs.js#L69-L71)）：`isNew = 无状态或 reps=0 且 box=0`；`isKnown = box ≥ 5`（稳定度 ≥ 15 天）；`isDue = 非 new 且 due ≤ now`。
 
 ### 5.3 容量上限
 
@@ -261,22 +282,23 @@
 - 默认目标 `Documents/Glance/Glance-learning-data.json`：API ≥ 29 走 MediaStore（**无需任何权限**，[GlanceStorage.java:160-221](../android/app/src/main/java/com/glance/app/GlanceStorage.java#L160-L221)）;API ≤ 28 走传统 File + `WRITE/READ_EXTERNAL_STORAGE`（manifest 以 `maxSdkVersion="28"` 限定）。
 - 可选 SAF 自定义目录树（`pickFolder` → `ACTION_OPEN_DOCUMENT_TREE`，持久化 URI 权限）;`clearFolder` 清除自定义树回退默认。
 - 镜像内容 = `Store.exportData()`（§6.1 信封），**不含 API Key 与壁纸原图**。
-- 触发：flush hook → 60 s 节流镜像（`scheduleMirror`，[app.js:2860](../app/js/app.js#L2191-L2193)）;页面 `visibilitychange` 隐藏时立即镜像（[app.js:2861](../app/js/app.js#L2861)）;面板「立即备份」手动触发。
-- 恢复：首启检测到私有存储为空（无 srs/logs/customBooks/favorites）→ `readMirror` → 弹确认（展示路径与更新时间）→ `importData(payload, 'replace')`（[app.js:2863-2878](../app/js/app.js#L2642-L2654)）。
+- 触发：flush hook → 60 s 节流镜像（`scheduleMirror`，[app.js:2406-2409](../app/js/app.js#L2406-L2409)）;页面 `visibilitychange` 隐藏时立即镜像（[app.js:3050](../app/js/app.js#L3050)）;面板「立即备份」手动触发。
+- 恢复：首启检测到私有存储为空（无 srs/logs/customBooks/favorites）→ `readMirror` → 弹确认（展示路径与更新时间）→ `importData(payload, 'replace')`（[app.js:2410-2419](../app/js/app.js#L2410-L2419)）。
 - 插件 `info()` 返回 `{sdk, defaultPath, custom, hasCustom, customTs, hasDefault, defaultTs}`，供 UI 展示路径与最近备份时间。
 
-**Web 适配层**：`Platform.storageInfo/SetDir/ResetDir/OpenDir/PickFolder/WriteMirror/ReadMirror` 按平台分发（Electron IPC / Android 插件 / 浏览器 no-op）（[platform.js:251-285](../app/js/platform.js#L227-L260)）。
+**Web 适配层**：`Platform.storageInfo/SetDir/ResetDir/OpenDir/PickFolder/WriteMirror/ReadMirror` 按平台分发（Electron IPC / Android 插件 / 浏览器 no-op）（[platform.js:251-286](../app/js/platform.js#L251-L286)）。
 
 ### 5.5 敏感数据安全（API Key 加密）
 
 原则：**API Key 绝不进入共享镜像、便携备份或自定义数据目录的明文**;解密密钥只留在本机私有目录。
 
-- **Electron 静态加密**：`ai.key` / `dict.key` 以 **AES-256-GCM** 密封为 `keyEnc`（前缀 `g1:`，结构 `iv(12)‖authTag(16)‖密文` 的 base64），落盘只存 `keyEnc`（[main.js:90-104](../main.js#L90-L104)）。
+- **Electron 静态加密**：`ai.key` 与 `dict.keys` 里的**每一个**词典 Key 以 **AES-256-GCM** 密封（前缀 `g1:`，结构 `iv(12)‖authTag(16)‖密文` 的 base64），落盘只存 `ai.keyEnc` / `dict.keysEnc[id]`（[main.js:90-104](../main.js#L90-L104)、[main.js:106-133 sealKeys](../main.js#L106-L133)）。
   - 密钥为随机 32 字节，存于**默认私有目录** `userData/glance-secret.key`（base64，权限 0600），**永不写入自定义/同步目录**（[main.js:62-76](../main.js#L62-L76)）。因此把数据目录拷走或同步到别处也无法读出 Key。
-  - 读取时 `unsealKeys` 解密还原 `key`;解密失败**保留 `keyEnc` 不销毁**（避免下次空 key 落盘永久抹掉 stored key），仅置 `key=''`（[main.js:105-128](../main.js#L105-L128)）。
+  - 读取时 `unsealKeys` 逐 id 解密还原 `dict.keys`;某个 id 解密失败**只保留该 id 的密文**、其余照常还原（避免下次空 key 落盘永久抹掉 stored key），失败项置 `keys[id]=''`（[main.js:134-159](../main.js#L134-L159)）。空串占位会被 `normalizeDict` 原样保留，不会被下一次落盘清掉（[store.js:61-70](../app/js/store.js#L61-L70)）。
+  - 删除自定义词典或清空 Key 时，对应的 `keysEnc[id]` 一并移除，不留孤儿密文（[main.js:119-122](../main.js#L119-L122)、[store.js:414-424 removeDictSource](../app/js/store.js#L414-L424)）。
   - 兼容旧版 `safeStorage` blob（无 `g1:` 前缀）best-effort 解密;因 Windows 上 OSCrypt 密钥跨重启不持久，新构建已改用自管 AES 密钥。
 - **Android / 浏览器**：Key 仅存应用私有 `localStorage`，不上传;共享镜像与导出均剔除 Key。
-- **备份剔除**：`exportData` 显式 `delete ai.key/keyEnc`、`delete dict.key/keyEnc`（[store.js:384-385](../app/js/store.js#L384-L385)）;`importData` replace 时**保留本机 Key**（[store.js:527-530](../app/js/store.js#L527-L530)）。
+- **备份剔除**：`exportData` 显式 `delete ai.key/keyEnc`、`delete dict.key/keyEnc/keys/keysEnc`，并逐个清洗 `dict.custom[].key`（[store.js:498-503](../app/js/store.js#L498-L503)）;`importData` replace 时**保留本机整个 Key 映射**，导入的自定义词典若与本机同 id 则沿用本机 Key（[store.js:645-652](../app/js/store.js#L645-L652)）。
 - 推论：卸载重装后共享镜像可恢复学习进度，但 **Key 需重新填写**（Key 不在镜像里）。
 - **开发期免费 Key（DEV-ONLY，例外说明）**：`ai.js` 的 `DEV_FREE_API.devKey` 是内置在**代码**里的公开开发密钥（非用户私密 Key），供开发期免配置试用 AI；它不属于 `data.ai.key`，故没入备份/镜像（备份只剔除用户 Key）。**正式发布前必须删除该代码块并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)。本节加密保护的是**用户自填 Key**，与公开开发 Key 是两回事。
 
@@ -301,15 +323,15 @@
                           "ai": {}, "dict": {}, "background": { "veil": 38, "blur": 0 } } } }
 ```
 
-（[store.js:370-413](../app/js/store.js#L365-L409)）
+（[store.js:479-527 exportData](../app/js/store.js#L479-L527)）
 
 - `words`：**通用可读表**（ISO 时间、状态字符串），供外部分析;`data`：**无损还原块**（ms 时间、原始结构）。
-- 隐私排除：`ai.key`/`ai.keyEnc`、`dict.key`/`dict.keyEnc` 不导出（[store.js:384-385](../app/js/store.js#L384-L385)）;壁纸原图不导出（仅 veil/blur）;`bookFilter`、`progressBars` 属本机偏好，不入备份。
+- 隐私排除：`ai.key`/`ai.keyEnc`、`dict.key`/`dict.keyEnc`/`dict.keys`/`dict.keysEnc` 与 `dict.custom[].key` 不导出（[store.js:498-503](../app/js/store.js#L498-L503)）;壁纸原图不导出（仅 veil/blur）;`bookFilter`、`progressBars` 属本机偏好，不入备份。
 - 头像与昵称随 `settings.profile` 迁移。
 
 ### 6.2 导入语义
 
-校验 `kind === 'learning-data'`，且含 `data` 块或 `words` 表（[store.js:466-472](../app/js/store.js#L461-L467)）。
+校验 `kind === 'learning-data'`，且含 `data` 块或 `words` 表（[store.js:579-582](../app/js/store.js#L579-L582)）。
 
 | 块 | merge | replace |
 |---|---|---|
@@ -323,7 +345,7 @@
 | `fsrs` | 仅本地 count 为空时接收 | 接收 |
 | `settings` | 忽略 | 生效，但**保留本机 API Key** |
 
-（[store.js:469-539](../app/js/store.js#L469-L539)）
+（[store.js:579-680 importData](../app/js/store.js#L579-L680)）
 
 ### 6.3 仅 words 表的回退重建
 
@@ -348,3 +370,4 @@
 5. 本文档与 README「文档」节互链;schema 变更的提交信息需注明影响面（词库 / 存储 / 备份）。
 6. **改存储位置/加密**：Electron 目录逻辑在 `main.js`（指针 `data-dir.json`、密钥 `glance-secret.key`），Android 镜像在 `GlanceStorage.java`，Web 分发在 `platform.js`，UI 在 `app.js renderStorageUi`;改任一处需同步更新本文档 §5.4/§5.5。**密钥文件与 `keyEnc` 前缀（`g1:`）属安全边界，变更须保证旧数据可解密、失败不销毁 stored key。**
 7. **改官方考纲词库**：源 PDF 与 A/B 两份纯文本列表在 `assets/words/`;`official.json` 的 `cet4/cet6` 须保持 PDF 原始顺序与印刷形态（变体 / 上标 / 可选字母 / 短语），归一化只在运行时 `officialForms` 做，不写回数组。改提取须重核 §2.7 方法与两份 txt 行数（A 6,632 / B 1,264）;改对比口径同步更新本文档 §3 与 README「考纲对比」。
+8. **加词典源 / 改合并口径**：内置源加在 `dictionary.js PROVIDERS` 并同步 `store.js DICT_BUILTIN`、`app.js DICT_MARKS/DICT_PROVIDER_BLURB`;新增返回格式要同时进 `DICT_FORMATS`、`normalizeFor` 与添加弹层的下拉。改合并去重口径须复核 `mergeRecords` 的条数上限（义项 10/组、词性组 12、音频 4、考试标签 8、词组 10、词形 10）与 `sig` 失效逻辑，并同步更新本文档 §5.1 与 [FEATURES.md §5.2](FEATURES.md)。**新增任何需要 Key 的源，Key 必须走 `dict.keys[id]`**，否则不会被 `sealKeys` 加密、也不会被备份剔除。

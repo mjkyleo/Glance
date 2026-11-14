@@ -87,18 +87,47 @@ function storageInfo() {
 // API keys are sealed with AES-256-GCM under a random per-install key, so the
 // data file stays safe even when the user moves it to a synced or shared folder.
 const ENC_PREFIX = 'g1:';
+function sealValue(value, key) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ct = Buffer.concat([cipher.update(String(value), 'utf8'), cipher.final()]);
+  return ENC_PREFIX + Buffer.concat([iv, cipher.getAuthTag(), ct]).toString('base64');
+}
+function unsealValue(enc) {
+  if (enc.startsWith(ENC_PREFIX)) {
+    const raw = Buffer.from(enc.slice(ENC_PREFIX.length), 'base64');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', loadSecretKey(), raw.subarray(0, 12));
+    decipher.setAuthTag(raw.subarray(12, 28));
+    return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
+  }
+  // Legacy safeStorage blob from older builds; best-effort decrypt.
+  return safeStorage.decryptString(Buffer.from(enc, 'base64'));
+}
 function sealKeys(s) {
   const out = JSON.parse(JSON.stringify(s));
   const key = loadSecretKey();
   for (const k of ['ai', 'dict']) {
     const sec = out[k];
     if (sec && typeof sec.key === 'string' && sec.key) {
-      const iv = crypto.randomBytes(12);
-      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-      const ct = Buffer.concat([cipher.update(sec.key, 'utf8'), cipher.final()]);
-      sec.keyEnc = ENC_PREFIX + Buffer.concat([iv, cipher.getAuthTag(), ct]).toString('base64');
+      sec.keyEnc = sealValue(sec.key, key);
       delete sec.key;
     }
+  }
+  // Per-dictionary keys (built-in + user-added) live in dict.keys{id: key}.
+  const dict = out.dict;
+  if (dict) {
+    const enc = Object.assign({}, dict.keysEnc && typeof dict.keysEnc === 'object' ? dict.keysEnc : {});
+    if (dict.keys && typeof dict.keys === 'object') {
+      const live = new Set(Object.keys(dict.keys));
+      Object.keys(enc).forEach(id => { if (!live.has(id)) delete enc[id]; });
+      for (const id of live) {
+        const v = dict.keys[id];
+        // '' marks a key whose ciphertext failed to decrypt: keep the blob untouched.
+        if (typeof v === 'string' && v) enc[id] = sealValue(v, key);
+      }
+      delete dict.keys;
+    }
+    if (Object.keys(enc).length) dict.keysEnc = enc; else delete dict.keysEnc;
   }
   return out;
 }
@@ -107,15 +136,7 @@ function unsealKeys(s) {
     const sec = s[k];
     if (sec && typeof sec.keyEnc === 'string' && sec.keyEnc) {
       try {
-        if (sec.keyEnc.startsWith(ENC_PREFIX)) {
-          const raw = Buffer.from(sec.keyEnc.slice(ENC_PREFIX.length), 'base64');
-          const decipher = crypto.createDecipheriv('aes-256-gcm', loadSecretKey(), raw.subarray(0, 12));
-          decipher.setAuthTag(raw.subarray(12, 28));
-          sec.key = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
-        } else {
-          // Legacy safeStorage blob from older builds; best-effort decrypt.
-          sec.key = safeStorage.decryptString(Buffer.from(sec.keyEnc, 'base64'));
-        }
+        sec.key = unsealValue(sec.keyEnc);
         delete sec.keyEnc;
       } catch (error) {
         // Keep keyEnc intact: a failed decrypt must never destroy the stored key,
@@ -123,6 +144,16 @@ function unsealKeys(s) {
         sec.key = '';
       }
     }
+  }
+  const dict = s.dict;
+  if (dict && dict.keysEnc && typeof dict.keysEnc === 'object') {
+    const keys = {}, failed = {};
+    for (const id of Object.keys(dict.keysEnc)) {
+      try { keys[id] = unsealValue(dict.keysEnc[id]); }
+      catch (error) { keys[id] = ''; failed[id] = dict.keysEnc[id]; }
+    }
+    dict.keys = keys;
+    if (Object.keys(failed).length) dict.keysEnc = failed; else delete dict.keysEnc;
   }
   return s;
 }

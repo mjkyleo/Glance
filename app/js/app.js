@@ -1512,45 +1512,47 @@
     sec.appendChild(actions);
 
     let loading = false;
-    function providerName(id) { return Dictionary.getProvider(id).name; }
+    let viewRecord = null, viewCached = false, viewErrors = [], viewSource = '';
+    function providerName(id) { return Dictionary.getProvider(id, Store.data.dict).name; }
+    function providerMark(id) { return dictMark(Dictionary.getProvider(id, Store.data.dict)); }
+    function enabledSummary() {
+      const names = Dictionary.enabledProviders(Store.data.dict).map(p => p.name);
+      return names.length ? names.join(' + ') : '未启用词典';
+    }
     function syncTools(hasRecord) {
       refresh.disabled = loading;
       refresh.classList.toggle('spinning', loading);
       del.hidden = !hasRecord;
     }
 
-    function render(record, cached) {
-      content.innerHTML = ''; actions.innerHTML = '';
-      syncTools(!!record);
-      if (!record) {
-        meta.textContent = providerName(Store.data.dict.provider);
-        content.appendChild(el('p', 'ai-placeholder', '暂无本地缓存，点击右上角刷新图标查询词典。'));
-        return;
-      }
-      meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '') +
-        (record.fallbackFrom ? ' · 已从' + providerName(record.fallbackFrom) + '回退' : '');
-      if (record.ipa) {
-        const ipaText = record.ipaUk && record.ipaUk !== record.ipa
-          ? '美 /' + record.ipa + '/ · 英 /' + record.ipaUk + '/'
-          : '/' + record.ipa + '/';
+    function renderBody(r, merged) {
+      if (r.ipa) {
+        const ipaText = r.ipaUk && r.ipaUk !== r.ipa
+          ? '美 /' + r.ipa + '/ · 英 /' + r.ipaUk + '/'
+          : '/' + r.ipa + '/';
         content.appendChild(el('p', 'dict-ipa', ipaText));
       }
       const ownTags = new Set((e && e.tags) || []);
-      const exam = ownTags.size ? [] : (record.exam || []);
+      const exam = ownTags.size ? [] : (r.exam || []);
       if (exam.length) {
         const tags = el('div', 'exam-tags dict-exam');
         exam.forEach(t => tags.appendChild(el('span', 'exam-tag', t)));
         content.appendChild(tags);
       }
-      if (record.mnemonic) content.appendChild(el('p', 'dict-mnemonic', '助记：' + record.mnemonic));
-      (record.meanings || []).forEach(m => {
+      if (r.mnemonic) content.appendChild(el('p', 'dict-mnemonic', '助记：' + r.mnemonic));
+      (r.meanings || []).forEach(m => {
         const block = el('div', 'dict-mean');
         if (m.pos) block.appendChild(el('div', 'dict-pos', m.pos));
         (m.defs || []).forEach((d, i) => {
           const row = el('div', 'dict-def');
           row.appendChild(el('span', 'dict-num', String(i + 1)));
           const txt = el('div', 'dict-def-text');
-          txt.appendChild(el('span', 'dict-def-en', d.zh || d.en || ''));
+          const line = el('div', 'dict-def-line');
+          line.appendChild(el('span', 'dict-def-en', d.zh || d.en || ''));
+          if (merged && d.src && d.src.length) {
+            line.appendChild(el('span', 'dict-def-src', d.src.map(providerMark).join('·')));
+          }
+          txt.appendChild(line);
           if (d.zh && d.en) txt.appendChild(el('div', 'dict-def-en2', d.en));
           if (d.example) txt.appendChild(el('div', 'dict-def-ex', d.example));
           const syn = (d.synonyms || []).join(' · ');
@@ -1560,18 +1562,18 @@
         });
         content.appendChild(block);
       });
-      if (record.wordForms && record.wordForms.length) {
+      if (r.wordForms && r.wordForms.length) {
         const wf = el('div', 'dict-mean');
         wf.appendChild(el('div', 'dict-pos', '词形变化'));
         const row = el('div', 'dict-def');
         const txt = el('div', 'dict-def-text');
-        txt.appendChild(el('span', 'dict-def-en', record.wordForms.map(f => f.name + ' ' + f.value).join(' · ')));
+        txt.appendChild(el('span', 'dict-def-en', r.wordForms.map(f => f.name + ' ' + f.value).join(' · ')));
         row.appendChild(txt); wf.appendChild(row); content.appendChild(wf);
       }
-      if (record.phrases && record.phrases.length) {
+      if (r.phrases && r.phrases.length) {
         const ph = el('div', 'dict-mean');
         ph.appendChild(el('div', 'dict-pos', '常见词组'));
-        record.phrases.forEach(p => {
+        r.phrases.forEach(p => {
           const row = el('div', 'dict-def');
           const txt = el('div', 'dict-def-text');
           txt.appendChild(el('span', 'dict-def-en', p.phrase));
@@ -1582,31 +1584,79 @@
       }
     }
 
+    function render(record, cached, errors) {
+      viewRecord = record || null;
+      viewCached = !!cached;
+      viewErrors = errors || [];
+      const sources = (record && record.sources) || [];
+      if (viewSource && !sources.some(s => s.provider === viewSource)) viewSource = '';
+      content.innerHTML = ''; actions.innerHTML = '';
+      syncTools(!!record);
+      if (!record) {
+        meta.textContent = enabledSummary();
+        content.appendChild(el('p', 'ai-placeholder', '暂无本地缓存，点击右上角刷新图标查询词典。'));
+        return;
+      }
+      const multi = sources.length > 1;
+      meta.textContent = (viewSource ? providerName(viewSource) + ' · 单源' : (multi ? sources.length + ' 个词典合并' : providerName(record.provider))) +
+        (cached ? ' · 本地缓存' : '') +
+        (record.fallbackFrom ? ' · 已从' + providerName(record.fallbackFrom) + '回退' : '');
+      if (multi) {
+        const chips = el('div', 'dict-source-chips');
+        const all = el('button', 'dict-source-chip' + (viewSource ? '' : ' active'), '全部');
+        all.type = 'button';
+        all.addEventListener('click', () => { viewSource = ''; render(viewRecord, viewCached, viewErrors); });
+        chips.appendChild(all);
+        sources.forEach(s => {
+          const chip = el('button', 'dict-source-chip' + (viewSource === s.provider ? ' active' : ''), providerName(s.provider));
+          chip.type = 'button';
+          chip.addEventListener('click', () => { viewSource = s.provider; render(viewRecord, viewCached, viewErrors); });
+          chips.appendChild(chip);
+        });
+        content.appendChild(chips);
+      }
+      const shown = viewSource ? sources.find(s => s.provider === viewSource) : record;
+      renderBody(shown || record, multi && !viewSource);
+      if (viewErrors.length) {
+        content.appendChild(el('p', 'dict-source-errors',
+          '未返回：' + viewErrors.map(x => providerName(x.provider) + '（' + x.error + '）').join('；')));
+      }
+    }
+
     async function run(force) {
       if (loading) return;
       loading = true;
       syncTools(!!Store.dictEntry(e.word));
       content.innerHTML = ''; actions.innerHTML = '';
-      meta.textContent = providerName(Store.data.dict.provider);
-      content.appendChild(el('p', 'ai-placeholder', '正在查询外部词典…'));
+      meta.textContent = enabledSummary();
+      const names = Dictionary.enabledProviders(Store.data.dict).map(p => p.name);
+      content.appendChild(el('p', 'ai-placeholder', names.length > 1 ? '正在并行查询 ' + names.length + ' 个词典…' : '正在查询外部词典…'));
       const res = await Dictionary.lookup(e.word, Store.data.dict, force ? { force: true } : undefined);
       loading = false;
-      if (res.ok) { render(res.record, res.cached); return; }
+      if (res.ok) { viewSource = ''; render(res.record, res.cached, res.errors); return; }
       syncTools(!!Store.dictEntry(e.word));
       content.innerHTML = '';
       content.appendChild(el('p', 'ai-error', '查询失败：' + res.error));
+      if (res.errors && res.errors.length > 1) {
+        content.appendChild(el('p', 'dict-source-errors',
+          res.errors.map(x => providerName(x.provider) + '：' + x.error).join('；')));
+      }
       const retry = el('button', 'btn-ghost', '重试');
-      retry.addEventListener('click', () => run(false));
+      retry.addEventListener('click', () => run(true));
       actions.appendChild(retry);
+      const cfg = el('button', 'btn-ghost', '词典设置');
+      cfg.addEventListener('click', () => { closeSheet(); openSettings('dict'); });
+      actions.appendChild(cfg);
     }
 
     refresh.addEventListener('click', () => run(true));
-    del.addEventListener('click', () => { Store.deleteDictEntry(e.word); render(null, false); });
+    del.addEventListener('click', () => { Store.deleteDictEntry(e.word); viewSource = ''; render(null, false); });
 
     const cachedRecord = Store.dictEntry(e.word);
-    if (cachedRecord) render(cachedRecord, true);
+    const fresh = cachedRecord && (cachedRecord.sig || '') === Dictionary.signature(Store.data.dict);
+    if (fresh) render(cachedRecord, true);
     else if (auto) run(false);
-    else render(null, false);
+    else render(cachedRecord || null, !!cachedRecord);
     return sec;
   }
 
@@ -2288,7 +2338,7 @@
     learn: ['学习', '每日计划与学习面板'],
     appearance: ['外观', '主题风格与学习卡片'],
     audio: ['发音', '朗读、语速与口音'],
-    dict: ['词典', '外部词典与查询缓存'],
+    dict: ['词典', '多词典开关、合并与查询缓存'],
     ai: ['AI 解释', '模型、Key 与解释库'],
     data: ['数据', '导出、导入与重置'],
   };
@@ -2441,10 +2491,8 @@
     $('set-ai-base').value = ai.base || '';
     $('set-ai-key').value = ai.key || '';
     syncAiProviderUi();
-    const dict = Store.data.dict;
-    $('set-dict-key').value = dict.key || '';
-    $('set-dict-base').value = dict.base || '';
-    syncDictProviderUi();
+    $('set-dict-merge').checked = Store.data.dict.merge !== false;
+    renderDictSources();
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
     if (pane === 'data') renderStorageUi();
@@ -2481,51 +2529,140 @@
     freezh: '中文释义、双音标、双语例句与考试标签',
     uapis: '中英双释义、英美发音、词形/词组/近义与双语例句',
     free: '英文词典，含音标、词性、多义项与例句',
-    mw: '韦氏大学词典，需自行申请 API Key',
-    custom: '通用 JSON 端点，URL 用 {word} 占位'
+    mw: '韦氏大学词典，需自行申请 API Key'
   };
+  const DICT_MARKS = { freezh: '中', uapis: 'U', free: 'EN', mw: 'MW' };
+  const DICT_FORMAT_NAME = { auto: '自动识别', youdao: '有道格式', uapis: 'UAPI 格式', free: 'dictionaryapi.dev 格式', mw: '韦氏格式' };
   function dictProviderBadge(p) {
-    if (p.id === 'freezh') return { text: '推荐', accent: true };
     if (p.custom) return { text: '自定义', accent: false };
+    if (p.id === 'freezh') return { text: '推荐', accent: true };
     return { text: p.needKey ? '需 Key' : '免 Key', accent: false };
   }
-  function renderDictProviderList() {
-    const list = $('dict-provider-list');
-    const current = Store.data.dict.provider || 'freezh';
+  function dictSourceHint(p) {
+    if (!p.custom) return DICT_PROVIDER_BLURB[p.id] || p.hint || '';
+    return (DICT_FORMAT_NAME[p.format] || '自动识别') + ' · ' + p.base;
+  }
+  function dictMark(p) { return DICT_MARKS[p.id] || (p.name || '?').trim().charAt(0).toUpperCase(); }
+
+  function renderDictSources() {
+    const cfg = Store.data.dict;
+    const enabled = cfg.enabled || [];
+    const all = Dictionary.allProviders(cfg);
+    const ordered = enabled.map(id => all.find(p => p.id === id)).filter(Boolean)
+      .concat(all.filter(p => !enabled.includes(p.id)));
+    const list = $('dict-source-list');
     list.innerHTML = '';
-    Dictionary.PROVIDERS.forEach(p => {
-      const row = el('button', 'provider-row' + (p.id === current ? ' active' : ''));
-      row.type = 'button';
-      row.appendChild(el('span', 'provider-mark', { freezh: '中', uapis: 'U', free: 'EN', mw: 'MW', custom: '{}' }[p.id] || p.name.charAt(0)));
+    ordered.forEach(p => {
+      const on = enabled.includes(p.id);
+      const row = el('div', 'dict-source' + (on ? ' on' : ''));
+      const head = el('div', 'dict-source-head');
+      head.appendChild(el('span', 'provider-mark', dictMark(p)));
       const main = el('div', 'provider-main');
       const nameRow = el('div', 'provider-name-row');
       nameRow.appendChild(el('span', 'provider-name', p.name));
       const badge = dictProviderBadge(p);
       nameRow.appendChild(el('span', 'provider-badge' + (badge.accent ? ' accent' : ''), badge.text));
+      if (on) nameRow.appendChild(el('span', 'provider-badge accent', '优先级 ' + (enabled.indexOf(p.id) + 1)));
+      if (p.needKey && !Dictionary.keyFor(p, cfg)) nameRow.appendChild(el('span', 'provider-badge warn', '未填 Key'));
       main.appendChild(nameRow);
-      main.appendChild(el('span', 'provider-hint', DICT_PROVIDER_BLURB[p.id] || p.hint));
-      row.appendChild(main);
-      row.appendChild(el('span', 'provider-check', '✓'));
-      row.addEventListener('click', () => {
-        Store.setDictConfig({ provider: p.id });
-        syncDictProviderUi();
-        closeNestedSheet();
+      main.appendChild(el('span', 'provider-hint', dictSourceHint(p)));
+      head.appendChild(main);
+      const sw = el('label', 'switch');
+      const cb = el('input');
+      cb.type = 'checkbox'; cb.checked = on;
+      cb.setAttribute('aria-label', '启用 ' + p.name);
+      cb.addEventListener('change', () => {
+        Platform.haptic('tap');
+        Store.setDictEnabled(p.id, cb.checked);
+        renderDictSources();
       });
+      sw.appendChild(cb); sw.appendChild(el('span', 'slider'));
+      head.appendChild(sw);
+      row.appendChild(head);
+
+      if (on || p.custom || p.needKey) {
+        const ops = el('div', 'dict-source-ops');
+        const up = el('button', 'op', '↑');
+        up.type = 'button'; up.title = '上移（提高优先级）'; up.setAttribute('aria-label', p.name + ' 上移');
+        up.disabled = !on || enabled.indexOf(p.id) === 0;
+        up.addEventListener('click', () => { Store.moveDictSource(p.id, -1); renderDictSources(); });
+        const down = el('button', 'op', '↓');
+        down.type = 'button'; down.title = '下移（降低优先级）'; down.setAttribute('aria-label', p.name + ' 下移');
+        down.disabled = !on || enabled.indexOf(p.id) === enabled.length - 1;
+        down.addEventListener('click', () => { Store.moveDictSource(p.id, 1); renderDictSources(); });
+        ops.append(up, down);
+        if (p.custom || p.needKey) {
+          const edit = el('button', 'link-btn', p.custom ? '编辑' : '填写 Key');
+          edit.type = 'button';
+          edit.addEventListener('click', () => openDictEdit(p.id));
+          ops.appendChild(edit);
+        }
+        if (p.custom) {
+          const del = el('button', 'link-btn danger', '删除');
+          del.type = 'button';
+          del.addEventListener('click', () => {
+            if (!confirm('删除词典「' + p.name + '」？已缓存的释义会保留。')) return;
+            Store.removeDictSource(p.id);
+            renderDictSources();
+          });
+          ops.appendChild(del);
+        }
+        row.appendChild(ops);
+      }
       list.appendChild(row);
     });
+    const names = enabled.map(id => (all.find(p => p.id === id) || {}).name).filter(Boolean);
+    const missing = ordered.filter(p => enabled.includes(p.id) && Dictionary.configError(p, cfg)).length;
+    $('set-dict-summary').textContent = names.length
+      ? '已开启 ' + names.length + ' 个：' + names.join(' → ') + (missing ? '（其中 ' + missing + ' 个配置不完整，将被跳过）' : '')
+      : '尚未开启任何词典，查词会提示先开启。';
+    $('dict-cache-count').textContent = Store.dictWords().length + ' 个词的释义存于本机，离线可看';
   }
-  function syncDictProviderUi() {
-    const p = Dictionary.getProvider(Store.data.dict.provider || 'freezh');
-    const badge = dictProviderBadge(p);
-    $('set-dict-provider-sub').textContent = p.name + ' · ' + badge.text;
-    $('set-dict-key-wrap').hidden = !(p.needKey || p.custom);
-    $('set-dict-base-wrap').hidden = !p.custom;
-    $('set-dict-hint').textContent = p.hint;
-    renderDictProviderList();
+
+  let dictEditing = null;
+  function syncDictEditAuth() { $('dict-edit-header-wrap').hidden = $('dict-edit-auth').value !== 'header'; }
+  function openDictEdit(id) {
+    dictEditing = id || null;
+    const cfg = Store.data.dict;
+    const p = id ? Dictionary.getProvider(id, cfg) : null;
+    const isCustom = !p || p.custom;
+    $('dict-edit-title').textContent = !p ? '添加词典' : (isCustom ? '编辑词典' : p.name);
+    $('dict-edit-sub').textContent = !p ? '接入任意返回 JSON 的词典 API' : (isCustom ? '修改端点、格式与鉴权' : '填写该词典的 API Key');
+    $('dict-edit-name-wrap').hidden = !isCustom;
+    $('dict-edit-base-wrap').hidden = !isCustom;
+    $('dict-edit-format-wrap').hidden = !isCustom;
+    $('dict-edit-auth-wrap').hidden = !isCustom;
+    $('dict-edit-name').value = isCustom && p ? p.name : '';
+    $('dict-edit-base').value = isCustom && p ? p.base : '';
+    $('dict-edit-format').value = isCustom && p ? p.format : 'auto';
+    $('dict-edit-auth').value = isCustom && p ? p.auth : 'bearer';
+    $('dict-edit-header').value = isCustom && p ? p.headerName : '';
+    $('dict-edit-key').value = p ? Dictionary.keyFor(p, cfg) : '';
+    $('dict-edit-save').textContent = p ? '保存修改' : '添加并启用';
+    $('dict-edit-hint').textContent = isCustom
+      ? 'URL 里的 {word} 会被替换为查询词；不写占位符时自动追加 ?word=。桌面与安卓端由主进程发请求，不受浏览器跨域限制。'
+      : (p.hint || '');
+    syncDictEditAuth();
+    const out = $('dict-edit-test-result');
+    out.textContent = ''; out.className = 'ai-test-result';
+    openNestedSheet('dict-edit-sheet');
   }
-  function openDictProviderSheet() {
-    syncDictProviderUi();
-    openNestedSheet('dict-provider-sheet');
+  function dictEditDraft() {
+    const cfg = Store.data.dict;
+    const custom = !$('dict-edit-base-wrap').hidden;
+    const p = custom
+      ? {
+        id: dictEditing || 'draft', custom: true, needKey: false,
+        name: $('dict-edit-name').value.trim() || '自定义词典',
+        base: $('dict-edit-base').value.trim(),
+        format: $('dict-edit-format').value,
+        auth: $('dict-edit-auth').value,
+        headerName: $('dict-edit-header').value.trim()
+      }
+      : Dictionary.getProvider(dictEditing, cfg);
+    const keys = Object.assign({}, cfg.keys);
+    keys[p.id] = $('dict-edit-key').value.trim();
+    return { p, custom, cfg: Object.assign({}, cfg, { keys }) };
   }
   function applyPlan() {
     const nw = Math.max(0, Math.min(200, parseInt($('set-new').value, 10) || 0));
@@ -2745,11 +2882,63 @@
       else { out.textContent = '✗ ' + res.error; out.className = 'ai-test-result bad'; }
     });
     $('set-ai-library').addEventListener('click', () => { closeSheet(); openSub('ai'); });
-    $('set-dict-provider-btn').addEventListener('click', openDictProviderSheet);
-    $('dict-provider-close').addEventListener('click', closeNestedSheet);
+    $('set-dict-merge').addEventListener('change', () => {
+      Store.setDictConfig({ merge: $('set-dict-merge').checked });
+      renderDictSources();
+    });
+    $('dict-add').addEventListener('click', () => openDictEdit(null));
+    $('dict-enable-all').addEventListener('click', () => {
+      Store.setDictConfig({ enabled: Dictionary.allProviders(Store.data.dict).map(p => p.id) });
+      renderDictSources();
+    });
+    $('dict-disable-all').addEventListener('click', () => { Store.setDictConfig({ enabled: [] }); renderDictSources(); });
+    $('dict-cache-clear').addEventListener('click', () => {
+      const words = Store.dictWords();
+      if (!words.length) return;
+      if (!confirm('清空 ' + words.length + ' 个词的词典缓存？下次查词会重新联网获取。')) return;
+      words.forEach(w => Store.deleteDictEntry(w));
+      renderDictSources();
+    });
     $('sheet-backdrop-nested').addEventListener('click', closeNestedSheet);
-    $('set-dict-key').addEventListener('change', () => Store.setDictConfig({ key: $('set-dict-key').value.trim() }));
-    $('set-dict-base').addEventListener('change', () => Store.setDictConfig({ base: $('set-dict-base').value.trim() }));
+    $('dict-edit-close').addEventListener('click', closeNestedSheet);
+    $('dict-edit-cancel').addEventListener('click', closeNestedSheet);
+    $('dict-edit-auth').addEventListener('change', syncDictEditAuth);
+    $('dict-edit-test').addEventListener('click', async () => {
+      const btn = $('dict-edit-test'), out = $('dict-edit-test-result');
+      const { p, cfg } = dictEditDraft();
+      out.className = 'ai-test-result';
+      const err = Dictionary.configError(p, cfg);
+      if (err) { out.textContent = '✗ ' + err; out.className = 'ai-test-result bad'; return; }
+      btn.disabled = true; out.textContent = '测试中…';
+      const res = await Dictionary.testProvider(p, cfg, $('dict-edit-test-word').value.trim() || 'hello');
+      btn.disabled = false;
+      if (res.ok) {
+        const first = res.sample ? (res.sample.zh || res.sample.en || '') : '';
+        out.textContent = '✓ 连通正常 · ' + res.count + ' 条释义 · ' + (res.ms / 1000).toFixed(1) + 's' +
+          (res.ipa ? ' · /' + res.ipa + '/' : '') + (first ? ' · ' + first.slice(0, 40) : '');
+        out.className = 'ai-test-result ok';
+      } else {
+        out.textContent = '✗ ' + res.error;
+        out.className = 'ai-test-result bad';
+      }
+    });
+    $('dict-edit-save').addEventListener('click', () => {
+      const { p, custom, cfg } = dictEditDraft();
+      const out = $('dict-edit-test-result');
+      const key = $('dict-edit-key').value.trim();
+      if (custom) {
+        const err = Dictionary.configError(p, cfg);
+        if (err) { out.textContent = '✗ ' + err; out.className = 'ai-test-result bad'; return; }
+        const entry = { name: p.name, base: p.base, format: p.format, auth: p.auth, headerName: p.headerName, key };
+        if (dictEditing) Store.updateDictSource(dictEditing, entry);
+        else Store.addDictSource(entry);
+      } else {
+        Store.setDictKey(dictEditing, key);
+      }
+      Platform.haptic('tap');
+      closeNestedSheet();
+      renderDictSources();
+    });
     $('ai-back').addEventListener('click', backFromSub);
     $('ai-export').addEventListener('click', async () => {
       const btn = $('ai-export'); btn.disabled = true;

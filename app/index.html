@@ -258,7 +258,7 @@
           </button>
           <button class="me-row" data-settings-pane="dict" type="button">
             <span class="me-row-icon accent"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm1 2v14h10V5H7Zm2 3h6v2H9V8Zm0 4h6v2H9v-2Z"/></svg></span>
-            <span class="me-row-main"><span class="me-row-title">词典</span><span class="me-row-sub">中英词典与外部词典</span></span>
+            <span class="me-row-main"><span class="me-row-title">词典</span><span class="me-row-sub">多词典开关、合并与自定义添加</span></span>
             <span class="row-arrow">›</span>
           </button>
           <button class="me-row" data-settings-pane="ai" type="button">
@@ -520,14 +520,43 @@
   </div>
 
   <div class="sheet-backdrop sheet-backdrop-nested" id="sheet-backdrop-nested" hidden></div>
-  <div class="sheet sheet-nested" id="dict-provider-sheet" hidden role="dialog" aria-modal="true">
+  <div class="sheet sheet-nested" id="dict-edit-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title">词典服务商</h2><p class="sheet-sub">选择查词时优先使用的词典</p></div>
-      <button class="sheet-close" id="dict-provider-close" type="button" aria-label="关闭">✕</button>
+      <div class="sheet-title-wrap"><h2 class="sheet-title" id="dict-edit-title">添加词典</h2><p class="sheet-sub" id="dict-edit-sub">接入任意返回 JSON 的词典 API</p></div>
+      <button class="sheet-close" id="dict-edit-close" type="button" aria-label="关闭">✕</button>
     </div>
     <div class="sheet-body">
-      <div class="provider-list" id="dict-provider-list"></div>
-      <p class="field-hint">查询结果按词缓存到本机；切换服务商不会删除已有缓存。</p>
+      <label class="field" id="dict-edit-name-wrap"><span>名称</span><input type="text" id="dict-edit-name" maxlength="20" placeholder="例如：我的词典" autocomplete="off" /></label>
+      <label class="field" id="dict-edit-base-wrap"><span>API 地址<small>用 {word} 占位，可选 {key}</small></span><input type="text" id="dict-edit-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
+      <label class="field" id="dict-edit-format-wrap"><span>返回格式</span>
+        <select id="dict-edit-format">
+          <option value="auto">自动识别（通用 JSON）</option>
+          <option value="youdao">有道 jsonapi</option>
+          <option value="uapis">UAPI dictionary</option>
+          <option value="free">dictionaryapi.dev</option>
+          <option value="mw">Merriam-Webster</option>
+        </select>
+      </label>
+      <label class="field"><span>API Key<small>可留空，仅保存在本机</small></span><input type="password" id="dict-edit-key" placeholder="无 Key 可留空" autocomplete="off" /></label>
+      <label class="field" id="dict-edit-auth-wrap"><span>鉴权方式</span>
+        <select id="dict-edit-auth">
+          <option value="none">不发送 Key</option>
+          <option value="bearer">Authorization: Bearer</option>
+          <option value="header">自定义请求头</option>
+          <option value="query">URL 参数 key=</option>
+        </select>
+      </label>
+      <label class="field" id="dict-edit-header-wrap" hidden><span>请求头名称</span><input type="text" id="dict-edit-header" placeholder="X-API-Key" autocomplete="off" /></label>
+      <div class="dict-test-row">
+        <label class="field dict-test-word"><span>测试单词</span><input type="text" id="dict-edit-test-word" value="hello" autocomplete="off" /></label>
+        <button class="btn-ghost" id="dict-edit-test" type="button">连通性测试</button>
+      </div>
+      <p class="ai-test-result" id="dict-edit-test-result"></p>
+      <p class="field-hint" id="dict-edit-hint">URL 里的 {word} 会被替换为查询词；不写占位符时自动追加 ?word=。桌面与安卓端由主进程发请求，不受浏览器跨域限制。</p>
+      <div class="ai-actions">
+        <button class="btn-primary" id="dict-edit-save" type="button">保存词典</button>
+        <button class="btn-ghost" id="dict-edit-cancel" type="button">取消</button>
+      </div>
     </div>
   </div>
 
@@ -728,14 +757,26 @@
 
       <div class="settings-pane" id="pane-dict" hidden>
         <section class="set-group">
-          <h4>外部词典</h4>
-          <button class="set-row set-row-tap" id="set-dict-provider-btn" type="button" aria-haspopup="dialog">
-            <span class="set-row-label">服务商<small id="set-dict-provider-sub">中英词典 · 免 Key</small></span>
-            <span class="set-row-action">切换<span aria-hidden="true">›</span></span>
-          </button>
-          <label class="field" id="set-dict-key-wrap" hidden><span>API Key</span><input type="password" id="set-dict-key" placeholder="仅保存在本机" autocomplete="off" /></label>
-          <label class="field" id="set-dict-base-wrap" hidden><span>API 地址<small>用 {word} 占位</small></span><input type="text" id="set-dict-base" placeholder="https://example.com/api/{word}" autocomplete="off" /></label>
-          <p class="field-hint" id="set-dict-hint">默认使用免费词典，无需 Key；查询结果缓存本地。</p>
+          <h4>词典源</h4>
+          <div class="set-row">
+            <span class="set-row-label">合并多个词典结果<small>并行查询全部已开启词典，按下方顺序合并去重</small></span>
+            <label class="switch"><input type="checkbox" id="set-dict-merge" /><span class="slider"></span></label>
+          </div>
+          <p class="field-hint" id="set-dict-summary">已开启 1 个词典。</p>
+          <div class="dict-source-list" id="dict-source-list"></div>
+          <div class="dict-source-actions">
+            <button class="btn-ghost" id="dict-add" type="button">＋ 添加词典</button>
+            <button class="btn-ghost" id="dict-enable-all" type="button">全部开启</button>
+            <button class="btn-ghost" id="dict-disable-all" type="button">全部关闭</button>
+          </div>
+          <p class="field-hint">关闭「合并」时按顺序查询、命中即停，更省配额。开关或顺序变化后，下次查词会自动重新查询；结果按词缓存到本机。</p>
+        </section>
+        <section class="set-group">
+          <h4>词典缓存</h4>
+          <div class="set-row">
+            <span class="set-row-label">已缓存单词<small id="dict-cache-count">0 个词的释义存于本机，离线可看</small></span>
+            <button class="btn-ghost danger" id="dict-cache-clear" type="button">清空缓存</button>
+          </div>
         </section>
       </div>
 

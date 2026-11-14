@@ -693,9 +693,9 @@
 
 **集成（官方书为根 + 对比）**
 
-- `library.js`：新增官方区（[library.js:245-334](app/js/library.js#L219-L312)）——`officialForms` 归一化（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号）、`officialWordSet/officialCount/officialBook`（缓存）、`compareToOfficial(entries,level)` 返回 covered/beyond/missing + 双向覆盖率 + 三份词表。`listBooks` 把「考纲四级（官方）/ 考纲六级（官方）」**置顶**（[library.js:186-196](app/js/library.js#L186-L197)）;`getBook` 加官方分支（[library.js:163-164](app/js/library.js#L163-L164)），官方书经 `enrich` 可正常学习、标 `official:true`，**绕过** CEFR 质量过滤与 skipLower（官方 tag 不在 BOOK_RANK）。`init` 清官方缓存。
+- `library.js`：新增官方区（[library.js:242-335](app/js/library.js#L242-L335)）——`officialForms` 归一化（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号）、`officialWordSet/officialCount/officialBook`（缓存）、`compareToOfficial(entries,level)` 返回 covered/beyond/missing + 双向覆盖率 + 三份词表。`listBooks` 把「考纲四级（官方）/ 考纲六级（官方）」**置顶**（[library.js:186-196](app/js/library.js#L186-L196)）;`getBook` 加官方分支（[library.js:161-184](app/js/library.js#L161-L184)），官方书经 `enrich` 可正常学习、标 `official:true`，**绕过** CEFR 质量过滤与 skipLower（官方 tag 不在 BOOK_RANK）。`init` 清官方缓存。
 - 数据通道：`platform.js loadDataset` 与 `main.js get-dataset` 均加 `official`（[platform.js:123](app/js/platform.js#L123)）。
-- `app.js`：`resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:275-278](app/js/app.js#L256-L260)）;`cmpSourceOptions/cmpSection/renderCompare`（[app.js:2071-2130](app/js/app.js#L2008-L2068)）渲染对比面板，`renderBooks` 末尾调用 `renderCompare`，官方书行标注「官方考纲」。
+- `app.js`：`resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:275-279](app/js/app.js#L275-L279)）;`cmpSourceOptions/cmpSection/renderCompare`（[app.js:2121-2181](app/js/app.js#L2121-L2181)）渲染对比面板，`renderBooks` 末尾调用 `renderCompare`，官方书行标注「官方考纲」。
 - `index.html`：词书与计划页加「考纲对比」面板（源书选择 `cmp-source` + 级别选择 `cmp-level` 四级/六级 + 结果区 `cmp-result`）;`app.css` 加摘要 / 覆盖率条 / 三个可折叠词表（考纲内绿 / 超纲琥珀 / 考纲缺失灰，每段限 300 词可展开全部）样式。
 
 **验证（浏览器 + browser-use，127.0.0.1:8123）**：官方书置顶且可学习（abandon → 释义「vt. 放弃, 抛弃…」CEFR B1、词素 1）;考纲四级自比 100%;自定义导入 6 词 TSV（abandon/apple/mould/according to/adviser/zzzcustom）→ 对比四级 covered 5 / beyond 1（zzzcustom）/ coverageBook 83%，归一化正确命中 `mould↔mo(u)ld`、`adviser↔advisor/adviser`、短语 `according to`;三个折叠段展开 / 收起、展开全部词、级别切换均正常;五 tab 巡览无控制台错误。`officialCount` cet4=6,552（6,632 原始去重约 80 同形异义）、cet6=1,264;`officialWordSet` cet4=6,735 形、cet6=1,284 形。
@@ -716,7 +716,7 @@
 **实现（DEV-ONLY 区块集中于 ai.js，删块即移除）**
 
 - [ai.js](app/js/ai.js)：新增 `DEV-ONLY` 标记块——`DEV_FREE_API` 常量（[ai.js:29-37](app/js/ai.js#L29-L37)，`id:'devfree'`、`dev:true`、`base/model/models/devKey/jsonMode`）+ `if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API)`，把「开发免费（发布前移除）」置顶。同区域内再注入 `QNAI_FREE_API`（[ai.js:42-50](app/js/ai.js#L42-L50)，`id:'qnafree'`、双模型 `models` 清单），现列服务商首位。`resolveConfig` 增加 `key = cfg.key || p.devKey`（用户 Key 优先，留空回退内置开发 Key）;新增 `effectiveKey(cfg)` 助手并导出;`explainWord` 改用解析后的 `rc.key`。**两个 DEV-ONLY 块共用同一套 `dev/devKey/models` 机制，新增免费预设只需再 `unshift` 一个常量。**
-- [app.js](app/js/app.js)：两处生成守卫（`aiSection` 自动生成 / 手动生成）由 `cfg.key` 改为 `AI.effectiveKey(cfg)`，使内置 Key 也能触发生成;`syncAiProviderUi`（[app.js:2358](app/js/app.js#L2358)）对带 `models` 清单的服务商渲染**模型下拉选择器**（`#set-ai-model-select`，同时隐藏自由文本框），其余服务商保留文本输入，切换服务商自动切换形态并持久化所选模型;dev 服务商另显示 Key 占位符「内置开发密钥，留空即可」与开发提示条。
+- [app.js](app/js/app.js)：两处生成守卫（`aiSection` 自动生成 / 手动生成）由 `cfg.key` 改为 `AI.effectiveKey(cfg)`，使内置 Key 也能触发生成;`syncAiProviderUi`（[app.js:2502-2527](app/js/app.js#L2502-L2527)）对带 `models` 清单的服务商渲染**模型下拉选择器**（`#set-ai-model-select`，同时隐藏自由文本框），其余服务商保留文本输入，切换服务商自动切换形态并持久化所选模型;dev 服务商另显示 Key 占位符「内置开发密钥，留空即可」与开发提示条。
 - [index.html](app/index.html)：AI 设置面板加 `#set-ai-dev-note` 提示条（默认隐藏，选任一 `dev:true` 服务商时显示，即 devfree 与 qnafree）与模型下拉 `#set-ai-model-select`（[index.html:746](app/index.html#L746)，默认隐藏）;[app.css](app/css/app.css) 加 `.dev-note` 琥珀色柔和样式与 `.field span small` 次级提示间距。
 - [store.js](app/js/store.js)：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`（[store.js:32](app/js/store.js#L32) 及 migrate 默认、app.js 回退），使免费模型开箱可见（devfree 三模型;QNAI Free 另二模型，需手动切换）;**发布移除时须改回 `deepseek`**（见移除清单）。
 - **移除方法**：删除 ai.js 的 `DEV_FREE_API` 与 `QNAI_FREE_API` 两个整块（常量 + `if` 注入）即彻底移除;`resolveConfig/effectiveKey` 与 UI 的 `devKey/models` 回退随之自动失效（商用服务商都不带 `devKey`/`models`，模型栏自动回到文本输入）。**另须把 store.js / app.js 的默认 `ai.provider` 改回 `deepseek`**（见移除清单第 1 步）。
@@ -787,9 +787,9 @@
 **实现**
 
 - [index.html:746](app/index.html#L746)：「模型」栏新增下拉 `#set-ai-model-select`（默认隐藏），与自由文本框 `#set-ai-model` 并存。
-- [app.js:2454 syncAiProviderUi](app/js/app.js#L2454)：服务商带固定 `models` 清单时渲染下拉（列出全部模型、回填已选或默认值）并隐藏文本框;否则隐藏下拉、恢复文本框与「留空使用默认」提示。切换服务商自动切换形态。
-- [app.js:2723-2730](app/js/app.js#L2612-L2618)：服务商 change 时若为固定清单则持久化所选模型;新增 `#set-ai-model-select` change 持久化所选模型。
-- [store.js:32](app/js/store.js#L32)（含 migrate 默认）与 [app.js:2437](app/js/app.js#L2437) 回退：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`，三个免费模型开箱可见。**发布移除时改回 `deepseek`**（§8.25 清单第 1 步）。
+- [app.js:2502-2527 syncAiProviderUi](app/js/app.js#L2502-L2527)：服务商带固定 `models` 清单时渲染下拉（列出全部模型、回填已选或默认值）并隐藏文本框;否则隐藏下拉、恢复文本框与「留空使用默认」提示。切换服务商自动切换形态。
+- [app.js:2860-2866](app/js/app.js#L2860-L2866)：服务商 change 时若为固定清单则持久化所选模型;新增 `#set-ai-model-select` change 持久化所选模型。
+- [store.js:32](app/js/store.js#L32)（含 migrate 默认）与 [app.js:2487](app/js/app.js#L2487) 回退：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`，三个免费模型开箱可见。**发布移除时改回 `deepseek`**（§8.25 清单第 1 步）。
 - [app.css:855](app/css/app.css#L855)：`.field span small` 次级提示加 6px 间距 + 12px 浅色，标签与提示不再粘连。
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：devfree 默认选中、下拉显示 `DeepSeek-V4-Flash / DeepSeek-V4.1-Flash / GLM-5.3-Flash` 且文本框隐藏;选 `GLM-5.3-Flash` 持久化到 `settings.ai.model`;切 deepseek 隐藏下拉、恢复文本框与「留空使用默认」提示、隐藏开发提示条;切回 devfree 恢复下拉并保留所选模型;`resolveConfig` 对三模型均解析出正确 base/model/内置 Key。控制台仅既有 devfree 端点浏览器直连 CORS 报错（§8.25 平台限制，Electron/Android 正常），与本次改动无关。
@@ -806,11 +806,11 @@
 
 - [index.html:747-750](app/index.html#L747-L750)：「模型」栏下方新增测试行 `#set-ai-test`（测试连通性按钮）+ `#set-ai-test-result`（结果文本）。
 - [app.css:1123-1126](app/css/app.css#L1123-L1126)：`.ai-test-row` 横向 flex 换行;`.ai-test-result` 12px 浅色，`.ok` 绿 / `.bad` 红。
-- [app.js:2733-2746](app/js/app.js#L2624-L2637)：测试监听器——`AI.resolveConfig` 取当前服务商/模型/Key，缺 base/model 或 key 时给出填写提示;否则发一条 `ping` 最小请求（`temperature:0`、不开 jsonMode），计时并显示 `✓ 连通正常 · 模型 · 耗时s` 或 `✗ 错误`;测试期间禁用按钮防重复点击。
-- [app.js:2477-2478](app/js/app.js#L2381-L2382)：`syncAiProviderUi` 切换服务商时清空测试结果与配色，避免残留上一服务商的结论。
+- [app.js:2870-2883](app/js/app.js#L2870-L2883)：测试监听器——`AI.resolveConfig` 取当前服务商/模型/Key，缺 base/model 或 key 时给出填写提示;否则发一条 `ping` 最小请求（`temperature:0`、不开 jsonMode），计时并显示 `✓ 连通正常 · 模型 · 耗时s` 或 `✗ 错误`;测试期间禁用按钮防重复点击。
+- [app.js:2525-2526](app/js/app.js#L2525-L2526)：`syncAiProviderUi` 切换服务商时清空测试结果与配色，避免残留上一服务商的结论。
 - [platform.js:210](app/js/platform.js#L210)、[platform.js:220](app/js/platform.js#L220)、[platform.js:224](app/js/platform.js#L224)、[platform.js:227-233](app/js/platform.js#L227-L233)：`llmChat` 统一 `timeout=120000`;CapacitorHttp `connectTimeout/readTimeout` 由 60s 提至 120s;浏览器 fetch 包 `AbortController` 120s 超时。
 - [platform.js:226-233](app/js/platform.js#L226-L233)：错误分类——`abort/timeout` → 「请求超时（120 秒无响应）…」;纯浏览器且 `Failed to fetch/NetworkError/…` → 「浏览器直连失败（CORS 拦截或网络不可达）…请改用 Windows（Electron）或 Android 端…」;其余原样返回。学习页生成失败因此自动显示可操作提示而非裸 `Failed to fetch`。
-- [main.js:337-340](main.js#L337-L340)、[main.js:348-352](main.js#L348-L352)：Electron `llm-chat` 同样加 `AbortController` 120s + `finally clearTimeout`，catch 增加超时分类，与 web 端口径一致。
+- [main.js:368-369](main.js#L368-L369)、[main.js:379-383](main.js#L379-L383)：Electron `llm-chat` 同样加 `AbortController` 120s + `finally clearTimeout`，catch 增加超时分类，与 web 端口径一致。
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：点「测试连通性」返回 `✗ 浏览器直连失败（CORS 拦截或网络不可达）…`（`.ai-test-result.bad`），按钮恢复可用;`AI.explainWord` 生成失败显示同一可操作提示（取代 `Failed to fetch`）;切换服务商结果清空;`node --check` app.js/platform.js/main.js 全通过;截图确认测试行布局（按钮左、结果右、自动换行）符合简洁风格。浏览器无法直连无 CORS 端点属平台限制（§8.25），Electron/Android 正常。
 
@@ -822,11 +822,11 @@
 
 **实现**
 
-- **选书不跳转**：[app.js:2246 switchBook](app/js/app.js#L2246) 移除 `setMode('study')/switchView('study')/renderStudy()`，仅更新 activeBook + 重建会话 + 重渲染词书页 + 刷新计划条，停留在「词书与计划」。
+- **选书不跳转**：[app.js:2296-2303 switchBook](app/js/app.js#L2296-L2303) 移除 `setMode('study')/switchView('study')/renderStudy()`，仅更新 activeBook + 重建会话 + 重渲染词书页 + 刷新计划条，停留在「词书与计划」。
 - **返回栈（Android）**：新增依赖 `@capacitor/app`。[app.js:34-36](app/js/app.js#L34-L36) 定义 `TOP_VIEWS/SUB_VIEWS/navStack`;[app.js:37 switchView](app/js/app.js#L37) 仅在「顶层 tab → 顶层 tab」时压栈（`fromBack` 不压）;[app.js:68 handleBack](app/js/app.js#L68) 统一返回优先级：嵌套弹层 → 弹层 → 子页（books/stats/ai 回 subReturn）→ 测试态回学习态 → 弹 tab 历史 → 根节点才退出;[app.js:2546-2548](app/js/app.js#L2546-2548) 原生注册 `App.backButton`，`handleBack()` 返回 false 时 `App.exitApp()`。浏览器/Electron 不注册，无副作用。
 - **原生震动**：新增依赖 `@capacitor/haptics`（插件 manifest自带 `VIBRATE` 权限）。[platform.js:92 haptic](app/js/platform.js#L92) 仅原生生效（impact/notification），Electron/浏览器 no-op。触点：评分 [app.js:541](app/js/app.js#L541)（认识=success/模糊=warn/忘记=error）、答题 [app.js:1000](app/js/app.js#L1000)（对=success/错=error）、tab/模式切换/选书/过滤开关/排除词书 chip 均为 light tap。
-- **过滤基础词（默认开）**：[library.js:221 BASIC_WORDS](app/js/library.js#L221)（326 个小学/初中极基础词）+ [library.js:223 basicWordSet](app/js/library.js#L223);[store.js:26](app/js/store.js#L26)、[store.js:80-84](app/js/store.js#L80-L84) `bookFilter.skipBasic` 默认 true（旧数据缺省视为开）;[app.js:282 studyEntries](app/js/app.js#L282) 裁剪每日队列;[index.html:349](app/index.html#L349) 开关 + [app.js:2120](app/js/app.js#L2120) 回填。
-- **多书排除过滤**：[library.js:229 excludeWordSet](app/js/library.js#L229)（多选词书词集并集，带缓存）;`bookFilter.excludeBooks[]` 持久化;[app.js:2221 renderExcludeChips](app/js/app.js#L2221) 在过滤面板渲染除当前书外的全部词书 chip（可多选、选中高亮）;[index.html:351-353](app/index.html#L351-L353) 容器 + [app.css:1035-1039](app/css/app.css#L1035-L1039) chip 样式（随主题圆角/配色）;[app.js:282](app/js/app.js#L282) 队列裁剪;过滤 hint 汇总「基础词/低阶重复/词书重复/已掌握」四类裁剪数与剩余词数。
+- **过滤基础词（默认开）**：[library.js:221 BASIC_WORDS](app/js/library.js#L221)（326 个小学/初中极基础词）+ [library.js:223 basicWordSet](app/js/library.js#L223);[store.js:26](app/js/store.js#L26)、[store.js:132-138](app/js/store.js#L132-L138) `bookFilter.skipBasic` 默认 true（旧数据缺省视为开）;[app.js:282 studyEntries](app/js/app.js#L282) 裁剪每日队列;[index.html:349](app/index.html#L349) 开关 + [app.js:2201-2204](app/js/app.js#L2201-L2204) 回填。
+- **多书排除过滤**：[library.js:229 excludeWordSet](app/js/library.js#L229)（多选词书词集并集，带缓存）;`bookFilter.excludeBooks[]` 持久化;[app.js:2271-2295 renderExcludeChips](app/js/app.js#L2271-L2295) 在过滤面板渲染除当前书外的全部词书 chip（可多选、选中高亮）;[index.html:351-353](app/index.html#L351-L353) 容器 + [app.css:1035-1039](app/css/app.css#L1035-L1039) chip 样式（随主题圆角/配色）;[app.js:282](app/js/app.js#L282) 队列裁剪;过滤 hint 汇总「基础词/低阶重复/词书重复/已掌握」四类裁剪数与剩余词数。
 - 过滤仍**只裁剪每日学习队列**，词书本身与测试范围不变（沿用 §1.5 约定）。
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：选「考纲四级（官方）」后仍停留词书页（`view-books` 可见、`view-study` 隐藏）;`skipBasic` 默认勾选、基础词集 326;排除 chip 14 个，选「四级词库」后 `excludeBooks=['四级']`、hint「词书重复 2300」；基础词开=312/关=0 且剩余词数相应变化;`books-back` 回「我的」、tab 切换正常;控制台无报错;`node --check` 全通过;`npx cap sync android` 识别 3 插件（text-to-speech/app/haptics）。震动与硬件返回为原生能力，浏览器仅验证 no-op 与逻辑不回归，实机效果随 APK 交付。
@@ -839,14 +839,14 @@
 
 **勘察结论**
 
-- 查词 tab `runSearch()` 仅调 `Library.search()`（本地索引），无在线入口（[app.js:1707](app/js/app.js#L1707) / [library.js:358](app/js/library.js#L358)）;「联网 + 按词缓存」机制其实已存在（dictionary.js `lookup` → [store.js:316-318](app/js/store.js#L316-L318) `saveDictEntry`），只在打开单词卡的词典分区触发（[app.js:1592](app/js/app.js#L1592)），非本地词开卡会自动查并缓存（[app.js:1413](app/js/app.js#L1413)）。缺口是搜索页不给打开非本地词的入口。
+- 查词 tab `runSearch()` 仅调 `Library.search()`（本地索引），无在线入口（[app.js:1757-1826](app/js/app.js#L1757-L1826) / [library.js:358](app/js/library.js#L358)）;「联网 + 按词缓存」机制其实已存在（dictionary.js `lookup` → [store.js:425-428](app/js/store.js#L425-L428) `saveDictEntry`），只在打开单词卡的词典分区触发（[app.js:1626](app/js/app.js#L1626)），非本地词开卡会自动查并缓存（[app.js:1655-1659](app/js/app.js#L1655-L1659)）。缺口是搜索页不给打开非本地词的入口。
 - dictionaryapi.dev 已集成为 `free` 服务商;实测 CORS `*`，纯浏览器可用，仅英英释义。
 - uapis.cn `/api/v1/dictionary/lookup?word=`：实测免 Key（访客积分，2 积分/次，4 QPS），200 返回中英双释义 + 英美音标音频 + 考试标签 + 词形变化 + 词组 + 近义 + 双语例句;**无 CORS 头**，仅原生通道可用;真实 `definitions[].meaning` 内嵌词性（"adj. …"），`audio` 为相对路径。
 
 **实现**
 
-- **UAPI 服务商**：[dictionary.js:9](app/js/dictionary.js#L9) PROVIDERS 新增 `uapis`;[dictionary.js:209 normalizeUapis](app/js/dictionary.js#L209) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:369 buildUrl](app/js/dictionary.js#L369)、[:404 attempt 路由](app/js/dictionary.js#L416)、[:464 导出](app/js/dictionary.js#L464)。
-- **多源回退**：[dictionary.js:451 FALLBACK](app/js/dictionary.js#L451) 有道→UAPI→dictionaryapi.dev（UAPI→有道→free，free→UAPI→有道）;命中「未找到该词」即停，省 UAPI 积分;回退来源记于 `record.fallbackFrom`，[app.js:1531](app/js/app.js#L1531) 显示「已从〈源〉回退」。
+- **UAPI 服务商**：[dictionary.js:3-20](app/js/dictionary.js#L3-L20) PROVIDERS 新增 `uapis`;[dictionary.js:232-301 normalizeUapis](app/js/dictionary.js#L232-L301) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:415-431 buildUrl](app/js/dictionary.js#L415-L431)、[dictionary.js:455-480 attempt 路由](app/js/dictionary.js#L455-L480)、[dictionary.js:627-632 导出](app/js/dictionary.js#L627-L632)。
+- **多源回退**：[dictionary.js:564 RESCUE](app/js/dictionary.js#L564) 免费英文词典→UAPI→有道;命中「未找到该词」即停，省 UAPI 积分;回退来源记于 `record.fallbackFrom`，[app.js:1603](app/js/app.js#L1603) 显示「已从〈源〉回退」。（后续 §8.32 多词典合并上线后，RESCUE 仅在全部已开启源都因网络/跨域失败时兜底。）
 - **查词在线入口**：[app.js:1716](app/js/app.js#L1716) 无本地精确匹配时置顶「在线查词：〈query〉」行（[app.js:1720](app/js/app.js#L1720)），点击 `openWordSheet(query,true)` 复用既有联网 + 缓存;[app.css:1040](app/css/app.css#L1040) 标题用主题强调色。
 - **词典渲染增强**：[app.js:1563](app/js/app.js#L1563) 词形变化、[:1571](app/js/app.js#L1571) 常见词组（复用既有 dict-* 样式，无新增 CSS）;服务商选择器 [app.js:2482 简介](app/js/app.js#L2482)、[:2499 标记 U](app/js/app.js#L2499)。
 - 缓存沿用 `store.dictCache`，导出/导入已覆盖，**无 schema 改动**;默认服务商仍 `freezh`。
@@ -867,6 +867,36 @@
 **实测**（详见 §8.25「QNAI 预设」验证条）：`qiniu/conatus-free` 可用且支持 JSON 模式（端到端 16.7s 返回完整讲解），免费档有全局限流 `429 free_campaign_global_limit`;`nvidia/nemotron-3-ultra-550b-a55b0-free` 接入时上游持续 `upstream_error`，已保留在清单中待其恢复。
 
 **交付**：`android-42`（target `a12ba4e`，CI run 43571028601 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 42` / `versionName 1.0.6+42` / 证书 `CN=Glance Debug`，APK 13,236,662 字节，较 android-41 +327 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
+
+### 8.32 多词典：自定义添加 + 逐源开关 + 并行合并去重 ✅
+
+**需求**（用户）：「词典的功能要设置一下可以添加，然后还可以设置添加的词典的开关，可以开多个词典」——即（a）**添加**内置之外的词典端点、（b）每个词典一个**独立开关**、（c）**可同时开多个**并汇总结果。原实现是单选 `dict.provider`（一个下拉选一个源），三条都不满足。
+
+**存储层**（[store.js:34](app/js/store.js#L34)、[store.js:61-106 normalizeDict](app/js/store.js#L61-L106)、[store.js:367-424](app/js/store.js#L367-L424)）：`dict` 升级为 `{provider, enabled[], merge, custom[], keys{}}`。`enabled` 数组顺序即优先级;`provider` 退化为 `enabled[0]` 的兼容镜像，由 `syncDictPrimary` 在每次改动后自动同步，旧代码读 `dict.provider` 仍然正确。Key 全部集中到 `dict.keys[id]`，自定义词条本身不含密钥，让落盘加密与备份剔除只需处理一处。新增 `dictKey / setDictKey / setDictEnabled / moveDictSource / addDictSource / updateDictSource / removeDictSource` 七个 helper + `setDictConfig`。`normalizeDict` 负责校验：自定义 id 去重、`format`/`auth` 白名单、名称 20 字与自定义头名 40 字上限、`enabled` 过滤未知 id 与重复项。旧数据自动迁移（[store.js:84-96](app/js/store.js#L84-L96)）：`provider` → `enabled:[provider]`、`dict.key` → `keys[provider]`、旧 `provider:'custom' + base` → 一条 `custom-N` 并搬走 Key。
+
+**引擎层**（[dictionary.js:3-20 PROVIDERS](app/js/dictionary.js#L3-L20)、[dictionary.js:22-48](app/js/dictionary.js#L22-L48)）：内置收敛为 4 源，自定义源由 `customProviders(cfg)` 数据驱动生成，`allProviders / getProvider / enabledProviders` 统一解析，`keyFor` 统一取 Key，`configError` 统一判「缺 Key / 缺地址 / 地址非 http(s)」并在 UI 与查询两处复用。`normalizeAuto`（[dictionary.js:393-404](app/js/dictionary.js#L393-L404)）嗅探有道 / UAPI / 韦氏 / dictionaryapi.dev 四种已知形状，都不匹配时走通用 JSON 兜底;`normalizeFor`（[dictionary.js:406-413](app/js/dictionary.js#L406-L413)）按声明格式路由;`buildUrl`（[dictionary.js:415-431](app/js/dictionary.js#L415-L431)）支持 `{word}`/`{key}` 占位、缺占位时自动追加 `?word=`、`auth:'query'` 拼 `key=`;`headersFor`（[dictionary.js:433-453](app/js/dictionary.js#L433-L453)）支持 Bearer 与自定义头。
+
+**合并**（[dictionary.js:494-560](app/js/dictionary.js#L494-L560)）：`posKey` 用 `POS_CANON` 归一词性（`vt./vi/v./verb → v`，形如 `abstract:` 的尾冒号一并剥掉），`defKey` 按释义文本归一，`mergeRecords` 按词性归组、按释义去重，同一条释义的中文 / 英文 / 例句 / 近义 / 反义合并成一条并累积 `src[]` 来源标记;音标、助记、考试标签取首个有值的源;对每词性义项 10 条、词性组 12 个、音频 4 个、考试标签 8 个、词组 10 个、词形 10 个设上限，避免多源灌水。缓存记录新增 `providers[] / sources[] / sig`，`sig = enabled.join(',')`（[dictionary.js:38](app/js/dictionary.js#L38)），**启用集合或顺序一变，旧缓存即判失效并自动重查**。
+
+**查询**（[dictionary.js:570-625 lookup](app/js/dictionary.js#L570-L625)）：无启用源 → 明确指引而非静默失败;`merge !== false` → `Promise.all` 并行查询全部可用源（结果仍按优先级排序）;关闭合并 → 按优先级串行、命中即停，省 UAPI 访客积分;配置不完整的源跳过并记入 `errors[]`，逐源失败**收集后上报**而非吞掉。原 §8.30 的 `FALLBACK` 链降级为 `RESCUE`（[dictionary.js:564-567](app/js/dictionary.js#L564-L567)），**仅当零结果且存在网络类错误**（纯浏览器 CORS）时兜底一次，命中「未找到该词」即停。
+
+**加密层**（[main.js:106-133 sealKeys](main.js#L106-L133)、[main.js:134-159 unsealKeys](main.js#L134-L159)）：`dict.keys` 逐 id 密封为 `dict.keysEnc[id]`，沿用既有 `g1:` AES-256-GCM 与本机密钥文件。保持既有安全不变量——**解密失败绝不销毁密文**：失败项置 `keys[id]=''` 且只保留失败项的 blob，`normalizeDict` 原样保留空串占位（[store.js:64-69](app/js/store.js#L64-L69)），下次落盘不会把仍存活的密文抹掉;删除词典或清空 Key 时同步清理孤儿 `keysEnc[id]`。导出与共享目录镜像照旧不含任何 Key。
+
+**UI**（[index.html:758-781 pane-dict](app/index.html#L758-L781)、[index.html:523-561 dict-edit-sheet](app/index.html#L523-L561)、[app.js:2547-2620 renderDictSources](app/js/app.js#L2547-L2620)、[app.js:2624-2649 openDictEdit](app/js/app.js#L2624-L2649)）：单选弹层换成**源列表**——每行标记 / 名称 / 徽章（推荐、免 Key 或需 Key、优先级 N、未填 Key）/ 能力说明 / 开关，行下方 ↑/↓ 调序 + 编辑（内置源为「填写 Key」）+ 删除;顶部合并开关与开启顺序摘要（含「其中 X 个配置不完整，将被跳过」），底部「＋ 添加词典 / 全部开启 / 全部关闭」+ 词典缓存计数与清空。添加与编辑共用一个嵌套弹层：内置源只显示 Key 字段，自定义源显示名称 / API 地址 / 返回格式 / 鉴权方式 / 自定义头名 / Key 并带「连通性测试」（真实请求，返回释义条数、耗时、音标与首条释义）;保存前校验，非法配置留在弹层内报错、不落库。词卡侧（[app.js:1604-1623](app/js/app.js#L1604-L1623)）多源时渲染「全部 + 各来源」筛选片、meta 显示「N 个词典合并」，失败源逐条列在下方;每条释义尾部内联来源徽章（[app.css:1188](app/css/app.css#L1188)）。
+
+**实测**
+
+- Node 单测 `.scratch/dict-unit.cjs` **93/93**：schema 归一与三种旧版迁移、增删改调序、Key 集中存取、四种鉴权的 URL/头构造、四种格式归一 + 自动嗅探、合并去重与词性别名、上限裁剪、并行/串行两条路径、逐源错误、无启用源指引、RESCUE 触发条件、`sig` 失效。
+- Electron 主进程 harness `.scratch/dict-crypto.cjs` **23/23**：多 Key 密封/还原往返、单 id 解密失败只保留该 id 密文、空串占位不被抹掉、删除源清理孤儿密文、旧 `safeStorage` blob 兼容。
+- 真实网络 `.scratch/dict-live.cjs`：freezh + uapis + free 三源并行合并 951 ms、缓存 8.7 KB，跨源同义项去重生效。
+- 浏览器端到端 `.scratch/dict-e2e.cjs` **60/60**（Chrome + CDP 真实点击，460×900 / 360×640 / 1280×900）：添加 → 连通性测试 → 保存 → 编辑 → 非法 URL 拦截 → 逐源开关 → 调序 → 批量开关 → 缓存清空 → 删除;中英跨语言合并渲染与去重、来源筛选、部分源失败可见、单源模式、全关指引与设置直达、**改启用集合后旧缓存自动重查**;三档视口无横向溢出，零未捕获错误。
+- 真实 Electron 渲染进程（CDP 9444）：`petrichor` 四源合并 `['freezh','uapis','free','custom-1']`，无失败行、无运行时错误;README 三张词典截图即由此捕获（浏览器截图会带 CORS 噪声，不能代表桌面/安卓端）。
+- 全应用回归 `.scratch/dict-regress.cjs` **48/48**（`app.js` 改了 327 行，必须验证词典以外的面没被带坏）：五个 tab 渲染、学习页三档评分、测试完整一轮 5 题（答对自动跳题 + 答错展开解析两条路径都走到）+ 再测一次 + 结束退出、词书列表、统计打卡日历、六个设置分区逐个开合、八套主题逐个切换生效、**导出/覆盖导入往返**（`enabled` 顺序与 `merge` 与自定义源都恢复、`provider` 镜像 `enabled[0]`、备份不含任何 Key、覆盖导入保留本机 Key）、360×640 五个 tab 与 1280×900 均无横向溢出;零未捕获错误。
+- 顺手修掉两处实测发现的缺陷：UAPI 把 `part_of_speech` 返回成 `"abstract:"`，词性标签带悬空冒号（两个 `group()` 与 `posKey` 一并去尾冒号）;调序箭头颜色过淡且禁用态无区分（[app.css:1175-1177](app/css/app.css#L1175-L1177)）。
+
+**文档**：README「顺手用」条 / 使用第 5 步 / `## 外部词典`（新增「合并与优先级」「添加自定义词典」两小节）/ 备份剔除说明 + 两张新截图;FEATURES §5.2 重写、§5.3 行号对齐;DATA §5.1 新增 `dict` schema 与迁移说明、§5.5 改为逐 id Key 密封、§8 新增第 8 条维护清单（加源需同步的七处 + 合并上限 + **新增带 Key 的源必须走 `dict.keys[id]`**）。
+
+**引用复核**：`.scratch/check-citations.cjs`（标签/锚点一致性 + 范围越界）与 `.scratch/citation-audit.cjs`（引用行段是否真含所述符号）查出历史遗留的标签/锚点错位与行号漂移，用 `.scratch/fix-citations.cjs` 按符号声明重新锚定 + 两批人工核对，**311 条引用全部核对通过、0 处失效**;剩余语义启发式告警逐条确认为误报（所述符号属同句的其它引用）。
 
 ---
 

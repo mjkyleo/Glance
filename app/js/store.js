@@ -31,7 +31,7 @@
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
     ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false },
     aiCache: {},
-    dict: { provider: 'freezh', key: '', base: '' },
+    dict: { provider: 'freezh', enabled: ['freezh'], merge: true, custom: [], keys: {} },
     dictCache: {},
     quiz: {
       config: {
@@ -52,6 +52,58 @@
   function pad(n) { return String(n).padStart(2, '0'); }
   function dateKey(d) { const x = d || new Date(); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); }
   function today() { return dateKey(new Date()); }
+
+  // 词典配置：内置 id + 用户添加的自定义词典，enabled 为启用顺序（优先级）。
+  // Key 统一放 keys[id]，自定义词典条目本身不含密钥，便于落盘加密与备份剔除。
+  const DICT_BUILTIN = ['freezh', 'uapis', 'free', 'mw'];
+  const DICT_FORMATS = ['auto', 'youdao', 'uapis', 'free', 'mw'];
+  const DICT_AUTH = ['none', 'bearer', 'query', 'header'];
+  function normalizeDict(raw) {
+    const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const d = { provider: 'freezh', enabled: ['freezh'], merge: src.merge !== false, custom: [], keys: {} };
+    if (src.keys && typeof src.keys === 'object' && !Array.isArray(src.keys)) {
+      Object.keys(src.keys).forEach(id => {
+        const v = src.keys[id];
+        // 空串是主进程解密失败的占位：保留 id，让密文不被下一次落盘抹掉。
+        if (typeof v === 'string') d.keys[id] = v.trim();
+      });
+    }
+    (Array.isArray(src.custom) ? src.custom : []).forEach((c, i) => {
+      if (!c || typeof c !== 'object') return;
+      const base = typeof c.base === 'string' ? c.base.trim() : '';
+      const id = typeof c.id === 'string' && c.id.trim() ? c.id.trim() : 'custom-' + (i + 1);
+      if (!base || d.custom.some(x => x.id === id)) return;
+      const name = typeof c.name === 'string' && c.name.trim() ? c.name.trim() : '自定义词典';
+      d.custom.push({
+        id, name: name.slice(0, 20), base,
+        format: DICT_FORMATS.includes(c.format) ? c.format : 'auto',
+        auth: DICT_AUTH.includes(c.auth) ? c.auth : 'bearer',
+        headerName: typeof c.headerName === 'string' ? c.headerName.trim().slice(0, 40) : ''
+      });
+    });
+    // 旧版单选配置迁移：provider + key + base（自定义端点）→ enabled / keys / custom。
+    const legacyProvider = typeof src.provider === 'string' && src.provider ? src.provider : '';
+    const legacyKey = typeof src.key === 'string' ? src.key.trim() : '';
+    const legacyBase = typeof src.base === 'string' ? src.base.trim() : '';
+    if (legacyKey && legacyProvider && (legacyProvider !== 'custom' || !legacyBase) && !d.keys[legacyProvider]) d.keys[legacyProvider] = legacyKey;
+    let legacyId = legacyProvider;
+    if (legacyProvider === 'custom' && legacyBase && !d.custom.some(c => c.base === legacyBase)) {
+      legacyId = 'custom-1';
+      let n = 1;
+      while (d.custom.some(c => c.id === legacyId)) legacyId = 'custom-' + (++n);
+      d.custom.push({ id: legacyId, name: '自定义词典', base: legacyBase, format: 'auto', auth: legacyKey ? 'bearer' : 'none', headerName: '' });
+      if (legacyKey && !d.keys[legacyId]) d.keys[legacyId] = legacyKey;
+    }
+    const known = id => DICT_BUILTIN.includes(id) || d.custom.some(c => c.id === id);
+    if (Array.isArray(src.enabled)) {
+      const seen = new Set();
+      d.enabled = src.enabled.filter(id => typeof id === 'string' && known(id) && !seen.has(id) && seen.add(id));
+    } else {
+      d.enabled = known(legacyId) ? [legacyId] : ['freezh'];
+    }
+    d.provider = d.enabled[0] || (known(legacyId) ? legacyId : 'freezh');
+    return d;
+  }
 
   function normalize(raw) {
     const d = Object.assign({}, raw || {});
@@ -90,7 +142,7 @@
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false };
     else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false }, d.ai);
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
-    if (!d.dict || typeof d.dict !== 'object') d.dict = { provider: 'free', key: '', base: '' };
+    d.dict = normalizeDict(d.dict);
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
     if (!d.quiz || typeof d.quiz !== 'object') d.quiz = {};
@@ -312,7 +364,64 @@
   function aiWords() { return Object.keys(data.aiCache).sort((a, b) => (data.aiCache[b].ts || 0) - (data.aiCache[a].ts || 0)); }
 
   // external dictionary (config + per-word cache, offline-friendly)
-  function setDictConfig(patch) { Object.assign(data.dict, patch || {}); save(); }
+  function syncDictPrimary() { data.dict.provider = data.dict.enabled[0] || data.dict.provider; }
+  function setDictConfig(patch) { Object.assign(data.dict, patch || {}); syncDictPrimary(); save(); }
+  function dictKey(id) { return data.dict.keys[id] || ''; }
+  function setDictKey(id, key) {
+    const v = String(key == null ? '' : key).trim();
+    if (v) data.dict.keys[id] = v; else delete data.dict.keys[id];
+    save();
+  }
+  function setDictEnabled(id, on) {
+    const list = data.dict.enabled, i = list.indexOf(id);
+    if (on && i < 0) list.push(id);
+    if (!on && i >= 0) list.splice(i, 1);
+    syncDictPrimary();
+    save();
+  }
+  function moveDictSource(id, delta) {
+    const list = data.dict.enabled, i = list.indexOf(id), j = i + delta;
+    if (i < 0 || j < 0 || j >= list.length) return false;
+    list.splice(i, 1); list.splice(j, 0, id);
+    syncDictPrimary();
+    save();
+    return true;
+  }
+  function addDictSource(entry) {
+    const base = String((entry && entry.base) || '').trim();
+    if (!base) return null;
+    let n = 1;
+    while (data.dict.custom.some(c => c.id === 'custom-' + n)) n++;
+    const id = 'custom-' + n;
+    const src = normalizeDict({ custom: [Object.assign({}, entry, { id, base })] }).custom[0];
+    data.dict.custom.push(src);
+    if (entry && entry.key) setDictKey(id, entry.key);
+    data.dict.enabled.push(id);
+    syncDictPrimary();
+    save();
+    return id;
+  }
+  function updateDictSource(id, patch) {
+    const c = data.dict.custom.find(x => x.id === id);
+    if (!c) return false;
+    const next = normalizeDict({ custom: [Object.assign({}, c, patch, { id })] }).custom[0];
+    if (!next) return false;
+    Object.assign(c, next);
+    if (patch && patch.key !== undefined) setDictKey(id, patch.key);
+    save();
+    return true;
+  }
+  function removeDictSource(id) {
+    const i = data.dict.custom.findIndex(x => x.id === id);
+    if (i < 0) return false;
+    data.dict.custom.splice(i, 1);
+    const e = data.dict.enabled.indexOf(id);
+    if (e >= 0) data.dict.enabled.splice(e, 1);
+    delete data.dict.keys[id];
+    syncDictPrimary();
+    save();
+    return true;
+  }
   function dictEntry(word) { return data.dictCache[word] || null; }
   function saveDictEntry(word, record) { data.dictCache[word] = record; save(); }
   function deleteDictEntry(word) { delete data.dictCache[word]; save(); }
@@ -387,7 +496,11 @@
       return l && ((l.know || 0) + (l.fuzzy || 0) + (l.forgot || 0)) > 0;
     }).length;
     const ai = Object.assign({}, data.ai || {}); delete ai.key; delete ai.keyEnc;
-    const dict = Object.assign({}, data.dict || {}); delete dict.key; delete dict.keyEnc;
+    const dict = Object.assign({}, data.dict || {});
+    delete dict.key; delete dict.keyEnc; delete dict.keys; delete dict.keysEnc;
+    dict.custom = (dict.custom || []).map(c => {
+      const x = Object.assign({}, c); delete x.key; delete x.keyEnc; return x;
+    });
     return {
       app: 'Glance', kind: 'learning-data', schema: 1, exportedAt: new Date().toISOString(),
       summary: {
@@ -531,8 +644,12 @@
         if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;
         const keepAi = data.ai.key || '';
         if (isObj(s.ai)) data.ai = Object.assign({}, data.ai, s.ai, { key: keepAi });
-        const keepDict = (data.dict && data.dict.key) || '';
-        if (isObj(s.dict)) data.dict = Object.assign({}, data.dict, s.dict, { key: keepDict });
+        const keepDictKeys = Object.assign({}, data.dict.keys);
+        if (isObj(s.dict)) {
+          data.dict = normalizeDict(Object.assign({}, s.dict, { keys: keepDictKeys }));
+          // 备份不含 Key：导入的自定义词典若与本机同 id，沿用本机已存的 Key。
+          data.dict.keys = keepDictKeys;
+        }
         if (isObj(s.background)) {
           if (typeof s.background.veil === 'number') data.background.veil = Math.max(0, Math.min(80, s.background.veil));
           if (typeof s.background.blur === 'number') data.background.blur = Math.max(0, Math.min(16, s.background.blur));
@@ -572,6 +689,7 @@
     defaultCardOrder: () => DEFAULTS.cardOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
+    dictKey, setDictKey, setDictEnabled, moveDictSource, addDictSource, updateDictSource, removeDictSource,
     setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile
   };
 })();
