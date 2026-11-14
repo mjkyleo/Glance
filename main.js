@@ -334,8 +334,10 @@ ipcMain.handle('llm-chat', async (_e, args) => {
   if (anthropic) headers['anthropic-dangerous-direct-browser-access'] = 'true';
   const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
   if (jsonMode) body.response_format = { type: 'json_object' };
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 120000);
   try {
-    const res = await net.fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await net.fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal });
     const text = await res.text();
     if (!res.ok) return { ok: false, error: 'HTTP ' + res.status + '：' + text.slice(0, 300) };
     let data;
@@ -344,8 +346,10 @@ ipcMain.handle('llm-chat', async (_e, args) => {
     if (typeof content !== 'string') return { ok: false, error: '响应中没有解释内容' };
     return { ok: true, content };
   } catch (err) {
-    return { ok: false, error: String((err && err.message) || err) };
-  }
+    const msg = String((err && err.message) || err);
+    if (/abort|timeout/i.test(msg)) return { ok: false, error: '请求超时（120 秒无响应）：该端点响应较慢，可稍后重试或更换模型。' };
+    return { ok: false, error: msg };
+  } finally { clearTimeout(to); }
 });
 
 // 通用 GET + JSON：主进程发起请求，绕过浏览器 CORS（外部词典等）。

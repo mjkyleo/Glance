@@ -203,14 +203,19 @@
       const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
       if (jsonMode) body.response_format = { type: 'json_object' };
       const http = isNative && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+      const timeout = 120000;
       try {
         let status, text;
         if (http) {
-          const r = await http.post({ url, headers, data: body, connectTimeout: 60000, readTimeout: 60000 });
+          const r = await http.post({ url, headers, data: body, connectTimeout: timeout, readTimeout: timeout });
           status = r.status; text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
         } else {
-          const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-          status = res.status; text = await res.text();
+          const ctl = new AbortController();
+          const to = setTimeout(() => ctl.abort(), timeout);
+          try {
+            const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal });
+            status = res.status; text = await res.text();
+          } finally { clearTimeout(to); }
         }
         if (status < 200 || status >= 300) return { ok: false, error: 'HTTP ' + status + '：' + String(text).slice(0, 300) };
         let data;
@@ -219,7 +224,12 @@
         if (typeof content !== 'string') return { ok: false, error: '响应中没有解释内容' };
         return { ok: true, content };
       } catch (err) {
-        return { ok: false, error: String((err && err.message) || err) };
+        const msg = String((err && err.message) || err);
+        if (/abort|timeout/i.test(msg)) return { ok: false, error: '请求超时（120 秒无响应）：该端点响应较慢，可稍后重试或更换模型。' };
+        if (!isElectron && !isNative && /Failed to fetch|fetch failed|NetworkError|Load failed|ERR_/i.test(msg)) {
+          return { ok: false, error: '浏览器直连失败（CORS 拦截或网络不可达）：该端点不返回 CORS 头，纯浏览器预览无法调用;请改用 Windows（Electron）或 Android 端，二者走原生网络通道不受 CORS 限制。' };
+        }
+        return { ok: false, error: msg };
       }
     },
 

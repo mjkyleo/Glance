@@ -2378,6 +2378,8 @@
     $('set-ai-key').placeholder = p.devKey ? '内置开发密钥，留空即可' : '仅保存在本机';
     const devNote = $('set-ai-dev-note');
     if (devNote) devNote.hidden = !p.dev;
+    const testOut = $('set-ai-test-result');
+    if (testOut) { testOut.textContent = ''; testOut.className = 'ai-test-result'; }
   }
   const DICT_PROVIDER_BLURB = {
     freezh: '中文释义、双音标、双语例句与考试标签',
@@ -2619,6 +2621,20 @@
     $('set-ai-model').addEventListener('change', () => Store.setAiConfig({ model: $('set-ai-model').value.trim() }));
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
     $('set-ai-key').addEventListener('change', () => Store.setAiConfig({ key: $('set-ai-key').value.trim() }));
+    $('set-ai-test').addEventListener('click', async () => {
+      const btn = $('set-ai-test'); const out = $('set-ai-test-result');
+      const rc = AI.resolveConfig(Store.data.ai);
+      out.className = 'ai-test-result';
+      if (!rc.base || !rc.model) { out.textContent = '请先填写 API 地址与模型名称'; out.className = 'ai-test-result bad'; return; }
+      if (!rc.key) { out.textContent = '请先填写 API Key'; out.className = 'ai-test-result bad'; return; }
+      btn.disabled = true; out.textContent = '测试中…（端点较慢时可能需数十秒）';
+      const t0 = Date.now();
+      const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'user', content: 'ping' }], temperature: 0, jsonMode: false, anthropic: rc.anthropic });
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      btn.disabled = false;
+      if (res.ok) { out.textContent = '✓ 连通正常 · ' + rc.model + ' · ' + secs + 's'; out.className = 'ai-test-result ok'; }
+      else { out.textContent = '✗ ' + res.error; out.className = 'ai-test-result bad'; }
+    });
     $('set-ai-library').addEventListener('click', () => { closeSheet(); openSub('ai'); });
     $('set-dict-provider-btn').addEventListener('click', openDictProviderSheet);
     $('dict-provider-close').addEventListener('click', closeNestedSheet);

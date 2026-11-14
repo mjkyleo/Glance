@@ -1120,6 +1120,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 .ai-section-body { display: flex; flex-direction: column; gap: 12px; }
 .ai-placeholder { font-size: 13px; color: var(--text-3); line-height: 1.6; margin: 0; }
 .ai-error { font-size: 13px; color: var(--red-fg); line-height: 1.6; margin: 0; }
+.ai-test-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.ai-test-result { flex: 1 1 200px; min-width: 0; font-size: 12px; line-height: 1.5; color: var(--text-3); }
+.ai-test-result.ok { color: var(--green-fg); }
+.ai-test-result.bad { color: var(--red-fg); }
 .ai-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .ai-actions .btn-primary, .ai-actions .btn-ghost { height: 40px; }
 .ai-block { display: flex; flex-direction: column; gap: 6px; }
