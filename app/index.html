@@ -344,6 +344,14 @@
             <span class="set-row-label">跳过已掌握<small>已掌握的词不再进入每日学习队列</small></span>
             <label class="switch"><input type="checkbox" id="book-skip-known" /><span class="slider"></span></label>
           </div>
+          <div class="set-row">
+            <span class="set-row-label">过滤基础词<small>去掉 a / the / that 等小学、初中学过的极基础词（默认开启）</small></span>
+            <label class="switch"><input type="checkbox" id="book-skip-basic" /><span class="slider"></span></label>
+          </div>
+          <div class="filter-books">
+            <span class="set-row-label">按词书过滤<small>勾选其它词书，去掉其中已收录的单词（可多选）</small></span>
+            <div class="filter-book-chips" id="book-exclude-chips"></div>
+          </div>
           <p class="field-hint" id="book-filter-hint"></p>
         </section>
         <section class="panel">

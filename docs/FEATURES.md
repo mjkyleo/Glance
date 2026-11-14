@@ -14,12 +14,12 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 2790 | UI 渲染、交互、会话编排、设置 |
+| [app.js](../app/js/app.js) | 2864 | UI 渲染、交互、会话编排、设置、导航返回栈 |
 | [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
-| [store.js](../app/js/store.js) | 571 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
-| [library.js](../app/js/library.js) | 469 | 词书组织、词条富化、官方考纲、对比 |
+| [store.js](../app/js/store.js) | 576 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
+| [library.js](../app/js/library.js) | 492 | 词书组织、词条富化、官方考纲、对比、过滤词集 |
 | [dictionary.js](../app/js/dictionary.js) | 384 | 外部词典检索与多源归一化 |
-| [platform.js](../app/js/platform.js) | 294 | 平台适配（存储/网络/发音/文件/镜像） |
+| [platform.js](../app/js/platform.js) | 308 | 平台适配（存储/网络/发音/文件/镜像/震动） |
 | [themes.js](../app/js/themes.js) | 244 | 专项主题分类器（29 主题） |
 | [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
 | [ai.js](../app/js/ai.js) | 129 | 大模型按词讲解（13 服务商） |
@@ -62,7 +62,7 @@
 
 ### 1.5 词书过滤可选开关 ✅
 
-- 「跳过低阶重复词」（考试阶梯）+「跳过已掌握」，**仅裁剪每日队列**，词书本身与测试范围不变（[app.js:263-272 studyEntries](../app/js/app.js#L263-L272)、[library.js:208-217 lowerWordSet](../app/js/library.js#L208-L217)）。默认均关闭。
+- 四项过滤：**过滤基础词**（a/the/that 等 326 个小学/初中极基础词，**默认开启**、可关）、「跳过低阶重复词」（考试阶梯）、「跳过已掌握」、「按词书过滤」（多选其它词书、排除其已收录词，可多选）。**仅裁剪每日队列**，词书本身与测试范围不变（[app.js:282 studyEntries](../app/js/app.js#L282)、[library.js:223 basicWordSet](../app/js/library.js#L223)、[library.js:229 excludeWordSet](../app/js/library.js#L229)、[app.js:2187 renderExcludeChips](../app/js/app.js#L2187)）。除基础词外默认关闭;过滤 hint 汇总四类裁剪数与剩余词数。
 
 ---
 
@@ -92,6 +92,10 @@
 ### 2.5 词条富字段与派生 ✅
 
 - `enrich` 生成完整词条（[library.js:124](../app/js/library.js#L124)）：词素拆分 `morphemes`、结构化义项 `senses`（词性全称 + 分组）、合成助记 `mnemonic`;详解卡片 `buildCards`（[library.js:371](../app/js/library.js#L371)）。
+
+### 2.6 词书选择停留原页 ✅
+
+- 「词书与计划」点选任一词书（含自定义）仅切换当前书并重建每日队列，**停留在词书页**，不再自动跳去学习页（[app.js:2212 switchBook](../app/js/app.js#L2212)）;用户可自行切到学习页开始。
 
 ---
 
@@ -256,6 +260,11 @@
 
 - 推送 `main` → `.github/workflows/android-build.yml` 自动构建 APK 并发布 Releases;versionCode = 构建号、versionName 带构建号、固定调试签名;CI 断言版本与签名证书;文档-only 提交不触发构建。
 
+### 12.3 导航返回栈与原生震动 ✅
+
+- **统一返回逻辑（Android 硬件返回）**：`@capacitor/app` 监听 `backButton`，按优先级 嵌套弹层 → 弹层 → 子页（词书/统计/AI 库回 opener）→ 测试态回学习态 → 顶层 tab 历史 → 根节点才退出（[app.js:68 handleBack](../app/js/app.js#L68)、[app.js:2513](../app/js/app.js#L2513)）;顶层 tab 切换维护 `navStack` 历史（[app.js:34-37](../app/js/app.js#L34-L37)）。浏览器/Electron 不注册，无副作用。
+- **原生震动反馈**：`@capacitor/haptics`（自带 VIBRATE 权限），[platform.js:92 haptic](../app/js/platform.js#L92) 仅原生生效;评分/答题用 success/warn/error 通知震动，tab/模式/选书/过滤用 light tap;Electron/浏览器 no-op。
+
 ---
 
 ## 13. 后续可迭代优化（🔭 规划 / ✅ 部分已落地）
@@ -332,7 +341,8 @@
 | 记忆 | 个性化权重优化（自研） | ✅ | srs.js:121-158 / store.js:164-182 |
 | 记忆 | 每日计划 + 会话交错 | ✅ | srs.js:160-181 |
 | 学习 | 内容开关 + 排序 + 详解卡片 | ✅ | app.js:344-656 |
-| 学习 | 词书过滤（跳低阶/跳已掌握） | ✅ | app.js:263-272 |
+| 学习 | 词书过滤（基础词默认开/跳低阶/跳已掌握/多书排除） | ✅ | app.js:282 / library.js:223-236 |
+| 词库 | 选书停留词书页（不跳学习） | ✅ | app.js:2212 |
 | 词库 | 官方考纲为根（四/六级） | ✅ | library.js:219-312 |
 | 词库 | 10 考试书 + 质量过滤 | ✅ | library.js:161-184 |
 | 词库 | 自定义导入 JSON/TSV/CSV/TXT | ✅ | library.js:452-467 |
@@ -349,6 +359,7 @@
 | 外观 | 8 主题 + 壁纸 + 透明度 | ✅ | app.js:69-114 |
 | 数据 | 导出导入 + 存储位置 + 镜像 + Key 加密 | ✅ | store.js / main.js / platform.js |
 | 平台 | Electron/Android/浏览器 + CI/CD | ✅ | main.js / android-build.yml |
+| 平台 | 返回栈导航 + 原生震动（Android） | ✅ | app.js:68 / platform.js:92 |
 | 迭代 | ts-fsrs 对照验证 ✅ / 迁移 🔭（FSRS-7） | ✅/🔭 | §13.1 |
 | 迭代 | 组卷主题/词性交错 ✅ / 复习推迟 🔭 | ✅/🔭 | §13.2 |
 | 迭代 | AI 学习空间（Speak/Gemini 评估） | 🔭 | §13.3 |

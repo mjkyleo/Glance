@@ -216,6 +216,29 @@
     return set;
   }
 
+  // Very basic primary / middle-school vocabulary (function words + elementary
+  // nouns/verbs/adjectives). Used by the default-on "skip basic words" filter.
+  const BASIC_WORDS = ('a an the this that these those i you he she it we they me him her us them my your his its our their mine yours hers ours theirs myself yourself himself herself itself ourselves themselves who whom whose which what where when why how am is are was were be been being do does did done have has had having will would shall should can could may might must need used of in on at by for with about against between into through during before after above below to from up down off over under again further then once here there all any both each few more most other some such no nor not only own same so than too very just now also ever never always often sometimes usually and but or if because as until while although though unless since whether either neither book pen pencil desk chair table door window room house home school class teacher student boy girl man woman child children father mother brother sister family friend name day night morning afternoon evening today tomorrow yesterday week month year time water fire food rice bread milk egg apple banana cat dog bird fish tree flower sun moon star sky rain snow wind colour color red blue green yellow black white big small long short tall new old good bad happy sad hot cold warm cool fast slow easy hard clean dirty open close go come run walk jump sit stand eat drink sleep read write speak say tell ask answer look see hear listen play work study learn teach buy sell give take get put make let help like love want need know think feel find keep leave live stay start stop begin finish wait call move turn hold bring carry cut fall grow draw sing dance swim fly ride drive wash wear cook count number one two three four five six seven eight nine ten first second last next').split(/\s+/);
+  let basicCache = null;
+  function basicWordSet() {
+    if (basicCache) return basicCache;
+    basicCache = new Set(BASIC_WORDS);
+    return basicCache;
+  }
+  const excludeCache = {};
+  function excludeWordSet(tags) {
+    const list = (tags || []).filter(Boolean);
+    const key = list.slice().sort().join('|');
+    if (excludeCache[key]) return excludeCache[key];
+    const set = new Set();
+    for (const t of list) {
+      const b = getBook(t);
+      if (b) for (const e of b.entries) set.add(e.word);
+    }
+    excludeCache[key] = set;
+    return set;
+  }
+
   // ---- official syllabus (考纲) root reference ----
   // The 2016 CET syllabus word list is the authoritative foundation: A group (no ★,
   // CET-4) and B group (★, CET-6). Entries keep the printed form (variants a/b,
@@ -466,5 +489,5 @@
     return { name: name || 'library', entries: base.entries, custom: true };
   }
 
-  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial };
+  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, basicWordSet, excludeWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial };
 })();

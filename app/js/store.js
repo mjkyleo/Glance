@@ -23,7 +23,7 @@
     ],
     theme: 'blue',
     progressBars: true,
-    bookFilter: { skipLower: false, skipKnown: false },
+    bookFilter: { skipLower: false, skipKnown: false, skipBasic: true, excludeBooks: [] },
     autoSpeak: false,
     preferAudio: true,
     ttsRate: 1,
@@ -77,8 +77,13 @@
     const savedOrder = d.studyPanelOrder.filter((id, i) => panelIds.includes(id) && d.studyPanelOrder.indexOf(id) === i);
     d.studyPanelOrder = savedOrder.concat(panelIds.filter(id => !savedOrder.includes(id)));
     d.progressBars = d.progressBars !== false;
-    if (!d.bookFilter || typeof d.bookFilter !== 'object' || Array.isArray(d.bookFilter)) d.bookFilter = { skipLower: false, skipKnown: false };
-    else d.bookFilter = { skipLower: d.bookFilter.skipLower === true, skipKnown: d.bookFilter.skipKnown === true };
+    if (!d.bookFilter || typeof d.bookFilter !== 'object' || Array.isArray(d.bookFilter)) d.bookFilter = { skipLower: false, skipKnown: false, skipBasic: true, excludeBooks: [] };
+    else d.bookFilter = {
+      skipLower: d.bookFilter.skipLower === true,
+      skipKnown: d.bookFilter.skipKnown === true,
+      skipBasic: d.bookFilter.skipBasic !== false,
+      excludeBooks: Array.isArray(d.bookFilter.excludeBooks) ? d.bookFilter.excludeBooks.filter(t => typeof t === 'string' && t) : []
+    };
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};

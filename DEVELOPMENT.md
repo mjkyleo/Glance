@@ -814,6 +814,21 @@
 
 **交付**：`android-39`（target `b63a4ff`，CI run 43561380238 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 39` / `versionName 1.0.6+39` / 证书 `CN=Glance Debug`，APK 13,226,822 字节，较 android-38 +910 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-39/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
 
+### 8.29 导航/返回栈 + 原生震动 + 词书选择与过滤增强 ✅
+
+**需求**（用户五条）：① 词书与计划里选书后不要直接跳去学习页;② App 端一些 UI 缺震动反馈;③ App 端按返回键直接退出而非回上一页，需整理各页面切换逻辑;④ 选中词书后其下可多选其它词书做过滤;⑤ 词书过滤新增「过滤基础词」（a/the/that 等小学/初中极基础词，默认开启、可关）。
+
+**实现**
+
+- **选书不跳转**：[app.js:2212 switchBook](app/js/app.js#L2212) 移除 `setMode('study')/switchView('study')/renderStudy()`，仅更新 activeBook + 重建会话 + 重渲染词书页 + 刷新计划条，停留在「词书与计划」。
+- **返回栈（Android）**：新增依赖 `@capacitor/app`。[app.js:34-36](app/js/app.js#L34-L36) 定义 `TOP_VIEWS/SUB_VIEWS/navStack`;[app.js:37 switchView](app/js/app.js#L37) 仅在「顶层 tab → 顶层 tab」时压栈（`fromBack` 不压）;[app.js:68 handleBack](app/js/app.js#L68) 统一返回优先级：嵌套弹层 → 弹层 → 子页（books/stats/ai 回 subReturn）→ 测试态回学习态 → 弹 tab 历史 → 根节点才退出;[app.js:2513](app/js/app.js#L2513) 原生注册 `App.backButton`，`handleBack()` 返回 false 时 `App.exitApp()`。浏览器/Electron 不注册，无副作用。
+- **原生震动**：新增依赖 `@capacitor/haptics`（插件 manifest自带 `VIBRATE` 权限）。[platform.js:92 haptic](app/js/platform.js#L92) 仅原生生效（impact/notification），Electron/浏览器 no-op。触点：评分 [app.js:541](app/js/app.js#L541)（认识=success/模糊=warn/忘记=error）、答题 [app.js:1000](app/js/app.js#L1000)（对=success/错=error）、tab/模式切换/选书/过滤开关/排除词书 chip 均为 light tap。
+- **过滤基础词（默认开）**：[library.js:221 BASIC_WORDS](app/js/library.js#L221)（326 个小学/初中极基础词）+ [library.js:223 basicWordSet](app/js/library.js#L223);[store.js:26](app/js/store.js#L26)、[store.js:80-84](app/js/store.js#L80-L84) `bookFilter.skipBasic` 默认 true（旧数据缺省视为开）;[app.js:282 studyEntries](app/js/app.js#L282) 裁剪每日队列;[index.html:349](app/index.html#L349) 开关 + [app.js:2120](app/js/app.js#L2120) 回填。
+- **多书排除过滤**：[library.js:229 excludeWordSet](app/js/library.js#L229)（多选词书词集并集，带缓存）;`bookFilter.excludeBooks[]` 持久化;[app.js:2187 renderExcludeChips](app/js/app.js#L2187) 在过滤面板渲染除当前书外的全部词书 chip（可多选、选中高亮）;[index.html:351-353](app/index.html#L351-L353) 容器 + [app.css:1035-1039](app/css/app.css#L1035-L1039) chip 样式（随主题圆角/配色）;[app.js:282](app/js/app.js#L282) 队列裁剪;过滤 hint 汇总「基础词/低阶重复/词书重复/已掌握」四类裁剪数与剩余词数。
+- 过滤仍**只裁剪每日学习队列**，词书本身与测试范围不变（沿用 §1.5 约定）。
+
+**验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：选「考纲四级（官方）」后仍停留词书页（`view-books` 可见、`view-study` 隐藏）;`skipBasic` 默认勾选、基础词集 326;排除 chip 14 个，选「四级词库」后 `excludeBooks=['四级']`、hint「词书重复 2300」；基础词开=312/关=0 且剩余词数相应变化;`books-back` 回「我的」、tab 切换正常;控制台无报错;`node --check` 全通过;`npx cap sync android` 识别 3 插件（text-to-speech/app/haptics）。震动与硬件返回为原生能力，浏览器仅验证 no-op 与逻辑不回归，实机效果随 APK 交付。
+
 ---
 
 ## 9. 关键约束与注意事项

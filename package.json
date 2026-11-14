@@ -63,6 +63,8 @@
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^5.1.0",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/haptics": "^6.0.3",
     "electron-updater": "^6.6.2"
   }
 }

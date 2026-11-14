@@ -31,7 +31,16 @@
   const speak = (text, audio) => Platform.speak(text, { lang: Store.data.ttsLang || '', rate: Number(Store.data.ttsRate ?? 1), audio, preferAudio: Store.data.preferAudio !== false });
 
   // ===================== view router =====================
-  function switchView(v) {
+  const TOP_VIEWS = ['study', 'roots', 'themes', 'search', 'me'];
+  const SUB_VIEWS = ['stats', 'books', 'ai'];
+  let navStack = [];
+  function switchView(v, opts) {
+    const fromBack = !!(opts && opts.fromBack);
+    const prev = currentView;
+    if (!fromBack && TOP_VIEWS.includes(prev) && TOP_VIEWS.includes(v) && prev !== v) {
+      navStack.push(prev);
+      if (navStack.length > 24) navStack.shift();
+    }
     currentView = v;
     ['study', 'roots', 'themes', 'search', 'me', 'stats', 'books', 'ai'].forEach(name => {
       $('view-' + name).hidden = name !== v;
@@ -53,6 +62,16 @@
   }
   function backFromSub() {
     switchView(subReturn || 'study');
+  }
+  // Unified back behaviour: nested sheet → sheet → sub-page → quiz→study → tab history → exit.
+  // Returns true when handled internally; false means we are at the root (caller may exit).
+  function handleBack() {
+    if (nestedSheetEl) { closeNestedSheet(); return true; }
+    if (openSheetEl) { closeSheet(); return true; }
+    if (SUB_VIEWS.includes(currentView)) { backFromSub(); return true; }
+    if (currentView === 'study' && mode === 'quiz') { setMode('study'); return true; }
+    if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
+    return false;
   }
 
   // ===================== theme =====================
@@ -263,9 +282,17 @@
   function studyEntries(b) {
     const f = Store.data.bookFilter || {};
     let entries = b.entries;
+    if (f.skipBasic !== false) {
+      const basic = Library.basicWordSet();
+      entries = entries.filter(e => !basic.has(e.word));
+    }
     if (f.skipLower && !b.custom) {
       const lower = Library.lowerWordSet(b.tag);
       if (lower.size) entries = entries.filter(e => !lower.has(e.word));
+    }
+    if (f.excludeBooks && f.excludeBooks.length) {
+      const ex = Library.excludeWordSet(f.excludeBooks);
+      if (ex.size) entries = entries.filter(e => !ex.has(e.word));
     }
     if (f.skipKnown) entries = entries.filter(e => !SRS.isKnown(Store.data.srs[e.word]));
     return entries;
@@ -511,6 +538,7 @@
     if (!item || mode !== 'study') return;
     const elapsed = Date.now() - renderTs;
     Store.recordGrade(item.entry.word, item.kind, g, elapsed);
+    Platform.haptic(g === SRS.GRADE.KNOW ? 'success' : g === SRS.GRADE.FUZZY ? 'warn' : 'error');
     const btn = g === SRS.GRADE.KNOW ? $('grade-know') : g === SRS.GRADE.FUZZY ? $('grade-fuzzy') : $('grade-forgot');
     btn.style.transform = 'scale(0.9)'; setTimeout(() => { btn.style.transform = ''; }, 130);
     sessionIdx++;
@@ -969,6 +997,7 @@
     const q = s.questions[s.idx];
     if (!q) return;
     const isCorrect = choice === q.correctIndex;
+    Platform.haptic(isCorrect ? 'success' : 'error');
     s.answered = true;
     s.answeredCount++;
     if (isCorrect) s.correct++;
@@ -2088,20 +2117,29 @@
     const f = Store.data.bookFilter || {};
     $('book-skip-lower').checked = !!f.skipLower;
     $('book-skip-known').checked = !!f.skipKnown;
+    $('book-skip-basic').checked = f.skipBasic !== false;
+    renderExcludeChips(b);
     const hint = $('book-filter-hint');
-    if (!f.skipLower && !f.skipKnown) {
-      hint.textContent = '默认不裁剪词书；开关只影响每日学习队列，测试范围不受影响。';
+    const basic = f.skipBasic !== false ? Library.basicWordSet() : null;
+    const lower = f.skipLower && !b.custom ? Library.lowerWordSet(b.tag) : null;
+    const ex = (f.excludeBooks && f.excludeBooks.length) ? Library.excludeWordSet(f.excludeBooks) : null;
+    let dBasic = 0, dLower = 0, dEx = 0, dKnown = 0;
+    for (const e of b.entries) {
+      if (basic && basic.has(e.word)) { dBasic++; continue; }
+      if (lower && lower.has(e.word)) { dLower++; continue; }
+      if (ex && ex.has(e.word)) { dEx++; continue; }
+      if (f.skipKnown && SRS.isKnown(Store.data.srs[e.word])) dKnown++;
+    }
+    const total = dBasic + dLower + dEx + dKnown;
+    if (!total) {
+      hint.textContent = '当前不裁剪词书;过滤只影响每日学习队列，测试范围不受影响。';
     } else {
-      const lower = f.skipLower && !b.custom ? Library.lowerWordSet(b.tag) : null;
-      let dropLower = 0, dropKnown = 0;
-      for (const e of b.entries) {
-        if (lower && lower.has(e.word)) { dropLower++; continue; }
-        if (f.skipKnown && SRS.isKnown(Store.data.srs[e.word])) dropKnown++;
-      }
       const parts = [];
-      if (lower && lower.size) parts.push('低阶重复 ' + dropLower);
-      if (f.skipKnown) parts.push('已掌握 ' + dropKnown);
-      hint.textContent = '过滤后剩 ' + (b.n - dropLower - dropKnown) + ' 词' + (parts.length ? '（' + parts.join(' · ') + '）' : '') + '。';
+      if (dBasic) parts.push('基础词 ' + dBasic);
+      if (dLower) parts.push('低阶重复 ' + dLower);
+      if (dEx) parts.push('词书重复 ' + dEx);
+      if (dKnown) parts.push('已掌握 ' + dKnown);
+      hint.textContent = '过滤后剩 ' + (b.n - total) + ' 词（' + parts.join(' · ') + '）。';
     }
 
     const list = $('books-list');
@@ -2146,14 +2184,38 @@
     });
     cl.appendChild(cw);
   }
+  function renderExcludeChips(b) {
+    const wrap = $('book-exclude-chips');
+    wrap.innerHTML = '';
+    const sel = new Set((Store.data.bookFilter || {}).excludeBooks || []);
+    const opts = Library.listBooks().map(x => ({ tag: x.tag, name: x.name }));
+    Object.keys(Store.data.customBooks).forEach(n => opts.push({ tag: n, name: n }));
+    const avail = opts.filter(o => o.tag !== b.tag);
+    if (!avail.length) { wrap.appendChild(el('span', 'field-hint', '暂无其它词书可作过滤。')); return; }
+    avail.forEach(o => {
+      const chip = el('button', 'filter-chip' + (sel.has(o.tag) ? ' on' : ''), o.name);
+      chip.type = 'button';
+      chip.setAttribute('aria-pressed', String(sel.has(o.tag)));
+      chip.addEventListener('click', () => {
+        const cur = new Set(Store.data.bookFilter.excludeBooks || []);
+        if (cur.has(o.tag)) cur.delete(o.tag); else cur.add(o.tag);
+        Store.data.bookFilter.excludeBooks = Array.from(cur);
+        Store.save();
+        buildSession();
+        renderBooks();
+        updatePlanBar();
+        Platform.haptic('tap');
+      });
+      wrap.appendChild(chip);
+    });
+  }
   function switchBook(tag) {
+    Platform.haptic('tap');
     Store.data.activeBook = tag; Store.save();
     book = activeBook();
     buildSession();
-    setMode('study');
     renderBooks();
-    switchView('study');
-    renderStudy();
+    updatePlanBar();
   }
   function bookNameFromFile(fileName) {
     const base = String(fileName || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '').trim();
@@ -2445,7 +2507,11 @@
 
   // ===================== events =====================
   function wireEvents() {
-    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { Platform.haptic('tap'); switchView(t.dataset.view); }));
+    const AppPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (Platform.isNative && AppPlugin && AppPlugin.addListener) {
+      AppPlugin.addListener('backButton', () => { if (!handleBack()) AppPlugin.exitApp(); });
+    }
     $('sheet-backdrop').addEventListener('click', () => closeSheet());
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet()));
 
@@ -2502,8 +2568,8 @@
     $('me-ai-link').addEventListener('click', () => openSub('ai'));
     $('stats-back').addEventListener('click', backFromSub);
 
-    $('mode-study').addEventListener('click', () => setMode('study'));
-    $('mode-quiz').addEventListener('click', () => setMode('quiz'));
+    $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
+    $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
     $('word-detail-btn').addEventListener('click', () => { const it = currentItem(); if (it) openWordSheet(it.entry.word); });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
@@ -2579,15 +2645,23 @@
     $('plan-new-input').addEventListener('change', () => { $('set-new').value = $('plan-new-input').value; applyPlanFromBooks(); });
     $('plan-review-input').addEventListener('change', () => { $('set-review').value = $('plan-review-input').value; applyPlanFromBooks(); });
     const onBookFilter = () => {
-      Store.data.bookFilter = { skipLower: $('book-skip-lower').checked, skipKnown: $('book-skip-known').checked };
+      const prev = Store.data.bookFilter || {};
+      Store.data.bookFilter = {
+        skipLower: $('book-skip-lower').checked,
+        skipKnown: $('book-skip-known').checked,
+        skipBasic: $('book-skip-basic').checked,
+        excludeBooks: prev.excludeBooks || []
+      };
       Store.save();
       buildSession();
       renderBooks();
       updatePlanBar();
       if (mode === 'study') renderStudy();
+      Platform.haptic('tap');
     };
     $('book-skip-lower').addEventListener('change', onBookFilter);
     $('book-skip-known').addEventListener('change', onBookFilter);
+    $('book-skip-basic').addEventListener('change', onBookFilter);
     $('import-book').addEventListener('click', importBook);
     $('cmp-source').addEventListener('change', renderCompare);
     $('cmp-level').addEventListener('change', renderCompare);

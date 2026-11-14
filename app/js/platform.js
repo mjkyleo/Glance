@@ -88,6 +88,20 @@
       if (window.speechSynthesis) speechSynthesis.cancel();
     },
 
+    // Native haptic feedback; no-op on Electron/browser.
+    haptic(kind) {
+      const H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+      if (!isNative || !H) return;
+      try {
+        if (kind === 'success') H.notification({ type: 'SUCCESS' });
+        else if (kind === 'error') H.notification({ type: 'ERROR' });
+        else if (kind === 'warn') H.notification({ type: 'WARNING' });
+        else if (kind === 'heavy') H.impact({ style: 'HEAVY' });
+        else if (kind === 'medium') H.impact({ style: 'MEDIUM' });
+        else H.impact({ style: 'LIGHT' });
+      } catch (e) { /* haptics are optional */ }
+    },
+
     async getSettings() {
       if (isElectron) return ipc.invoke('get-settings');
       try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
