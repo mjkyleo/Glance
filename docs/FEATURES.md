@@ -2,7 +2,7 @@
 
 > 本文逐模块说明 Glance 的**全部功能**、**已实现状态**与**后续可迭代优化方向**，作为产品与开发的单一参照。
 > 实现细节与逐项验证记录见 [DEVELOPMENT.md](../DEVELOPMENT.md);数据 schema 见 [DATA.md](DATA.md)。
-> 文中 `文件:行号` 为编写时（2026-11-14，`android-40`）核实的代码位置，重构后需同步更新。
+> 文中 `文件:行号` 为编写时（2026-11-14，`android-41`）核实的代码位置，重构后需同步更新。
 
 **状态标记**
 
@@ -14,11 +14,11 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 2864 | UI 渲染、交互、会话编排、设置、导航返回栈 |
+| [app.js](../app/js/app.js) | 2899 | UI 渲染、交互、会话编排、设置、导航返回栈 |
 | [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
 | [store.js](../app/js/store.js) | 576 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
 | [library.js](../app/js/library.js) | 492 | 词书组织、词条富化、官方考纲、对比、过滤词集 |
-| [dictionary.js](../app/js/dictionary.js) | 384 | 外部词典检索与多源归一化 |
+| [dictionary.js](../app/js/dictionary.js) | 465 | 外部词典检索、多源归一化与回退（有道/UAPI/免费/MW/自定义） |
 | [platform.js](../app/js/platform.js) | 308 | 平台适配（存储/网络/发音/文件/镜像/震动） |
 | [themes.js](../app/js/themes.js) | 244 | 专项主题分类器（29 主题） |
 | [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
@@ -149,16 +149,19 @@
 
 ### 5.1 查词 / 历史 / 生词本 ✅
 
-- 查词 [app.js:1658 runSearch](../app/js/app.js#L1658)，词详情弹层 [app.js:1378 openWordSheet](../app/js/app.js#L1378)，查词历史 [app.js:1714 renderHistory](../app/js/app.js#L1714)，生词本/收藏 [app.js:1725 renderFavorites](../app/js/app.js#L1725)。
+- 查词 [app.js:1707 runSearch](../app/js/app.js#L1707)，词详情弹层 [app.js:1407 openWordSheet](../app/js/app.js#L1407)，查词历史 [app.js:1777 renderHistory](../app/js/app.js#L1777)，生词本/收藏 [app.js:1788 renderFavorites](../app/js/app.js#L1788)。
+- **在线查词入口** ✅：本地词库无精确匹配时，结果顶部置顶「在线查词：〈query〉」行，点击即开词卡并自动联网查询、按词缓存到本机（[app.js:1716](../app/js/app.js#L1716)、[app.css:1040](../app/css/app.css#L1040)）。
 
 ### 5.2 外部词典 ✅
 
-- [dictionary.js](../app/js/dictionary.js)：免费词典开箱即用，可切 Merriam-Webster 或自定义端点;多源归一化（有道/免费/MW/自定义，[dictionary.js:47-294](../app/js/dictionary.js#L47-L294)），结果按词缓存、离线可看。
-- 服务商二级底部弹层选择（推荐/Key 徽章 + 能力说明）[app.js:2375 renderDictProviderList](../app/js/app.js#L2375)。
+- [dictionary.js](../app/js/dictionary.js)：中英词典（有道源，默认）开箱即用，可切 **UAPI 中英词典**、免费英文词典（dictionaryapi.dev）、Merriam-Webster 或自定义端点;多源归一化（有道 / UAPI / 免费 / MW / 自定义），结果按词缓存、离线可看。
+- **UAPI 中英词典** ✅：免 Key（访客积分，4 QPS 上限），中英双释义 + 英美音标音频 + 考试标签 + 词形变化 + 词组 + 近义 + 双语例句;`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签（[dictionary.js:209](../app/js/dictionary.js#L209)）。仅原生通道直连，浏览器跨域拦截时自动回退。
+- **多源回退** ✅：有道 → UAPI → dictionaryapi.dev，命中「未找到该词」即停以省积分;回退来源显示「已从〈源〉回退」（[dictionary.js:451](../app/js/dictionary.js#L451)、[app.js:1531](../app/js/app.js#L1531)）。
+- 服务商二级底部弹层选择（推荐/Key 徽章 + 能力说明，5 个服务商）[app.js:2492 renderDictProviderList](../app/js/app.js#L2492)。
 
 ### 5.3 详细讲解页 ✅
 
-- 自动查词、刷新/删除图标、AI 自动生成开关、词根+词源合并、卡片紧凑化（[app.js:1461 dictSection](../app/js/app.js#L1461)）。
+- 自动查词、刷新/删除图标、AI 自动生成开关、词根+词源合并、卡片紧凑化（[app.js:1490 dictSection](../app/js/app.js#L1490)）;UAPI 记录额外渲染词形变化与常见词组（[app.js:1563](../app/js/app.js#L1563)、[app.js:1571](../app/js/app.js#L1571)）。
 
 ---
 
@@ -351,7 +354,7 @@
 | 专项 | 29 主题分类 + 专项学习 | ✅ | themes.js / app.js:1299-1321 |
 | 测试 | 6 范围 4 题型 + 自动难度 + 约束 | ✅ | quiz.js |
 | 测试 | 干扰项（同根/音近/词形镜像） | ✅ | quiz.js:296-448 |
-| 查词 | 查词/历史/生词本 + 外部词典 | ✅ | app.js:1378-1725 / dictionary.js |
+| 查词 | 查词/历史/生词本 + 在线查词入口 + 多源词典回退 | ✅ | app.js:1407-1800 / dictionary.js:209-465 |
 | AI | 13 服务商按词讲解 + 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:1564-1631 / app.js:2624 |
 | 发音 | 真人音频优先 + 原生/Web TTS | ✅ | platform.js:53 |
 | 统计 | 日历/掌握/正确率/趋势/接触榜 | ✅ | app.js:1827-1975 |

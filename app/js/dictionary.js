@@ -6,6 +6,10 @@
       hint: '免 Key 的中英/英中词典：中文释义、双音标、双语例句、考试标签与助记。桌面/安卓端直连；浏览器预览若被跨域拦截会自动回退免费英文词典。'
     },
     {
+      id: 'uapis', name: '中英词典 (UAPI)', needKey: false, custom: false,
+      hint: '免 Key 的中英词典（uapis.cn）：中英双释义、英美音标与真人发音、词形变化、词组、近义词与双语例句。桌面/安卓端直连；浏览器预览会被跨域拦截，自动回退其它词典。访客积分有 4 QPS 上限。'
+    },
+    {
       id: 'free', name: '免费词典 (dictionaryapi.dev)', needKey: false, custom: false,
       hint: '免费英文词典（Wiktionary 源，无需 Key），含音标、词性、多义项与例句。'
     },
@@ -202,6 +206,77 @@
     };
   }
 
+  function normalizeUapis(json, word, url) {
+    const entry = json && json.found && json.entry ? json.entry : null;
+    if (!entry) return null;
+    const meanings = [];
+    const byPos = new Map();
+    function group(pos) {
+      const key = str(pos);
+      let g = byPos.get(key);
+      if (!g) { g = { pos: key, defs: [] }; byPos.set(key, g); meanings.push(g); }
+      return g;
+    }
+    // 中文释义：真实数据把词性内嵌在 meaning 开头（"adj. …"），文档另有 part_of_speech 字段。
+    arr(entry.definitions).forEach(d => {
+      if (!d || typeof d !== 'object') return;
+      let pos = str(d.part_of_speech), zh = str(d.meaning);
+      if (!zh) return;
+      if (!pos) {
+        const m = zh.match(/^([a-zA-Z]+(?:\.\s*&\s*[a-zA-Z]+)*\.)\s*(.*)$/);
+        if (m) { pos = m[1]; zh = m[2]; }
+      }
+      if (zh) group(pos).defs.push({ zh });
+    });
+    arr(entry.english_definitions).forEach(d => {
+      if (!d || typeof d !== 'object') return;
+      const en = str(d.definition);
+      if (!en) return;
+      const g = group(str(d.part_of_speech));
+      if (g.defs.some(x => x.en === en)) return;
+      g.defs.push({ en, example: str(arr(d.examples)[0]) });
+    });
+
+    const ph = entry.phonetics || {}, us = ph.us || {}, uk = ph.uk || {};
+    const ipa = cleanIpa(us.text || uk.text);
+    let ipaUk = cleanIpa(uk.text);
+    if (ipaUk === ipa) ipaUk = '';
+    const audio = [];
+    [us.audio, uk.audio].forEach(a => {
+      const s = str(a);
+      if (!s) return;
+      const u = s.startsWith('/') ? 'https://uapis.cn' + s : audioUrl(s);
+      if (u && !audio.includes(u)) audio.push(u);
+    });
+
+    const flat = meanings.reduce((acc, m) => acc.concat(m.defs), []);
+    arr(entry.examples).slice(0, 3).forEach((ex, i) => {
+      const s = str(ex && ex.source), t = str(ex && ex.translation);
+      const line = s && t ? s + ' — ' + t : (s || t);
+      const d = flat[i] || flat[0];
+      if (line && d && !d.example) d.example = line;
+    });
+    arr(entry.synonyms).forEach(s => {
+      const words = uniq(arr(s && s.words)).slice(0, 8);
+      if (!words.length) return;
+      const g = byPos.get(str(s && s.part_of_speech)) || meanings[0];
+      if (g && g.defs[0] && !g.defs[0].synonyms) g.defs[0].synonyms = words;
+    });
+    meanings.forEach(g => { g.defs = capDefs(g.defs); });
+
+    const UAPIS_EXAM = { '初中': '中考', '高中': '高考', 'CET4': '四级', 'CET6': '六级', 'IELTS': '雅思', 'TOEFL': '托福', 'SAT': 'SAT', 'GRE': 'GRE', '考研': '考研', '商务英语': '商务英语' };
+    const exam = uniq(arr(entry.exam_tags).map(x => UAPIS_EXAM[str(x)] || str(x))).slice(0, 8);
+    const phrases = arr(entry.phrases).map(p => ({ phrase: str(p && p.phrase), meaning: str(p && p.meaning) })).filter(p => p.phrase).slice(0, 8);
+    const wordForms = arr(entry.word_forms).map(f => ({ name: str(f && f.name), value: str(f && f.value) })).filter(f => f.name && f.value).slice(0, 8);
+
+    return {
+      word, ipa, ipaUk, audio: audio.slice(0, 3),
+      meanings: meanings.filter(g => g.defs.length).slice(0, 10),
+      lang: 'en', exam, phrases, wordForms,
+      provider: 'uapis', sourceUrl: url, ts: Date.now()
+    };
+  }
+
   function mwAudio(name) {
     const a = str(name);
     if (!a) return '';
@@ -304,6 +379,7 @@
       if (cfg.key && base.includes('{key}')) base = base.replace(/\{key\}/g, encodeURIComponent(cfg.key));
       return base;
     }
+    if (p.id === 'uapis') return 'https://uapis.cn/api/v1/dictionary/lookup?word=' + w;
     return 'https://api.dictionaryapi.dev/api/v2/entries/en/' + w;
   }
 
@@ -337,6 +413,7 @@
     let record;
     try {
       if (p.id === 'freezh') record = normalizeYoudao(res.data, word, url);
+      else if (p.id === 'uapis') record = normalizeUapis(res.data, word, url);
       else if (p.custom) record = normalizeCustom(res.data, word, url);
       else if (p.id === 'mw') record = normalizeMw(res.data, word, url);
       else record = normalizeFree(res.data, word, url);
@@ -369,16 +446,20 @@
     if (p.custom && !str(cfg.base)) return { ok: false, error: '请填写自定义词典的 API 地址（含 {word}）' };
 
     let out = await attempt(p, word, cfg);
-    // 有道在纯浏览器里会被 Origin 校验拦截；自动回退免费英文词典。
-    if (!out.record && p.id === 'freezh') {
-      const fb = await attempt(getProvider('free'), word, cfg);
-      if (fb.record) { fb.record.fallbackFrom = 'freezh'; out = fb; }
-      else if (fb.error === '词典中未找到该词') out = fb;
+    // 多源回退：有道/UAPI 在纯浏览器里会被跨域拦截，最终落到带 CORS 的 dictionaryapi.dev。
+    // 命中「未找到该词」即停止，避免对生僻/拼错的词浪费 UAPI 访客积分。
+    const FALLBACK = { freezh: ['uapis', 'free'], uapis: ['freezh', 'free'], free: ['uapis', 'freezh'], mw: ['free'] };
+    if (!out.record) {
+      for (const fid of (FALLBACK[p.id] || [])) {
+        const fb = await attempt(getProvider(fid), word, cfg);
+        if (fb.record) { fb.record.fallbackFrom = p.id; out = fb; break; }
+        if (fb.error === '词典中未找到该词') { out = fb; break; }
+      }
     }
     if (!out.record) return { ok: false, error: out.error };
     Store.saveDictEntry(word, out.record);
     return { ok: true, record: out.record, cached: false };
   }
 
-  window.Dictionary = { PROVIDERS, getProvider, lookup, normalizeYoudao, normalizeFree, normalizeMw, normalizeCustom, buildUrl };
+  window.Dictionary = { PROVIDERS, getProvider, lookup, normalizeYoudao, normalizeUapis, normalizeFree, normalizeMw, normalizeCustom, buildUrl };
 })();

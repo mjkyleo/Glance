@@ -1037,6 +1037,7 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .filter-chip { padding: 6px 12px; border-radius: var(--r-chip); border: 1px solid var(--line); background: var(--fill); color: var(--text-3); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
 .filter-chip:active { opacity: var(--press-opacity); }
 .filter-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg, #fff); }
+.online-lookup-row .row-title { color: var(--accent); }
 .set-row-action { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; height: 30px; padding: 0 11px; border-radius: 999px; background: var(--fill); color: var(--text-3); font-size: 12.5px; font-weight: 500; transition: background var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui); }
 .set-row-tap:hover .set-row-action { background: var(--fill-2); color: var(--text-2); }
 .provider-list { display: flex; flex-direction: column; gap: 8px; }

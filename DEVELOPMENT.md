@@ -831,6 +831,29 @@
 
 **交付**：`android-40`（target `4b1dde0`，CI run 43563901478 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 40` / `versionName 1.0.6+40` / 证书 `CN=Glance Debug`，APK 13,234,588 字节，较 android-39 +7,766 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
 
+### 8.30 查词在线化 + UAPI 中英词典集成 + 多源回退 ✅
+
+**需求**（用户）：查词页只查本地词库，本地没有就「没有匹配结果」;要求改用词典联网查、查到后缓存到本机;分析并集成 dictionaryapi.dev 与 uapis.cn 两个免费词典 API。默认服务商经确认保持有道（无积分限制），UAPI 作回退增强。
+
+**勘察结论**
+
+- 查词 tab `runSearch()` 仅调 `Library.search()`（本地索引），无在线入口（[app.js:1707](app/js/app.js#L1707) / [library.js:358](app/js/library.js#L358)）;「联网 + 按词缓存」机制其实已存在（dictionary.js `lookup` → [store.js:316-318](app/js/store.js#L316-L318) `saveDictEntry`），只在打开单词卡的词典分区触发（[app.js:1592](app/js/app.js#L1592)），非本地词开卡会自动查并缓存（[app.js:1413](app/js/app.js#L1413)）。缺口是搜索页不给打开非本地词的入口。
+- dictionaryapi.dev 已集成为 `free` 服务商;实测 CORS `*`，纯浏览器可用，仅英英释义。
+- uapis.cn `/api/v1/dictionary/lookup?word=`：实测免 Key（访客积分，2 积分/次，4 QPS），200 返回中英双释义 + 英美音标音频 + 考试标签 + 词形变化 + 词组 + 近义 + 双语例句;**无 CORS 头**，仅原生通道可用;真实 `definitions[].meaning` 内嵌词性（"adj. …"），`audio` 为相对路径。
+
+**实现**
+
+- **UAPI 服务商**：[dictionary.js:9](app/js/dictionary.js#L9) PROVIDERS 新增 `uapis`;[dictionary.js:209 normalizeUapis](app/js/dictionary.js#L209) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:382 buildUrl](app/js/dictionary.js#L382)、[:416 attempt 路由](app/js/dictionary.js#L416)、[:464 导出](app/js/dictionary.js#L464)。
+- **多源回退**：[dictionary.js:451 FALLBACK](app/js/dictionary.js#L451) 有道→UAPI→dictionaryapi.dev（UAPI→有道→free，free→UAPI→有道）;命中「未找到该词」即停，省 UAPI 积分;回退来源记于 `record.fallbackFrom`，[app.js:1531](app/js/app.js#L1531) 显示「已从〈源〉回退」。
+- **查词在线入口**：[app.js:1716](app/js/app.js#L1716) 无本地精确匹配时置顶「在线查词：〈query〉」行（[app.js:1720](app/js/app.js#L1720)），点击 `openWordSheet(query,true)` 复用既有联网 + 缓存;[app.css:1040](app/css/app.css#L1040) 标题用主题强调色。
+- **词典渲染增强**：[app.js:1563](app/js/app.js#L1563) 词形变化、[:1571](app/js/app.js#L1571) 常见词组（复用既有 dict-* 样式，无新增 CSS）;服务商选择器 [app.js:2482 简介](app/js/app.js#L2482)、[:2499 标记 U](app/js/app.js#L2499)。
+- 缓存沿用 `store.dictCache`，导出/导入已覆盖，**无 schema 改动**;默认服务商仍 `freezh`。
+
+**验证**
+
+- Node 单测 `normalizeUapis` 对 uapis.cn 实时返回（present）：词性 adj./n./v. 归并、中英义项、音频补主机、考试标签映射（中考/高考/四级/六级/考研/雅思）、词形/词组齐全。
+- browser-use（ignoreCache 重载 127.0.0.1:8123）：查「defenestration」（本地未收录）出现在线查词行→点击开卡→自动联网;浏览器下有道/UAPI 均被 CORS 拦截→回退 dictionaryapi.dev 成功并**缓存到本机**（`Store.dictEntry` 命中，meta「免费词典 (dictionaryapi.dev) · 已从中英词典回退」）;服务商选择器渲染 5 行含 UAPI（标记 U/免 Key）;注入 UAPI 缓存记录开卡渲染「词形变化/常见词组」正确;控制台仅有预期的有道/UAPI CORS 报错（已被回退处理），无其它 JS 错误;`node --check` app.js/dictionary.js 通过。UAPI 直连为原生能力，实机随 APK 交付。
+
 ---
 
 ## 9. 关键约束与注意事项

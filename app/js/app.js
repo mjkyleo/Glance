@@ -1528,7 +1528,7 @@
         return;
       }
       meta.textContent = providerName(record.provider) + (cached ? ' · 本地缓存' : '') +
-        (record.fallbackFrom ? ' · 有道不可用已回退' : '');
+        (record.fallbackFrom ? ' · 已从' + providerName(record.fallbackFrom) + '回退' : '');
       if (record.ipa) {
         const ipaText = record.ipaUk && record.ipaUk !== record.ipa
           ? '美 /' + record.ipa + '/ · 英 /' + record.ipaUk + '/'
@@ -1560,6 +1560,26 @@
         });
         content.appendChild(block);
       });
+      if (record.wordForms && record.wordForms.length) {
+        const wf = el('div', 'dict-mean');
+        wf.appendChild(el('div', 'dict-pos', '词形变化'));
+        const row = el('div', 'dict-def');
+        const txt = el('div', 'dict-def-text');
+        txt.appendChild(el('span', 'dict-def-en', record.wordForms.map(f => f.name + ' ' + f.value).join(' · ')));
+        row.appendChild(txt); wf.appendChild(row); content.appendChild(wf);
+      }
+      if (record.phrases && record.phrases.length) {
+        const ph = el('div', 'dict-mean');
+        ph.appendChild(el('div', 'dict-pos', '常见词组'));
+        record.phrases.forEach(p => {
+          const row = el('div', 'dict-def');
+          const txt = el('div', 'dict-def-text');
+          txt.appendChild(el('span', 'dict-def-en', p.phrase));
+          if (p.meaning) txt.appendChild(el('div', 'dict-def-en2', p.meaning));
+          row.appendChild(txt); ph.appendChild(row);
+        });
+        content.appendChild(ph);
+      }
     }
 
     async function run(force) {
@@ -1693,6 +1713,20 @@
     $('fav-block').hidden = !!query;
     if (!query) return;
     const r = Library.search(query, 40);
+    const exact = r.words.some(w => w.word.toLowerCase() === query.toLowerCase());
+    if (!exact) {
+      res.appendChild(el('div', 'section-label', '在线词典'));
+      const wrap = el('div', 'list-gap');
+      const online = el('button', 'row online-lookup-row'); online.type = 'button';
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', '在线查词：' + query));
+      main.appendChild(el('div', 'row-sub', '本地词库未收录，点击联网查询并缓存到本机'));
+      online.appendChild(main);
+      online.appendChild(el('span', 'row-badge', '词典'));
+      online.addEventListener('click', () => { Platform.haptic('tap'); openWordSheet(query, true); });
+      wrap.appendChild(online);
+      res.appendChild(wrap);
+    }
     if (r.words.length) {
       res.appendChild(el('div', 'section-label', '单词'));
       const wrap = el('div', 'list-gap');
@@ -1738,7 +1772,7 @@
       });
       res.appendChild(wrap);
     }
-    if (!r.words.length && !r.roots.length && !r.affixes.length) res.appendChild(el('div', 'empty-hint', '没有匹配结果'));
+    if (!res.childNodes.length) res.appendChild(el('div', 'empty-hint', '没有匹配结果'));
   }
   function renderHistory() {
     const list = $('history-list');
@@ -2445,6 +2479,7 @@
   }
   const DICT_PROVIDER_BLURB = {
     freezh: '中文释义、双音标、双语例句与考试标签',
+    uapis: '中英双释义、英美发音、词形/词组/近义与双语例句',
     free: '英文词典，含音标、词性、多义项与例句',
     mw: '韦氏大学词典，需自行申请 API Key',
     custom: '通用 JSON 端点，URL 用 {word} 占位'
@@ -2461,7 +2496,7 @@
     Dictionary.PROVIDERS.forEach(p => {
       const row = el('button', 'provider-row' + (p.id === current ? ' active' : ''));
       row.type = 'button';
-      row.appendChild(el('span', 'provider-mark', { freezh: '中', free: 'EN', mw: 'MW', custom: '{}' }[p.id] || p.name.charAt(0)));
+      row.appendChild(el('span', 'provider-mark', { freezh: '中', uapis: 'U', free: 'EN', mw: 'MW', custom: '{}' }[p.id] || p.name.charAt(0)));
       const main = el('div', 'provider-main');
       const nameRow = el('div', 'provider-name-row');
       nameRow.appendChild(el('span', 'provider-name', p.name));
