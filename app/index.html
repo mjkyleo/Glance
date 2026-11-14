@@ -741,6 +741,21 @@
 
       <div class="settings-pane" id="pane-data" hidden>
         <section class="set-group">
+          <h4>存储位置</h4>
+          <p class="storage-path" id="storage-path"></p>
+          <p class="field-hint" id="storage-note"></p>
+          <div class="storage-btns">
+            <button class="btn-ghost" id="storage-change" type="button">更改位置</button>
+            <button class="btn-ghost" id="storage-reset" type="button">恢复默认</button>
+            <button class="btn-ghost" id="storage-open" type="button">打开目录</button>
+          </div>
+          <div class="storage-btns" id="storage-mirror-row" hidden>
+            <button class="btn-ghost" id="storage-mirror-now" type="button">立即备份到共享目录</button>
+            <button class="btn-ghost" id="storage-restore" type="button">从共享备份恢复</button>
+          </div>
+          <p class="field-hint" id="storage-security"></p>
+        </section>
+        <section class="set-group">
           <h4>备份与重置</h4>
           <button class="btn-ghost" id="export-data" type="button">导出全部学习数据</button>
           <button class="btn-ghost" id="import-data" type="button">导入学习数据</button>

@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, nativeTheme, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme, net, safeStorage, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { globalShortcut } = require('electron');
 
 
@@ -43,14 +44,94 @@ autoUpdater.on('update-downloaded', (info) => {
   }
 });
 
-const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+const defaultDataDir = app.getPath('userData');
+const dataDirPointer = path.join(defaultDataDir, 'data-dir.json');
 
-let mainWindow;
+function currentDataDir() {
+  try {
+    const p = JSON.parse(fs.readFileSync(dataDirPointer, 'utf-8'));
+    if (p && typeof p.dir === 'string' && p.dir && fs.existsSync(p.dir)) return p.dir;
+  } catch (error) { /* pointer missing or broken → default */ }
+  return defaultDataDir;
+}
+function settingsPath() { return path.join(currentDataDir(), 'settings.json'); }
+
+// The encryption key lives ONLY in the app-private default dir, never in the
+// user-chosen data dir. Copying or syncing the data dir elsewhere therefore does
+// not expose API keys: the key file stays behind on this machine.
+const secretKeyPath = path.join(defaultDataDir, 'glance-secret.key');
+let secretKey = null;
+function loadSecretKey() {
+  if (secretKey) return secretKey;
+  try {
+    if (fs.existsSync(secretKeyPath)) {
+      const b = Buffer.from(fs.readFileSync(secretKeyPath, 'utf-8').trim(), 'base64');
+      if (b.length === 32) { secretKey = b; return secretKey; }
+    }
+  } catch (error) { /* unreadable → regenerate below */ }
+  secretKey = crypto.randomBytes(32);
+  try { fs.writeFileSync(secretKeyPath, secretKey.toString('base64'), { mode: 0o600 }); }
+  catch (error) { console.error('Failed to persist secret key:', error); }
+  return secretKey;
+}
+
+function storageInfo() {
+  const dir = currentDataDir();
+  return {
+    platform: 'electron', dir, defaultDir: defaultDataDir,
+    settingsFile: settingsPath(), custom: dir !== defaultDataDir,
+    encrypted: true
+  };
+}
+
+// API keys are sealed with AES-256-GCM under a random per-install key, so the
+// data file stays safe even when the user moves it to a synced or shared folder.
+const ENC_PREFIX = 'g1:';
+function sealKeys(s) {
+  const out = JSON.parse(JSON.stringify(s));
+  const key = loadSecretKey();
+  for (const k of ['ai', 'dict']) {
+    const sec = out[k];
+    if (sec && typeof sec.key === 'string' && sec.key) {
+      const iv = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      const ct = Buffer.concat([cipher.update(sec.key, 'utf8'), cipher.final()]);
+      sec.keyEnc = ENC_PREFIX + Buffer.concat([iv, cipher.getAuthTag(), ct]).toString('base64');
+      delete sec.key;
+    }
+  }
+  return out;
+}
+function unsealKeys(s) {
+  for (const k of ['ai', 'dict']) {
+    const sec = s[k];
+    if (sec && typeof sec.keyEnc === 'string' && sec.keyEnc) {
+      try {
+        if (sec.keyEnc.startsWith(ENC_PREFIX)) {
+          const raw = Buffer.from(sec.keyEnc.slice(ENC_PREFIX.length), 'base64');
+          const decipher = crypto.createDecipheriv('aes-256-gcm', loadSecretKey(), raw.subarray(0, 12));
+          decipher.setAuthTag(raw.subarray(12, 28));
+          sec.key = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
+        } else {
+          // Legacy safeStorage blob from older builds; best-effort decrypt.
+          sec.key = safeStorage.decryptString(Buffer.from(sec.keyEnc, 'base64'));
+        }
+        delete sec.keyEnc;
+      } catch (error) {
+        // Keep keyEnc intact: a failed decrypt must never destroy the stored key,
+        // otherwise the next empty-key flush would wipe it permanently.
+        sec.key = '';
+      }
+    }
+  }
+  return s;
+}
 
 function loadSettings() {
   try {
-    if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    const p = settingsPath();
+    if (fs.existsSync(p)) {
+      return unsealKeys(JSON.parse(fs.readFileSync(p, 'utf-8')));
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -70,9 +151,11 @@ function loadSettings() {
   };
 }
 function saveSettings(settings) {
-  try { fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2)); }
+  try { fs.writeFileSync(settingsPath(), JSON.stringify(sealKeys(settings), null, 2)); }
   catch (error) { console.error('Failed to save settings:', error); }
 }
+
+let mainWindow;
 
 function getDefaultDialogPath() {
   const dir = path.join(app.getPath('documents'));
@@ -117,8 +200,10 @@ function createMainWindow() {
 
 // ===== whenReady 只注册一次！ =====
 app.whenReady().then(() => {
-  ensureLanguageSetting();
+  // Create the window first so legacy safeStorage blobs (older builds) can still
+  // be decrypted; current builds seal keys with a self-managed AES-256-GCM key.
   createMainWindow();
+  ensureLanguageSetting();
   
   
   autoUpdater.checkForUpdatesAndNotify();
@@ -146,6 +231,61 @@ ipcMain.on('save-settings', (_e, settings) => {
     win.webContents.send('settings-updated', merged);
   }
 });
+
+// ---- storage location: default userData stays untouched; optional custom dir ----
+ipcMain.handle('storage-info', () => storageInfo());
+
+ipcMain.handle('storage-set-dir', async (_e, arg) => {
+  let dir = arg && typeof arg.dir === 'string' && arg.dir ? arg.dir : null;
+  if (!dir) {
+    const r = await dialog.showOpenDialog({
+      title: '选择数据存储目录 / Choose data folder',
+      defaultPath: currentDataDir(),
+      properties: ['openDirectory', 'createDirectory']
+    });
+    if (r.canceled || !r.filePaths.length) return null;
+    dir = r.filePaths[0];
+  }
+  dir = path.resolve(dir);
+  if (dir === currentDataDir()) return storageInfo();
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.accessSync(dir, fs.constants.W_OK);
+  } catch (error) { return { error: '目录不可写：' + error.message }; }
+  const from = settingsPath(), to = path.join(dir, 'settings.json');
+  try {
+    // Existing data in the target wins (re-adopt after reinstall); otherwise migrate current.
+    // read+write (not copyFile): CopyFileW can throw EPERM on some Windows setups.
+    if (!fs.existsSync(to) && fs.existsSync(from)) {
+      const tmp = to + '.tmp-' + process.pid;
+      fs.writeFileSync(tmp, fs.readFileSync(from));
+      fs.renameSync(tmp, to);
+    }
+    fs.writeFileSync(dataDirPointer, JSON.stringify({ dir }, null, 2));
+  } catch (error) { return { error: '迁移失败：' + error.message }; }
+  return storageInfo();
+});
+
+ipcMain.handle('storage-reset-dir', () => {
+  const cur = currentDataDir();
+  if (cur !== defaultDataDir) {
+    try {
+      const from = path.join(cur, 'settings.json'), to = path.join(defaultDataDir, 'settings.json');
+      if (fs.existsSync(from)) {
+        // Copy aside first: a failed copy must never leave the default file missing.
+        // read+write (not copyFile): CopyFileW can throw EPERM on some Windows setups.
+        const tmp = to + '.tmp-' + process.pid;
+        fs.writeFileSync(tmp, fs.readFileSync(from));
+        if (fs.existsSync(to)) fs.renameSync(to, to + '.prev-' + Date.now());
+        fs.renameSync(tmp, to);
+      }
+      fs.unlinkSync(dataDirPointer);
+    } catch (error) { return { error: error.message }; }
+  }
+  return storageInfo();
+});
+
+ipcMain.handle('storage-open-dir', () => shell.openPath(currentDataDir()));
 // 学习主窗口：选择自定义词库（JSON / TSV / TXT）
 ipcMain.handle('dialog:openLibrary', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({

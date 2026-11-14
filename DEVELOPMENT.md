@@ -664,6 +664,22 @@
 
 **交付**：`android-32`（target `6391fc0`，CI run 43539898766 成功，Range 复核 `com.glance.app` / `versionCode 32` / `versionName 1.0.6+32`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,175,977 字节）。
 
+### 8.23 存储位置可配置 + 卸载不丢数据 + API Key 静态加密 ✅
+
+**需求**：无论安装到哪个平台、安装/存储位置在哪，都能在应用内设置存储位置；默认路径固定不变、系统可找到存储文件（有路径展示）;即便删除 app，下次安装仍能看到之前的数据（除非人工删除）;敏感数据（API Key）确保安全。
+
+**实现**
+
+- **Electron 可配置数据目录**（`main.js`）：默认 `userData` 不变;指针文件 `userData/data-dir.json` 记录自定义目录，`currentDataDir()` 校验存在性、失效回退默认。`storage-set-dir` 弹框选目录→校验可写→目标已有 settings.json 则直接采纳（重装找回）否则迁移（read+write+rename 规避 Windows `CopyFileW` EPERM）→写指针;`storage-reset-dir` temp-first 拷回默认（旧默认留 `.prev-<ts>`）→删指针;`storage-open-dir` 资源管理器打开。
+- **API Key 静态加密**（`main.js`）：原 `safeStorage`（Chromium OSCrypt）在本机 Windows 上**跨重启密钥不持久**（dev 与打包均复现：无 `Local State` os_crypt 密钥落盘），改用自管 **AES-256-GCM**：随机 32 字节密钥存默认私有目录 `glance-secret.key`（base64/0600，**永不进自定义/同步目录**）;`ai.key`/`dict.key` 密封为 `keyEnc`（前缀 `g1:` = iv12‖tag16‖密文 base64）;解密失败保留 `keyEnc` 不销毁（防空 key 落盘永久抹掉）;兼容旧 safeStorage blob best-effort。
+- **Android 共享存储镜像**（新增 `GlanceStorage.java`，`MainActivity` 注册）：主存储仍私有 localStorage;镜像写共享目录 `Documents/Glance/Glance-learning-data.json`，API≥29 走 MediaStore 免权限、≤28 走 File + `WRITE/READ_EXTERNAL_STORAGE`（manifest `maxSdkVersion="28"`）;可选 SAF 自定义树（`pickFolder`/`clearFolder`）;`info/writeMirror/readMirror` 供 Web 调用;`build.gradle` 加 `androidx.documentfile`。镜像内容 = `Store.exportData()`，不含 Key/壁纸。
+- **Web 核心**（`store.js`/`platform.js`/`app.js`）：`store.js` 加 flush hook（`setFlushHook`），`exportData` 剔除 `key`/`keyEnc`;`platform.js` 七个 storage 适配按平台分发;`app.js` `renderStorageUi` 三平台路径/说明/安全文案，`mirrorNow`/`scheduleMirror`（60s 节流）/`restoreFromMirror`，flush hook→镜像、`visibilitychange` 隐藏立即镜像、首启空数据→读镜像→确认→`importData(replace)`。设置→数据→「存储位置」面板。
+- **文档**：`docs/DATA.md` 新增 §5.4 存储位置与持久化、§5.5 敏感数据安全，刷新 §1/§5/§6 行号引用与 §8 维护约定;README 加存储位置特性条目与「存储位置与安全」小节。
+
+**验证（Electron + CDP）**：设测试 key→落盘 `ai.keyEnc` 以 `g1:` 开头、无明文 key、`glance-secret.key`（44B base64=32B）生成;**干净退出重启后 `Platform.getSettings()` 仍返回原 key**（safeStorage 失败的关键跨重启测试通过）;自定义目录 set/reset 后 key 仍可解密、密钥文件**不随迁移**（自定义目录无 key 文件，拷走数据无法读 Key）;存储面板正确显示默认路径与 AES-256 安全文案;测试 key 与 `.prev`/测试目录已清理。Android 原生无本地 SDK，仅 CI 编译验证（运行时未本地实测）。
+
+**交付**：`android-33`（待 CI 完成后回填 target / run / APK 校验）。
+
 ---
 
 ## 9. 关键约束与注意事项

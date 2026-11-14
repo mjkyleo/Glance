@@ -223,6 +223,43 @@
       }
     },
 
+    // ---- storage location & uninstall-proof shared mirror ----
+    storageInfo() {
+      if (isElectron) return ipc.invoke('storage-info');
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.GlanceStorage) return P.GlanceStorage.info();
+      return Promise.resolve({ platform: 'browser', key: SETTINGS_KEY });
+    },
+    storageSetDir(dir) {
+      if (isElectron) return ipc.invoke('storage-set-dir', dir ? { dir } : undefined);
+      return Promise.resolve(null);
+    },
+    storageResetDir() {
+      if (isElectron) return ipc.invoke('storage-reset-dir');
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.GlanceStorage) return P.GlanceStorage.clearFolder();
+      return Promise.resolve(null);
+    },
+    storageOpenDir() {
+      if (isElectron) return ipc.invoke('storage-open-dir');
+      return Promise.resolve('');
+    },
+    storagePickFolder() {
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.GlanceStorage) return P.GlanceStorage.pickFolder();
+      return Promise.resolve(null);
+    },
+    storageWriteMirror(json) {
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.GlanceStorage) return P.GlanceStorage.writeMirror({ json });
+      return Promise.resolve(null);
+    },
+    storageReadMirror() {
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      if (isNative && P && P.GlanceStorage) return P.GlanceStorage.readMirror();
+      return Promise.resolve({ found: false });
+    },
+
     // Save a text file: Electron save dialog, Android filesystem+share, browser download.
     async saveTextFile(name, text) {
       if (isElectron) return ipc.invoke('save-text-file', { name, text });

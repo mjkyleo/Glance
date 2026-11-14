@@ -2179,6 +2179,68 @@
     });
   }
 
+  // ---- storage location & uninstall-proof shared mirror ----
+  let mirrorTimer = 0;
+  async function mirrorNow() {
+    if (!Platform.isNative) return false;
+    try {
+      const r = await Platform.storageWriteMirror(JSON.stringify(Store.exportData()));
+      return !!(r && r.ts);
+    } catch (e) { console.warn('mirror write failed', e); return false; }
+  }
+  function scheduleMirror() {
+    if (!Platform.isNative || mirrorTimer) return;
+    mirrorTimer = setTimeout(() => { mirrorTimer = 0; mirrorNow(); }, 60000);
+  }
+  async function restoreFromMirror() {
+    const r = await Platform.storageReadMirror().catch(() => null);
+    if (!r || !r.found) { alert('共享目录中没有找到学习数据备份。'); return; }
+    let payload;
+    try { payload = JSON.parse(r.json); } catch (e) { alert('备份文件损坏，无法恢复。'); return; }
+    const when = r.ts ? new Date(r.ts).toLocaleString() : '未知时间';
+    if (!confirm('找到共享备份（' + (r.path || '共享目录') + '，更新于 ' + when + '）。\n恢复将覆盖当前学习进度，确定继续？')) return;
+    try { Store.importData(payload, 'replace'); location.reload(); }
+    catch (e) { alert('恢复失败：' + e.message); }
+  }
+  async function renderStorageUi() {
+    let info = null;
+    try { info = await Platform.storageInfo(); } catch (e) { return; }
+    if (!info) return;
+    const path = $('storage-path'), note = $('storage-note'), sec = $('storage-security');
+    const mirrorRow = $('storage-mirror-row');
+    if (info.platform === 'electron') {
+      path.textContent = info.settingsFile;
+      note.textContent = info.custom
+        ? '自定义数据目录。卸载应用不会删除该目录；重装后重新选择该目录即可找回数据。'
+        : '默认数据目录（路径固定）。可改到任意目录长期保存；卸载应用通常不会删除它。';
+      sec.textContent = info.encrypted
+        ? 'API Key 以 AES-256 加密落盘，解密密钥只留在本机私有目录；数据文件即使被拷走或同步到别处也无法读出 Key。'
+        : '当前系统不支持静态加密；API Key 仅存本机数据文件，请勿把数据目录放在公共共享盘。';
+      $('storage-change').hidden = false;
+      $('storage-reset').hidden = !info.custom;
+      $('storage-open').hidden = false;
+      mirrorRow.hidden = true;
+    } else if (info.platform === 'browser') {
+      path.textContent = 'localStorage · ' + info.key;
+      note.textContent = '浏览器本地存储；清除站点数据会丢失，请定期导出备份。';
+      sec.textContent = 'API Key 仅存本机 localStorage，不上传。';
+      $('storage-change').hidden = true;
+      $('storage-reset').hidden = true;
+      $('storage-open').hidden = true;
+      mirrorRow.hidden = true;
+    } else {
+      path.textContent = info.hasCustom ? ('自定义目录 · ' + info.custom) : ('共享目录 · ' + info.defaultPath);
+      const ts = info.hasCustom ? info.customTs : info.defaultTs;
+      note.textContent = '主存储为应用私有 localStorage；共享目录中的备份卸载后仍保留，重装后可恢复。'
+        + (ts ? ' 最近备份：' + new Date(ts).toLocaleString() + '。' : ' 尚未备份。');
+      sec.textContent = '共享备份不含 API Key（Key 只留在应用私有存储）；重装后需重新填写 Key。';
+      $('storage-change').hidden = false;
+      $('storage-reset').hidden = !info.hasCustom;
+      $('storage-open').hidden = true;
+      mirrorRow.hidden = false;
+    }
+  }
+
   function showSettingsPane(key) {
     const meta = SETTINGS_PANES[key];
     if (!meta) return;
@@ -2220,6 +2282,7 @@
     syncDictProviderUi();
     const meta = Library.getMeta();
     $('about-info').textContent = 'Glance · 词根背单词 · ' + (meta.counts ? meta.counts.words : 0) + ' 词 / ' + (meta.counts ? meta.counts.roots : 0) + ' 词根';
+    if (pane === 'data') renderStorageUi();
     showSettingsPane(pane);
     openSheet('settings-sheet');
   }
@@ -2507,6 +2570,30 @@
         location.reload();
       } catch (e) { alert('导入失败：' + e.message); }
     });
+    $('storage-change').addEventListener('click', async () => {
+      if (Platform.isElectron) {
+        const r = await Platform.storageSetDir();
+        if (r && r.error) alert(r.error);
+      } else {
+        const r = await Platform.storagePickFolder();
+        if (!r || r.canceled) return;
+        await mirrorNow();
+      }
+      renderStorageUi();
+    });
+    $('storage-reset').addEventListener('click', async () => {
+      if (!confirm('恢复默认存储位置？当前数据会迁回默认目录。')) return;
+      const r = await Platform.storageResetDir();
+      if (r && r.error) alert(r.error);
+      renderStorageUi();
+    });
+    $('storage-open').addEventListener('click', () => Platform.storageOpenDir());
+    $('storage-mirror-now').addEventListener('click', async () => {
+      const ok = await mirrorNow();
+      alert(ok ? '已备份到共享目录，卸载应用后数据仍保留。' : '备份失败，请检查存储权限或目录可用性。');
+      renderStorageUi();
+    });
+    $('storage-restore').addEventListener('click', restoreFromMirror);
 
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') { if (nestedSheetEl) closeNestedSheet(); else closeSheet(); return; }
@@ -2550,6 +2637,25 @@
   // ===================== init =====================
   window.addEventListener('DOMContentLoaded', async () => {
     await Store.load();
+    Store.setFlushHook(scheduleMirror);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') mirrorNow(); });
+    if (Platform.isNative) {
+      const d = Store.data;
+      const empty = !Object.keys(d.srs || {}).length && !Object.keys(d.logs || {}).length &&
+        !Object.keys(d.customBooks || {}).length && !Object.keys(d.favorites || {}).length;
+      if (empty) {
+        const r = await Platform.storageReadMirror().catch(() => null);
+        if (r && r.found) {
+          try {
+            const payload = JSON.parse(r.json);
+            const when = r.ts ? new Date(r.ts).toLocaleString() : '';
+            if (confirm('检测到卸载前的学习数据备份（' + (r.path || '共享目录') + (when ? '，更新于 ' + when : '') + '）。是否恢复？')) {
+              Store.importData(payload, 'replace');
+            }
+          } catch (e) { console.warn('mirror restore skipped', e); }
+        }
+      }
+    }
     applyTheme(Store.data.theme);
     applyBackground();
     wireEvents();

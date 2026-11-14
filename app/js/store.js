@@ -46,6 +46,8 @@
 
   let data = null;
   let saveTimer = null;
+  let flushHook = null;
+  function setFlushHook(fn) { flushHook = fn; }
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function dateKey(d) { const x = d || new Date(); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); }
@@ -127,6 +129,7 @@
   function flush() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     if (data) Platform.saveSettings(data);
+    if (flushHook) { try { flushHook(); } catch (e) { /* hook must never break saving */ } }
   }
 
   function getLog(date) {
@@ -378,8 +381,8 @@
       const l = data.logs[k];
       return l && ((l.know || 0) + (l.fuzzy || 0) + (l.forgot || 0)) > 0;
     }).length;
-    const ai = Object.assign({}, data.ai || {}); delete ai.key;
-    const dict = Object.assign({}, data.dict || {}); delete dict.key;
+    const ai = Object.assign({}, data.ai || {}); delete ai.key; delete ai.keyEnc;
+    const dict = Object.assign({}, data.dict || {}); delete dict.key; delete dict.keyEnc;
     return {
       app: 'Glance', kind: 'learning-data', schema: 1, exportedAt: new Date().toISOString(),
       summary: {
@@ -555,7 +558,7 @@
   }
 
   window.Store = {
-    load, save, flush, get data() { return data; },
+    load, save, flush, setFlushHook, get data() { return data; },
     today, dateKey, getLog, recordGrade, planProgress, streak, mastery, trend,
     isFavorite, addFavorite, removeFavorite, favoriteWords, addFavGroup,
     addHistory, clearHistory, addError, clearError, errorWords,

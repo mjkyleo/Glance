@@ -34,6 +34,7 @@
 - 内置外部词典：免费词典开箱即用，可切换 Merriam-Webster 或自定义端点；结果按词缓存，离线可看。
 - 真人发音优先，缺失时回退系统 TTS；支持语速与口音设置。
 - 学习数据可导出为通用 JSON、再导入恢复，换机或外部分析都方便。
+- 存储位置可在「我的 → 数据备份」查看与更改：默认路径固定、卸载通常不丢；Windows 可改到任意目录长期保存，Android 自动在共享目录 `Documents/Glance` 留一份备份，卸载重装后可一键恢复（除非人工删除）。API Key 全程加密、只留本机，不随备份或共享目录外泄，详见 [数据格式](#数据格式)。
 
 ## 截图
 
@@ -209,9 +210,20 @@
 ```
 
 - `state`：`new` / `learning` / `relearn` / `known`。
-- 导出默认**剔除 API Key**（`ai.key`、`dict.key`），导入覆盖模式也会保留本机 Key。
+- 导出默认**剔除 API Key**（`ai.key`/`ai.keyEnc`、`dict.key`/`dict.keyEnc`），导入覆盖模式也会保留本机 Key。
 - `data.quiz` 保存测试配置与自适应能力值，`data.quizExamples` 缓存例句题用到的双语例句，换机后可继续使用；`data.settings.profile` 保存昵称与头像（头像约 10KB），换机后可恢复；`data.settings.background` 只记录蒙版与模糊，背景图片本身**不导出**，避免备份文件过大并保护隐私。
 - 导入时优先使用 `data` 块无损恢复；仅含 `words` 表的文件会尽力重建进度。合并模式不会覆盖本机测试偏好，覆盖模式才会重置。
+
+### 存储位置与安全
+
+「我的 → 数据备份 → 存储位置」展示当前数据路径，并按平台提供持久化能力：
+
+- **Windows**：默认目录固定（`%APPDATA%/glance`），可改到任意目录长期保存;卸载应用通常不会删除数据目录，重装后重新指向该目录即可找回。
+- **Android**：主存储为应用私有空间，另在共享目录 `Documents/Glance/Glance-learning-data.json` 自动留一份备份（60 秒节流，切后台立即备份）。卸载应用不会删除共享备份;重装后首启检测到空数据会提示一键恢复。也可自选 SAF 目录。
+- **浏览器**：存于站点 localStorage，请定期导出备份。
+- **敏感数据**：API Key 在 Windows 上以 AES-256 加密落盘，解密密钥只留在本机私有目录;Android/浏览器 Key 仅存私有空间。共享备份与导出文件**都不含 Key**，数据目录即使被拷走或同步到别处也无法读出 Key。重装恢复进度后需重新填写 Key。
+
+完整 schema 与平台差异见 [docs/DATA.md](docs/DATA.md) §5.4 / §5.5。
 
 ## 外部词典
 
@@ -255,14 +267,14 @@ app/                共享 Web 核心（Electron / Android / 浏览器）
   data/             索引化词库（words / exams / roots / affixes / meta）
 main.js             Electron 主进程（窗口、IPC、网络通道、文件对话框）
 android/            Capacitor Android 工程
-docs/screenshots/   README 截图
+docs/               DATA.md 数据规范、LOGO-SPEC.md、screenshots 截图
 scripts/            词库构建与开发启动脚本
 DEVELOPMENT.md      开发清单与详细变更记录
 ```
 
 ## 文档
 
-开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)；Logo 图形、图标安全区与启动页规范见 [docs/LOGO-SPEC.md](docs/LOGO-SPEC.md)。
+开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)；词库组织、导入格式、本地存储与备份 schema 见 [docs/DATA.md](docs/DATA.md)；Logo 图形、图标安全区与启动页规范见 [docs/LOGO-SPEC.md](docs/LOGO-SPEC.md)。
 
 ## License
 
