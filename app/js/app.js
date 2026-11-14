@@ -2338,7 +2338,7 @@
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
     AI.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; sel.appendChild(o); });
-    sel.value = ai.provider || 'deepseek';
+    sel.value = ai.provider || 'devfree';
     $('set-ai-enabled').checked = !!ai.enabled;
     $('set-ai-auto').checked = !!ai.autoExplain;
     $('set-ai-model').value = ai.model || '';
@@ -2358,10 +2358,23 @@
   function syncAiProviderUi() {
     const p = AI.getProvider($('set-ai-provider').value);
     $('set-ai-base-wrap').hidden = !p.custom;
-    $('set-ai-model').placeholder = p.model || '模型名称';
-    $('set-ai-model-hint').textContent = p.models
-      ? '可选 ' + p.models.join(' / ') + '；留空默认 ' + p.model
-      : (p.model ? '留空使用默认：' + p.model : '请填写模型名称');
+    const modelInput = $('set-ai-model');
+    const modelSelect = $('set-ai-model-select');
+    const hint = $('set-ai-model-hint');
+    if (p.models && p.models.length) {
+      modelSelect.innerHTML = '';
+      p.models.forEach(m => { const o = el('option', null, m); o.value = m; modelSelect.appendChild(o); });
+      const cur = (Store.data.ai.model || '').trim();
+      modelSelect.value = p.models.indexOf(cur) >= 0 ? cur : p.model;
+      modelSelect.hidden = false;
+      modelInput.hidden = true;
+      hint.textContent = p.models.length + ' 个模型可选，默认 ' + p.model;
+    } else {
+      modelSelect.hidden = true;
+      modelInput.hidden = false;
+      modelInput.placeholder = p.model || '模型名称';
+      hint.textContent = p.model ? '留空使用默认：' + p.model : '请填写模型名称';
+    }
     $('set-ai-key').placeholder = p.devKey ? '内置开发密钥，留空即可' : '仅保存在本机';
     const devNote = $('set-ai-dev-note');
     if (devNote) devNote.hidden = !p.dev;
@@ -2596,7 +2609,13 @@
     $('books-back').addEventListener('click', backFromSub);
     $('set-ai-enabled').addEventListener('change', () => Store.setAiConfig({ enabled: $('set-ai-enabled').checked }));
     $('set-ai-auto').addEventListener('change', () => Store.setAiConfig({ autoExplain: $('set-ai-auto').checked }));
-    $('set-ai-provider').addEventListener('change', () => { Store.setAiConfig({ provider: $('set-ai-provider').value }); syncAiProviderUi(); });
+    $('set-ai-provider').addEventListener('change', () => {
+      Store.setAiConfig({ provider: $('set-ai-provider').value });
+      syncAiProviderUi();
+      const p = AI.getProvider($('set-ai-provider').value);
+      if (p.models && p.models.length) Store.setAiConfig({ model: $('set-ai-model-select').value });
+    });
+    $('set-ai-model-select').addEventListener('change', () => Store.setAiConfig({ model: $('set-ai-model-select').value }));
     $('set-ai-model').addEventListener('change', () => Store.setAiConfig({ model: $('set-ai-model').value.trim() }));
     $('set-ai-base').addEventListener('change', () => Store.setAiConfig({ base: $('set-ai-base').value.trim() }));
     $('set-ai-key').addEventListener('change', () => Store.setAiConfig({ key: $('set-ai-key').value.trim() }));

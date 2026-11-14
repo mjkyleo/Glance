@@ -14,7 +14,7 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 2755 | UI 渲染、交互、会话编排、设置 |
+| [app.js](../app/js/app.js) | 2774 | UI 渲染、交互、会话编排、设置 |
 | [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
 | [store.js](../app/js/store.js) | 571 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
 | [library.js](../app/js/library.js) | 469 | 词书组织、词条富化、官方考纲、对比 |
@@ -163,7 +163,8 @@
 ### 6.1 大模型按词讲解 ✅
 
 - [ai.js](../app/js/ai.js)：**13 个商用服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:4-18](../app/js/ai.js#L4-L18)）。
-- **开发期免费预设 🚧 DEV-ONLY**：置顶的「开发免费（发布前移除）」服务商内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用（默认 `DeepSeek-V4-Flash`，另可选 `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash`）。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
+- **开发期免费预设 🚧 DEV-ONLY**：置顶且为开发期默认服务商的「开发免费（发布前移除）」内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用；三个模型 `DeepSeek-V4-Flash`（默认）/ `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash` 以**下拉选择器**直接可选。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
+- **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器（当前仅 devfree 的三模型），其余服务商保留自由文本输入；切换服务商自动切换形态并持久化所选模型（[app.js:2358 syncAiProviderUi](../app/js/app.js#L2358)、[app.js:2618](../app/js/app.js#L2618)、[index.html:746](../app/index.html#L746)）。开发期默认服务商为 devfree（[store.js:32](../app/js/store.js#L32)）。
 - 按词生成结构化解释，解析失败重试一次（[ai.js:99](../app/js/ai.js#L99)）;平台网络通道绕 CORS（[platform.js:196 llmChat](../app/js/platform.js#L196)）。浏览器直连受 CORS 限制，Electron / Android 正常。
 - 学习页 AI 区 [app.js:1564 aiSection](../app/js/app.js#L1564)，渲染 [app.js:1421 renderAiExplanation](../app/js/app.js#L1421)。
 

@@ -29,7 +29,7 @@
     ttsRate: 1,
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
-    ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false },
+    ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false },
     aiCache: {},
     dict: { provider: 'freezh', key: '', base: '' },
     dictCache: {},
@@ -82,8 +82,8 @@
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
-    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false };
-    else d.ai = Object.assign({ provider: 'deepseek', key: '', model: '', base: '', enabled: false, autoExplain: false }, d.ai);
+    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false };
+    else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false }, d.ai);
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     if (!d.dict || typeof d.dict !== 'object') d.dict = { provider: 'free', key: '', base: '' };
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};

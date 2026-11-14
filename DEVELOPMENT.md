@@ -715,11 +715,12 @@
 **实现（单一移除点）**
 
 - [ai.js](app/js/ai.js)：新增 `DEV-ONLY` 标记块——`DEV_FREE_API` 常量（`id:'devfree'`、`dev:true`、`base/model/models/devKey/jsonMode`）+ `if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API)`，把「开发免费（发布前移除）」置顶为第一个服务商。`resolveConfig` 增加 `key = cfg.key || p.devKey`（用户 Key 优先，留空回退内置开发 Key）;新增 `effectiveKey(cfg)` 助手并导出;`explainWord` 改用解析后的 `rc.key`。
-- [app.js](app/js/app.js)：两处生成守卫（`aiSection` 自动生成 / 手动生成）由 `cfg.key` 改为 `AI.effectiveKey(cfg)`，使内置 Key 也能触发生成;`syncAiProviderUi` 对 dev 服务商显示模型清单提示、Key 占位符「内置开发密钥，留空即可」、并切换开发提示条。
-- [index.html](app/index.html)：AI 设置面板加 `#set-ai-dev-note` 提示条（默认隐藏，选 devfree 时显示）;[app.css](app/css/app.css) 加 `.dev-note` 琥珀色柔和样式。
-- **移除方法**：删除 ai.js 的 `DEV_FREE_API` 整块（常量 + `if` 注入）即彻底移除;`resolveConfig/effectiveKey` 与 UI 的 `devKey/models` 回退随之自动失效（无服务商再带 `devKey`），app.js / index.html 无需再改。
+- [app.js](app/js/app.js)：两处生成守卫（`aiSection` 自动生成 / 手动生成）由 `cfg.key` 改为 `AI.effectiveKey(cfg)`，使内置 Key 也能触发生成;`syncAiProviderUi`（[app.js:2358](app/js/app.js#L2358)）对带 `models` 清单的服务商渲染**模型下拉选择器**（`#set-ai-model-select`，同时隐藏自由文本框），其余服务商保留文本输入，切换服务商自动切换形态并持久化所选模型;dev 服务商另显示 Key 占位符「内置开发密钥，留空即可」与开发提示条。
+- [index.html](app/index.html)：AI 设置面板加 `#set-ai-dev-note` 提示条（默认隐藏，选 devfree 时显示）与模型下拉 `#set-ai-model-select`（[index.html:746](app/index.html#L746)，默认隐藏）;[app.css](app/css/app.css) 加 `.dev-note` 琥珀色柔和样式与 `.field span small` 次级提示间距。
+- [store.js](app/js/store.js)：开发期默认 `ai.provider` 由 `deepseek` 改为 `devfree`（[store.js:32](app/js/store.js#L32) 及 migrate 默认、app.js 回退），使三个免费模型开箱可见;**发布移除时须改回 `deepseek`**（见移除清单）。
+- **移除方法**：删除 ai.js 的 `DEV_FREE_API` 整块（常量 + `if` 注入）即彻底移除;`resolveConfig/effectiveKey` 与 UI 的 `devKey/models` 回退随之自动失效（无服务商再带 `devKey`/`models`，模型栏自动回到文本输入）。**另须把 store.js / app.js 的默认 `ai.provider` 改回 `deepseek`**（见移除清单第 1 步）。
 
-**用法**：我的 → AI 解释 → 服务商选「开发免费（发布前移除）」→ 开启「启用 AI 详解」→ Key 留空 → 模型留空（默认 DeepSeek-V4-Flash，可改填另两个）→ 单词详情点「生成 AI 解释」。
+**用法**：我的 → AI 解释（开发期默认已选「开发免费（发布前移除）」）→ 开启「启用 AI 详解」→ Key 留空 → 在「模型」下拉三选一（默认 DeepSeek-V4-Flash）→ 单词详情点「生成 AI 解释」。
 
 **验证**
 
@@ -727,11 +728,12 @@
 - 端到端（Node 实跑，镜像 Electron/Android 无 CORS 路径）：`AI.explainWord('conduct',…)` 经 `explainWord→llmChat→parseJson` 返回完整讲解（meanings/morphemes/memoryTip/examples/synonyms 齐全），`parseJson` 校验通过。
 - 单元逻辑：devfree 置顶、留空回退 `rc-` Key、用户 Key 覆盖、模型覆盖、普通服务商（deepseek）不受影响（空 Key 仍为空）。
 - 浏览器 UI（browser-use，no-cache 服务 127.0.0.1:8123）：选 devfree → 提示条显示、Key 占位符与模型清单正确、`effectiveKey` 解析为 `rc-`;mock 网络层后点真实「生成 AI 解释」按钮 → AI 详解区渲染释义/构词/巧记/例句/搭配/近义/词源，meta 显示「开发免费（发布前移除） · DeepSeek-V4-Flash」，缓存 provider=devfree。
+- 模型选择器（browser-use，ignoreCache 重载）：devfree 默认选中、`#set-ai-model-select` 显示三模型且自由文本框隐藏;选 `GLM-5.3-Flash` 持久化到 `settings.ai.model`;切到 deepseek 自动隐藏下拉、恢复文本框与「留空使用默认」提示、隐藏开发提示条;切回 devfree 恢复下拉并保留所选模型;`resolveConfig` 对三模型均解析出正确 base/model/内置 Key。
 - **平台限制**：该端点**不返回 CORS 头**且 OPTIONS 预检 405，故**浏览器直连 fetch 被 CORS 拦截**（对所有服务商一致，非本预设特有）;**Electron 走 IPC `llm-chat`、Android 走 CapacitorHttp，均无 CORS，可正常调用**（已由 Node 实跑证实）。
 
 **发布前移除清单（务必执行）**
 
-1. 删除 [ai.js](app/js/ai.js) 的 `DEV_FREE_API` 整块（含 `if` 注入）;可选清理 `resolveConfig/effectiveKey` 的 `p.devKey` 回退与 UI 的 `p.dev/p.models` 分支（不清理亦无害）。
+1. 删除 [ai.js](app/js/ai.js) 的 `DEV_FREE_API` 整块（含 `if` 注入）;把 [store.js](app/js/store.js) 三处与 [app.js](app/js/app.js) 回退的默认 `ai.provider` 由 `devfree` 改回 `deepseek`;可选清理 `resolveConfig/effectiveKey` 的 `p.devKey` 回退与 UI 的 `p.dev/p.models` 分支（不清理亦无害，模型栏会自动回到文本输入）。
 2. **到服务端作废 / 轮换该 Key**：Key 一旦推送到公开仓库即进入 git 历史，**删代码并不能抹除历史**，仅删代码不足以保密。
 3. 重跑 CI 构建确认 APK 不含 devfree 服务商与内置 Key（可 `grep -r "DEV_FREE_API\|rc-366f" app/` 应为空）。
 4. 注意：开发期若以 devfree 导出过学习数据，备份 `settings.ai.provider='devfree'`;移除后导入会回退到首个服务商（deepseek），属预期降级。
