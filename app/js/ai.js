@@ -35,6 +35,19 @@
     jsonMode: true
   };
   if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API);
+
+  // QNAI 免费端点（同为 DEV-ONLY，发布前与上面一并移除）：两个免费模型，
+  // 默认 qiniu/conatus-free（实测可用，支持 JSON 模式）;nvidia/nemotron-3-ultra-550b-a55b0-free
+  // 接入时上游持续返回 5xx「service temporarily unavailable」，恢复后可从下拉直接切换。
+  const QNAI_FREE_API = {
+    id: 'qnafree', name: 'QNAI Free（发布前移除）', dev: true,
+    base: 'https://api.qnaigc.com/v1',
+    model: 'qiniu/conatus-free',
+    models: ['qiniu/conatus-free', 'nvidia/nemotron-3-ultra-550b-a55b0-free'],
+    devKey: 'sk-91774e6c0482b2260282df537b7f096abd893e3741bb92f85df1f26f50dc5691',
+    jsonMode: true
+  };
+  if (QNAI_FREE_API) PROVIDERS.unshift(QNAI_FREE_API);
   // =====================================================================
 
   const SYSTEM_PROMPT = [
