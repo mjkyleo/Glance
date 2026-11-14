@@ -18,6 +18,25 @@
   ];
   function getProvider(id) { return PROVIDERS.find(p => p.id === id) || PROVIDERS[0]; }
 
+  // =====================================================================
+  // DEV-ONLY 免费开发 API —— 正式发布前必须移除（见 DEVELOPMENT.md「开发期免费 AI API」）
+  // 内置一个免费 OpenAI 兼容端点：开发期在「我的 → AI 解释」选「开发免费」服务商、
+  // 开启 AI、Key 留空即可试用。三个模型可选，默认 DeepSeek-V4-Flash（支持 JSON 模式）。
+  // 移除方法：删除本整块（DEV_FREE_API 常量 + 下方 if 注入）即可彻底移除；
+  //           resolveConfig/effectiveKey 与 UI 里的 devKey/models 回退随之自动失效。
+  // 安全提示：此 Key 随客户端代码公开分发，仅作开发便利;发布前务必删除并到服务端作废该 Key
+  //           （一旦推送到公开仓库即进入 git 历史，删代码并不能抹除历史）。
+  const DEV_FREE_API = {
+    id: 'devfree', name: '开发免费（发布前移除）', dev: true,
+    base: 'https://developer.amd.com.cn/radeon/api/v1',
+    model: 'DeepSeek-V4-Flash',
+    models: ['DeepSeek-V4-Flash', 'DeepSeek-V4.1-Flash', 'GLM-5.3-Flash'],
+    devKey: 'rc-366f5c9de7c186e94c563c982128f9d5a2d9693450d62f7c',
+    jsonMode: true
+  };
+  if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API);
+  // =====================================================================
+
   const SYSTEM_PROMPT = [
     '你是一名专业的英语词汇教师，面向中国大学生（四六级/考研/托福/雅思/GRE）讲解单词。',
     '请只输出一个 JSON 对象，不要任何额外文字、解释或 Markdown 代码块。字段如下：',
@@ -70,17 +89,20 @@
     const p = getProvider(cfg.provider);
     const base = p.custom ? (cfg.base || '') : p.base;
     const model = (cfg.model || '').trim() || p.model;
-    return { base, model, jsonMode: p.jsonMode, anthropic: !!p.anthropic, provider: p };
+    const key = (cfg.key || '').trim() || p.devKey || '';
+    return { base, model, key, jsonMode: p.jsonMode, anthropic: !!p.anthropic, provider: p };
   }
+  // Effective key = user-entered key, else a provider's built-in dev key (DEV-ONLY).
+  function effectiveKey(cfg) { return resolveConfig(cfg || {}).key; }
 
   // Generate an explanation. Retries once on parse failure. Returns { ok, data, provider, model } | { ok:false, error }.
   async function explainWord(word, entry, cfg) {
-    if (!cfg || !cfg.key) return { ok: false, error: '请先在设置中填写 API Key' };
-    const rc = resolveConfig(cfg);
+    const rc = resolveConfig(cfg || {});
+    if (!rc.key) return { ok: false, error: '请先在设置中填写 API Key' };
     if (!rc.base) return { ok: false, error: '请填写 API 地址（Base URL）' };
     if (!rc.model) return { ok: false, error: '请填写模型名称' };
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userPrompt(word, entry) }];
-    const args = { base: rc.base, key: cfg.key, model: rc.model, messages, temperature: 0.3, jsonMode: rc.jsonMode, anthropic: rc.anthropic };
+    const args = { base: rc.base, key: rc.key, model: rc.model, messages, temperature: 0.3, jsonMode: rc.jsonMode, anthropic: rc.anthropic };
     let res = await Platform.llmChat(args);
     if (!res.ok) return { ok: false, error: res.error };
     let data = parseJson(res.content);
@@ -104,5 +126,5 @@
     return saved ? { ok: true, count: words.length } : { ok: false, error: '已取消导出' };
   }
 
-  window.AI = { PROVIDERS, getProvider, resolveConfig, explainWord, parseJson, exportCache, SYSTEM_PROMPT };
+  window.AI = { PROVIDERS, getProvider, resolveConfig, effectiveKey, explainWord, parseJson, exportCache, SYSTEM_PROMPT };
 })();

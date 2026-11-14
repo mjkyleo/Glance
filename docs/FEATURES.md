@@ -162,8 +162,9 @@
 
 ### 6.1 大模型按词讲解 ✅
 
-- [ai.js](../app/js/ai.js)：**13 个服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:5-17](../app/js/ai.js#L5-L17)）。
-- 按词生成结构化解释，解析失败重试一次（[ai.js:76](../app/js/ai.js#L76)）;平台网络通道绕 CORS（[platform.js:196 llmChat](../app/js/platform.js#L196)）。
+- [ai.js](../app/js/ai.js)：**13 个商用服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:4-18](../app/js/ai.js#L4-L18)）。
+- **开发期免费预设 🚧 DEV-ONLY**：置顶的「开发免费（发布前移除）」服务商内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用（默认 `DeepSeek-V4-Flash`，另可选 `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash`）。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
+- 按词生成结构化解释，解析失败重试一次（[ai.js:99](../app/js/ai.js#L99)）;平台网络通道绕 CORS（[platform.js:196 llmChat](../app/js/platform.js#L196)）。浏览器直连受 CORS 限制，Electron / Android 正常。
 - 学习页 AI 区 [app.js:1564 aiSection](../app/js/app.js#L1564)，渲染 [app.js:1421 renderAiExplanation](../app/js/app.js#L1421)。
 
 ### 6.2 AI 解释库 ✅

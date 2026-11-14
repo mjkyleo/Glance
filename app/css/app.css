@@ -752,6 +752,7 @@ button.info-chip:hover { background: var(--fill-2); color: var(--text); }
 .panel-head h3 { font-family: var(--font-head); font-size: var(--head-size); font-weight: var(--fw-head); letter-spacing: var(--track-head); }
 .panel-sub { font-size: 12px; color: var(--text-3); }
 .field-hint { font-size: 12px; color: var(--text-3); margin: 0; line-height: 1.5; }
+.dev-note { color: #d97706; background: rgba(245, 158, 11, .12); border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
 .fsrs-note { font-size: 13px; color: var(--text-2); line-height: var(--lh-body); }
 
 /* ---------- list rows ---------- */

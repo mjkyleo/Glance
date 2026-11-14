@@ -1592,7 +1592,7 @@
         meta.textContent = '';
         content.appendChild(el('p', 'ai-placeholder', '让大模型生成详细讲解：释义、构词、例句、易混词等，结果保存在本地，可离线查看与导出。'));
         const cfg = Store.data.ai;
-        if (auto && !autoStarted && cfg.autoExplain && cfg.enabled && cfg.key) {
+        if (auto && !autoStarted && cfg.autoExplain && cfg.enabled && AI.effectiveKey(cfg)) {
           autoStarted = true;
           generate();
           return;
@@ -1605,7 +1605,7 @@
     async function generate(btn) {
       if (generating) return;
       const cfg = Store.data.ai;
-      if (!cfg.enabled || !cfg.key) { aiConfigPrompt(content, actions); return; }
+      if (!cfg.enabled || !AI.effectiveKey(cfg)) { aiConfigPrompt(content, actions); return; }
       generating = true;
       if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
       content.innerHTML = '';
@@ -2359,7 +2359,12 @@
     const p = AI.getProvider($('set-ai-provider').value);
     $('set-ai-base-wrap').hidden = !p.custom;
     $('set-ai-model').placeholder = p.model || '模型名称';
-    $('set-ai-model-hint').textContent = p.model ? '留空使用默认：' + p.model : '请填写模型名称';
+    $('set-ai-model-hint').textContent = p.models
+      ? '可选 ' + p.models.join(' / ') + '；留空默认 ' + p.model
+      : (p.model ? '留空使用默认：' + p.model : '请填写模型名称');
+    $('set-ai-key').placeholder = p.devKey ? '内置开发密钥，留空即可' : '仅保存在本机';
+    const devNote = $('set-ai-dev-note');
+    if (devNote) devNote.hidden = !p.dev;
   }
   const DICT_PROVIDER_BLURB = {
     freezh: '中文释义、双音标、双语例句与考试标签',
