@@ -23,3 +23,6 @@ pnpm-lock.yaml
 # Scratch / logs
 .scratch/
 debug.log
+
+# Large source PDF kept locally; official.json + the A/B txt lists are the committed extract
+assets/words/*.pdf

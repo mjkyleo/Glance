@@ -361,6 +361,18 @@
             </span>
           </button>
         </section>
+        <section class="panel" id="official-compare-panel">
+          <div class="panel-head"><h3>考纲对比</h3><span class="panel-sub">官方词表</span></div>
+          <p class="field-hint">将任意词书与官方《全国大学英语四、六级考试大纲（2016年修订版）》词表对比，查看考纲内 / 超纲 / 缺失。</p>
+          <div class="cmp-controls">
+            <label class="field"><span>对比词书</span><select id="cmp-source"></select></label>
+            <label class="field"><span>官方词表</span><select id="cmp-level">
+              <option value="cet4">四级 · A组（无★）</option>
+              <option value="cet6">六级 · B组（★）</option>
+            </select></label>
+          </div>
+          <div id="cmp-result"></div>
+        </section>
       </div>
     </main>
 

@@ -678,7 +678,28 @@
 
 **验证（Electron + CDP）**：设测试 key→落盘 `ai.keyEnc` 以 `g1:` 开头、无明文 key、`glance-secret.key`（44B base64=32B）生成;**干净退出重启后 `Platform.getSettings()` 仍返回原 key**（safeStorage 失败的关键跨重启测试通过）;自定义目录 set/reset 后 key 仍可解密、密钥文件**不随迁移**（自定义目录无 key 文件，拷走数据无法读 Key）;存储面板正确显示默认路径与 AES-256 安全文案;测试 key 与 `.prev`/测试目录已清理。Android 原生无本地 SDK，仅 CI 编译验证（运行时未本地实测）。
 
-**交付**：`android-33`（待 CI 完成后回填 target / run / APK 校验）。
+**交付**：`android-34`（target `cda5116`，CI run 43548985332 成功，Range 复核 `com.glance.app` / `versionCode 34` / `versionName 1.0.6+34`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,188,375 字节）。
+
+### 8.24 官方考纲词库为根 + 自定义词书考纲对比 ✅
+
+**需求**：以《全国大学英语四、六级考试大纲（2016 年修订版）》PDF「词表」为官方根词库——逐行提取每个词条、保持原始顺序，按行首 ★ 分 A 组（无★，四级 / 一般要求）与 B 组（带★，六级 / 较高要求），输出两份纯文本列表;把官方词库放进词库作为根，用户导入自己的词书后可与官方考纲对比。
+
+**提取（PDF → 两份 txt + official.json）**
+
+- 源：`assets/words/《全国大学英语四、六级考试大纲（2016年修订版）》.pdf`，词表在第 21–149 页。PyMuPDF（`import pymupdf`）取文本层逐行提取，按行首 ★ 分组，得 **7,896 条**（A 6,632 / B 1,264），保持 PDF 原始顺序。
+- PDF 文本层缺陷与校正：全角 `Ｇ`（U+FF27）在变体对里作省略号、在复合词里作连字符；`U+1001B3` 是丢失的 apostrophe（`o'clock`/`coup(d'état)`）；短语空格丢失；同形异义上标 `¹²³` 独行;可选字母括号跨行（`mo(u)ld`、`fulfil(l)`、`ag(e)ing`、`marvel(l)ous`）。**关键教训**：字符几何间距判空格不可靠（宽字母 m/w 的间距偏差 ≈3.3 与真实空格 ≈3.4 几乎相同，会把 accommodate 误拆成 accom modate）;改用同考纲家族分组参考 txt 作词典做**字典分词**校正，并还原变体对（`advisor/Ger → advisor/adviser`）与复合词连字符（`airGconditioning → air-conditioning`）。
+- 产物：`assets/words/考纲词表-A组-四级(无星).txt`（6,632 行）、`考纲词表-B组-六级(带星).txt`（1,264 行）两份纯文本;`app/data/official.json`（`{source,note,cet4[],cet6[]}`，原始词条文本数组，保留变体 / 上标 / 可选字母 / 短语印刷形态，★ 已按组剥离）。155 个同形异义词、81 对英式变体均忠实保留;81 个参考 txt 未收的英式拼写（adviser/analyse/centre/connexion/theatre）经核对为正确异体。
+
+**集成（官方书为根 + 对比）**
+
+- `library.js`：新增官方区（[library.js:219-312](app/js/library.js#L219-L312)）——`officialForms` 归一化（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号）、`officialWordSet/officialCount/officialBook`（缓存）、`compareToOfficial(entries,level)` 返回 covered/beyond/missing + 双向覆盖率 + 三份词表。`listBooks` 把「考纲四级（官方）/ 考纲六级（官方）」**置顶**（[library.js:186-197](app/js/library.js#L186-L197)）;`getBook` 加官方分支（[library.js:163-164](app/js/library.js#L163-L164)），官方书经 `enrich` 可正常学习、标 `official:true`，**绕过** CEFR 质量过滤与 skipLower（官方 tag 不在 BOOK_RANK）。`init` 清官方缓存。
+- 数据通道：`platform.js loadDataset` 与 `main.js get-dataset` 均加 `official`（[platform.js:109](app/js/platform.js#L109)）。
+- `app.js`：`resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:256-260](app/js/app.js#L256-L260)）;`cmpSourceOptions/cmpSection/renderCompare`（[app.js:2008-2068](app/js/app.js#L2008-L2068)）渲染对比面板，`renderBooks` 末尾调用 `renderCompare`，官方书行标注「官方考纲」。
+- `index.html`：词书与计划页加「考纲对比」面板（源书选择 `cmp-source` + 级别选择 `cmp-level` 四级/六级 + 结果区 `cmp-result`）;`app.css` 加摘要 / 覆盖率条 / 三个可折叠词表（考纲内绿 / 超纲琥珀 / 考纲缺失灰，每段限 300 词可展开全部）样式。
+
+**验证（浏览器 + browser-use，127.0.0.1:8123）**：官方书置顶且可学习（abandon → 释义「vt. 放弃, 抛弃…」CEFR B1、词素 1）;考纲四级自比 100%;自定义导入 6 词 TSV（abandon/apple/mould/according to/adviser/zzzcustom）→ 对比四级 covered 5 / beyond 1（zzzcustom）/ coverageBook 83%，归一化正确命中 `mould↔mo(u)ld`、`adviser↔advisor/adviser`、短语 `according to`;三个折叠段展开 / 收起、展开全部词、级别切换均正常;五 tab 巡览无控制台错误。`officialCount` cet4=6,552（6,632 原始去重约 80 同形异义）、cet6=1,264;`officialWordSet` cet4=6,735 形、cet6=1,284 形。
+
+**交付**：`android-35`（待 CI 完成后回填 target / run / APK 校验）。
 
 ---
 
@@ -698,6 +719,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `92b8b93` | 存储位置可配置（Windows 自定义目录 / Android 共享目录镜像卸载不丢）+ API Key AES-256-GCM 静态加密（密钥只留本机私有目录，备份/镜像不含 Key）+ 数据规范文档 DATA.md |
 | `6391fc0` | 词书过滤可选开关：跳过低阶重复词（考试阶梯）+ 跳过已掌握，仅影响每日学习队列，词书与测试范围不裁剪 |
 | `c65087d` | 听音选词（音标音近干扰项）+ 打卡日历月份/日期 + 词根词缀学习进度条与开关 + 头像去掉摄像头角标 |
 | `f3fde1d` | 移除词根/专项/查词/我的顶部品牌栏（眼睛图标 + Glance + 词库），首屏直接进入内容 |

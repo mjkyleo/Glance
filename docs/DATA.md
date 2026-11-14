@@ -12,14 +12,14 @@
 
 | 层 | 载体 | 读写 | 内容 |
 |---|---|---|---|
-| 内置索引词库 | `app/data/` 六个 JSON（约 22 MB） | 只读 | 10 个考试词书、15,645 词条、8,331 词根、3,100 词缀 |
+| 内置索引词库 | `app/data/` 七个 JSON（约 22 MB） | 只读 | 10 个考试词书、15,645 词条、8,331 词根、3,100 词缀、官方考纲 7,896 条 |
 | 用户学习状态 | 单一 JSON 文档（见 §5） | 读写，250 ms 防抖落盘 | SRS 进度、日志、生词本、错题、自定义词书、设置、缓存 |
 | 便携备份 | 导出文件（见 §6） | 导出 / 导入 | 通用单词表 + 无损状态块，跨机迁移 |
 
 加载路径：
 
 - Electron：IPC `get-dataset` / `get-settings`（[main.js:311](../main.js#L311)、[main.js:226](../main.js#L226)），设置文件为 `currentDataDir()/settings.json`（[main.js:57](../main.js#L57)），默认目录 `userData`、可改自定义目录（§5.4）。
-- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes}.json`（[platform.js:107-116](../app/js/platform.js#L107-L116)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
+- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes,official}.json`（[platform.js:107-116](../app/js/platform.js#L107-L116)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
 - 启动顺序：`Store.load()` → `Library.init(ds)` → `Themes.init(ds.words)`（[app.js:2639-2665](../app/js/app.js#L2639-L2665)）。
 
 **词库与用户状态完全分离**：清状态不伤词库，换机不丢词库;自定义词书属于用户状态，随备份迁移。
@@ -36,6 +36,9 @@
 | `roots.json` | 2.7 MB | `{词根: 家族}` | 8,331 键 |
 | `roottrees.json` | 1.6 MB | `{词根: 派生树}` | 8,331 键 |
 | `affixes.json` | 0.6 MB | 数组 | 3,100 条 |
+| `official.json` | 80 KB | `{source, note, cet4[], cet6[]}` | 7,896 条（A 6,632 / B 1,264） |
+
+`official.json` 是唯一**非抓取生成**的内置文件：源自官方考纲 PDF 词表，逐行忠实提取，详见 §2.7。
 
 ### 2.2 meta.json
 
@@ -112,21 +115,41 @@
 - `app/data/*.json` 是**生成物，不要手改**;改数据改抓取/构建脚本后重跑。
 - 旧管线 `scripts/build-cet6.js` 产单文件 `app/data/cet6.json`（legacy 格式，见 §4.2）;`Platform.loadBundledLibrary` 为其保留接口，当前主流程不再使用。
 
+### 2.7 official.json（官方考纲词表）
+
+《全国大学英语四、六级考试大纲（2016 年修订版）》PDF「词表」部分的逐行忠实提取，作为词库的**官方根参照**。源 PDF 与两份纯文本列表存于 `assets/words/`：
+
+- `考纲词表-A组-四级(无星).txt`：行首**不带** ★ 的词（四级 / 一般要求），6,632 行，保持 PDF 原始顺序。
+- `考纲词表-B组-六级(带星).txt`：行首**带** ★ 的词（六级 / 较高要求），1,264 行。
+
+```json
+{ "source": "全国大学英语四、六级考试大纲（2016年修订版）· 词表",
+  "note": "逐行忠实提取，保留原始顺序与印刷形态…",
+  "cet4": ["a/an", "abandon", "…", "mo(u)ld", "according to", "advisor/adviser"],
+  "cet6": ["abbreviation", "abide", "…", "zeal", "zigzag", "zip", "zoom"] }
+```
+
+- `cet4` / `cet6` 为**原始词条文本数组**，不做归一化：保留变体对 `advisor/adviser`、同形异义上标 `word¹`、可选字母 `mo(u)ld`、短语 `according to` 等印刷形态;★ 已按分组剥离，不写入数组。
+- 提取方法：PyMuPDF 取词表页（PDF 第 21–149 页）文本层;因 PDF 文本层有缺陷（全角 Ｇ 作变体省略号 / 复合词连字符、 apostrophe 丢失、短语空格丢失、上标独行、可选字母跨行），以同考纲家族分组参考 txt 作词典做**字典分词**校正，而非依赖字符几何间距（宽字母 m/w 的间距偏差与真实空格几乎相同，不可靠）。
+- 归一化在运行时由 `Library.officialForms` 完成（去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号），见 §3。
+
 ## 3. 运行时组织（Library）
 
-- `Library.init(ds)` 建立词缀索引并清空词书/低阶集合缓存（[library.js:152-157](../app/js/library.js#L152-L157)）。
-- `getBook(tag)`：四元组 + 词根信息经 `enrich` 生成完整词条（[library.js:124-180](../app/js/library.js#L124-L180)），追加派生字段：
+- `Library.init(ds)` 建立词缀索引并清空词书 / 低阶集合 / 官方词集 / 官方书缓存（[library.js:152-159](../app/js/library.js#L152-L159)）。
+- `getBook(tag)`：四元组 + 词根信息经 `enrich` 生成完整词条（[library.js:161-184](../app/js/library.js#L161-L184)），追加派生字段：
   - `morphemes`：前缀/词根/后缀拆分 + 释义;词根不在词面时按已知词缀表回退拆分（[library.js:40-63](../app/js/library.js#L40-L63)）;
   - `senses`：按 `/` 切义项，识别 `pos.` 与 `[域]` 前缀（[library.js:90-105](../app/js/library.js#L90-L105)）;
   - `mnemonic`：≥2 个词素释义时合成「词素链 → 核心义」助记（[library.js:116-122](../app/js/library.js#L116-L122)）。
 - `buildCards(entry)` 依 `cardOrder` 生成详解卡片（助记/构词/词根词源/近义/派生/词形/例句/搭配/英释）。
-- 考试阶梯 `BOOK_RANK`（中考 0 → GRE 9）：`lowerTags / lowerWordSet` 取**严格低阶**词书词集并缓存，供「跳过低阶重复词」（[library.js:195-211](../app/js/library.js#L195-L211)）。
-- 自定义词书不走 `getBook`：`activeBook()` 直接返回 `customBooks[tag]`（[app.js:250-255](../app/js/app.js#L250-L255)）。
-- 词书过滤只作用于每日队列输入 `studyEntries`，词书本身与测试范围不变（[app.js:258-267](../app/js/app.js#L258-L267)）。
+- 考试阶梯 `BOOK_RANK`（中考 0 → GRE 9）：`lowerTags / lowerWordSet` 取**严格低阶**词书词集并缓存，供「跳过低阶重复词」（[library.js:208-217](../app/js/library.js#L208-L217)）。
+- **官方考纲书**：`officialBook(level)` 把 `official.json` 的原始词条经 `officialForms` 归一化取首形、按首形去重，再 `enrich` 成可学习词条（标 `official:true` 与 `officialText` 原文），缓存为 `{tag,name,n,entries,groups:[],official:true}`（[library.js:263-279](../app/js/library.js#L263-L279)）。`listBooks` 将「考纲四级（官方）/ 考纲六级（官方）」**置顶**于考试书之前（[library.js:186-197](../app/js/library.js#L186-L197)）;`getBook('考纲四级'|'考纲六级')` 走官方分支（[library.js:163-164](../app/js/library.js#L163-L164)）。官方书**绕过** CEFR 质量过滤与 `skipLower`（官方 tag 不在 `BOOK_RANK`）。
+- **考纲对比**：`compareToOfficial(entries, level)` 把任意词书词条与官方词集 `officialWordSet(level)` 比对，返回 `covered`（考纲内）/ `beyond`（超纲）/ `missing`（考纲有而本书缺）及两个覆盖率 `coverageBook`（本书被考纲覆盖比例）/ `coverageOfficial`（考纲被本书覆盖比例）与三份词表（[library.js:282-312](../app/js/library.js#L282-L312)）。归一化 `officialForms`：去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号（`mo(u)ld` → `mould`+`mold`）（[library.js:230-243](../app/js/library.js#L230-L243)）。UI 在「词书与计划」页「考纲对比」面板：选源书 + 选考纲级别（四级 / 六级），渲染摘要 + 覆盖率条 + 三个可折叠词表（考纲内 / 超纲 / 考纲缺失），每段限 300 词并可展开全部（[app.js:2008-2068](../app/js/app.js#L2008-L2068)）。
+- 自定义词书不走 `getBook`：`activeBook()` 直接返回 `customBooks[tag]`（[app.js:250-255](../app/js/app.js#L250-L255)）;对比面板用 `resolveBook(tag)` 统一解析自定义 / 官方 / 考试书（[app.js:256-260](../app/js/app.js#L256-L260)）。
+- 词书过滤只作用于每日队列输入 `studyEntries`，词书本身与测试范围不变（[app.js:263-272](../app/js/app.js#L263-L272)）。
 
 ## 4. 自定义词书导入规范
 
-入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:126](../app/js/platform.js#L126)）。统一解析器 `Library.parse`（[library.js:351-366](../app/js/library.js#L351-L366)）。
+入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:126](../app/js/platform.js#L126)）。统一解析器 `Library.parse`（[library.js:452-467](../app/js/library.js#L452-L467)）。
 
 ### 4.1 JSON：扁平数组（推荐）
 
@@ -317,9 +340,10 @@
 
 ## 8. 维护约定
 
-1. **改内置数据**：改 `scripts/scrape-morphemelexicon.cjs` 后重跑生成六文件;不手改 `app/data/*.json`。
+1. **改内置数据**：改 `scripts/scrape-morphemelexicon.cjs` 后重跑生成六个抓取文件;不手改 `app/data/*.json`。**例外 `official.json`**：源自官方考纲 PDF 词表（非抓取），见 §2.7 与第 7 条。
 2. **改用户状态 schema**：在 `store.js normalize` 加迁移分支（旧数据可读），必要时 bump 导出 `schema` 并在 `importData` 兼容旧版;同步更新本文档 §5/§6。
 3. **改导入格式**：扩展 `Library.parse` 分支与表头词表;同步更新本文档 §4 与 README 使用说明。
 4. **改词素/义项/助记派生逻辑**：只影响运行时 enrich，不落盘;同步更新本文档 §3。
 5. 本文档与 README「文档」节互链;schema 变更的提交信息需注明影响面（词库 / 存储 / 备份）。
 6. **改存储位置/加密**：Electron 目录逻辑在 `main.js`（指针 `data-dir.json`、密钥 `glance-secret.key`），Android 镜像在 `GlanceStorage.java`，Web 分发在 `platform.js`，UI 在 `app.js renderStorageUi`;改任一处需同步更新本文档 §5.4/§5.5。**密钥文件与 `keyEnc` 前缀（`g1:`）属安全边界，变更须保证旧数据可解密、失败不销毁 stored key。**
+7. **改官方考纲词库**：源 PDF 与 A/B 两份纯文本列表在 `assets/words/`;`official.json` 的 `cet4/cet6` 须保持 PDF 原始顺序与印刷形态（变体 / 上标 / 可选字母 / 短语），归一化只在运行时 `officialForms` 做，不写回数组。改提取须重核 §2.7 方法与两份 txt 行数（A 6,632 / B 1,264）;改对比口径同步更新本文档 §3 与 README「考纲对比」。

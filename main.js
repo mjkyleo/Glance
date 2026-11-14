@@ -320,7 +320,8 @@ ipcMain.handle('get-dataset', () => {
     roots: read('roots.json'),
     roottrees: read('roottrees.json'),
     words: read('words.json'),
-    affixes: read('affixes.json')
+    affixes: read('affixes.json'),
+    official: read('official.json')
   };
 });
 

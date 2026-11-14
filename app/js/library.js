@@ -154,10 +154,14 @@
     affixMap = new Map((DS.affixes || []).map(a => [a.id, a]));
     for (const k of Object.keys(books)) delete books[k];
     for (const k of Object.keys(lowerCache)) delete lowerCache[k];
+    for (const k of Object.keys(officialSetCache)) delete officialSetCache[k];
+    for (const k of Object.keys(officialBookCache)) delete officialBookCache[k];
   }
 
   function getBook(tag) {
     if (books[tag]) return books[tag];
+    const offLevel = OFFICIAL_BY_TAG[tag];
+    if (offLevel) { const b = officialBook(offLevel); books[tag] = b; return b; }
     const ex = (DS.exams || {})[tag];
     if (!ex) return null;
     const entries = [], groups = [];
@@ -181,13 +185,15 @@
 
   function listBooks() {
     const tags = (DS.meta && DS.meta.exams) || Object.keys(DS.exams || {});
-    return tags.map(t => {
+    const examBooks = tags.map(t => {
       const ex = (DS.exams || {})[t] || {};
       let n = 0;
       for (const g of ex.groups || []) for (const w of g.words || []) if (passesQuality(w[2], t)) n++;
       for (const w of ex.loose || []) if (passesQuality(w[2], t)) n++;
       return { tag: t, name: t + '词库', n };
     });
+    const offBooks = officialLevels().map(o => ({ tag: o.tag, name: o.name, n: officialCount(o.level), official: true }));
+    return offBooks.concat(examBooks);
   }
 
   // Exam ladder for the optional "skip lower-book duplicates" filter: a book's
@@ -208,6 +214,101 @@
     }
     lowerCache[tag] = set;
     return set;
+  }
+
+  // ---- official syllabus (考纲) root reference ----
+  // The 2016 CET syllabus word list is the authoritative foundation: A group (no ★,
+  // CET-4) and B group (★, CET-6). Entries keep the printed form (variants a/b,
+  // homographs word¹, optional letters mo(u)ld, phrases according to); matching
+  // normalises them to comparable lowercase forms.
+  const OFFICIAL = {
+    cet4: { tag: '考纲四级', name: '考纲四级（官方）' },
+    cet6: { tag: '考纲六级', name: '考纲六级（官方）' }
+  };
+  const OFFICIAL_BY_TAG = { '考纲四级': 'cet4', '考纲六级': 'cet6' };
+  const SUP_RE = /[⁰¹²³⁴⁵⁶⁷⁸⁹]/g;
+  function officialForms(text) {
+    const t = String(text || '').replace(SUP_RE, '').trim();
+    if (!t) return [];
+    const out = new Set();
+    for (const part of t.split('/')) {
+      const p = part.trim().toLowerCase();
+      if (!p) continue;
+      if (p.indexOf('(') >= 0) {
+        out.add(p.replace(/\(([^)]*)\)/g, '$1'));   // with optional letter: mould
+        out.add(p.replace(/\([^)]*\)/g, ''));       // without: mold
+      } else out.add(p);
+    }
+    return Array.from(out).filter(Boolean);
+  }
+  function officialRaw(level) { return (DS.official || {})[level] || []; }
+  function officialLevels() {
+    return Object.keys(OFFICIAL).filter(l => Array.isArray((DS.official || {})[l]))
+      .map(l => ({ level: l, tag: OFFICIAL[l].tag, name: OFFICIAL[l].name, n: officialRaw(l).length }));
+  }
+  const officialSetCache = {};
+  function officialWordSet(level) {
+    if (officialSetCache[level]) return officialSetCache[level];
+    const set = new Set();
+    for (const text of officialRaw(level)) for (const f of officialForms(text)) set.add(f);
+    officialSetCache[level] = set;
+    return set;
+  }
+  function officialCount(level) {
+    const seen = new Set();
+    for (const text of officialRaw(level)) { const f = officialForms(text)[0]; if (f) seen.add(f); }
+    return seen.size;
+  }
+  const officialBookCache = {};
+  function officialBook(level) {
+    if (officialBookCache[level]) return officialBookCache[level];
+    const meta = OFFICIAL[level];
+    const entries = [], seen = new Set();
+    for (const text of officialRaw(level)) {
+      const word = officialForms(text)[0];
+      if (!word || seen.has(word)) continue;
+      seen.add(word);
+      const e = enrich(word, '', '', '', '', '', '', 0);
+      e.official = true;
+      e.officialText = text;
+      entries.push(e);
+    }
+    const book = { tag: meta.tag, name: meta.name, n: entries.length, entries, groups: [], official: true };
+    officialBookCache[level] = book;
+    return book;
+  }
+  // Compare any book's entries against an official level: covered (in syllabus),
+  // beyond (超纲), missing (syllabus words the book lacks) + coverage ratios.
+  function compareToOfficial(entries, level) {
+    const offSet = officialWordSet(level);
+    const coveredWords = [], beyondWords = [], seen = new Set();
+    const srcFormSet = new Set();
+    let covered = 0;
+    for (const e of entries || []) {
+      const w = e.word;
+      const forms = officialForms(w);
+      for (const f of forms) srcFormSet.add(f);
+      const key = String(w).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (forms.some(f => offSet.has(f))) { covered++; coveredWords.push(w); }
+      else beyondWords.push(w);
+    }
+    const missingWords = [], offSeen = new Set();
+    for (const text of officialRaw(level)) {
+      const forms = officialForms(text);
+      const primary = forms[0];
+      if (!primary || offSeen.has(primary)) continue;
+      offSeen.add(primary);
+      if (!forms.some(f => srcFormSet.has(f))) missingWords.push(primary);
+    }
+    const total = seen.size, offTotal = offSeen.size;
+    return {
+      total, covered, beyond: beyondWords.length, missing: missingWords.length, offTotal,
+      coverageBook: total ? covered / total : 0,
+      coverageOfficial: offTotal ? (offTotal - missingWords.length) / offTotal : 0,
+      coveredWords, beyondWords, missingWords
+    };
   }
 
   function getFamily(root) {
@@ -365,5 +466,5 @@
     return { name: name || 'library', entries: base.entries, custom: true };
   }
 
-  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse };
+  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial };
 })();

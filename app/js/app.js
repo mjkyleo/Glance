@@ -253,6 +253,11 @@
     if (custom) return { tag, name: tag, n: custom.entries.length, entries: custom.entries, custom: true };
     return Library.getBook(tag) || Library.getBook('六级') || { tag: '六级', name: '六级词库', n: 0, entries: [] };
   }
+  function resolveBook(tag) {
+    const custom = Store.data.customBooks[tag];
+    if (custom) return { tag, name: tag, n: custom.entries.length, entries: custom.entries, custom: true };
+    return Library.getBook(tag) || null;
+  }
   function knownCount(entries) { let n = 0; for (const e of entries) if (SRS.isKnown(Store.data.srs[e.word])) n++; return n; }
   // Optional book filters only trim the daily study queue; the book itself and quiz scopes stay intact.
   function studyEntries(b) {
@@ -1999,6 +2004,69 @@
   }
 
   // ===================== books =====================
+  // ===================== official syllabus comparison =====================
+  function cmpSourceOptions() {
+    const opts = [];
+    Library.listBooks().forEach(b => opts.push({ tag: b.tag, name: b.name }));
+    Object.keys(Store.data.customBooks).forEach(name => opts.push({ tag: name, name: name + '（自定义）' }));
+    return opts;
+  }
+  function cmpSection(title, words, color, desc) {
+    const wrap = el('div', 'cmp-section');
+    const head = el('button', 'cmp-head'); head.type = 'button';
+    head.appendChild(el('span', 'cmp-title', title + '（' + words.length + '）'));
+    head.appendChild(el('span', 'cmp-caret', '▾'));
+    const body = el('div', 'cmp-body'); body.hidden = true;
+    body.appendChild(el('div', 'cmp-desc', desc));
+    const chips = el('div', 'cmp-chips');
+    const LIMIT = 300;
+    words.slice(0, LIMIT).forEach(w => chips.appendChild(el('span', 'cmp-chip ' + color, w)));
+    body.appendChild(chips);
+    if (words.length > LIMIT) {
+      const more = el('button', 'cmp-more'); more.type = 'button';
+      more.textContent = '展开全部 ' + words.length + ' 词';
+      more.addEventListener('click', () => {
+        chips.innerHTML = '';
+        words.forEach(w => chips.appendChild(el('span', 'cmp-chip ' + color, w)));
+        more.remove();
+      });
+      body.appendChild(more);
+    }
+    head.addEventListener('click', () => {
+      body.hidden = !body.hidden;
+      head.classList.toggle('open', !body.hidden);
+    });
+    wrap.appendChild(head); wrap.appendChild(body);
+    return wrap;
+  }
+  function renderCompare() {
+    const srcSel = $('cmp-source'), lvlSel = $('cmp-level'), box = $('cmp-result');
+    if (!srcSel || !lvlSel || !box) return;
+    const prev = srcSel.value;
+    const opts = cmpSourceOptions();
+    srcSel.innerHTML = '';
+    opts.forEach(o => { const op = el('option', null, o.name); op.value = o.tag; srcSel.appendChild(op); });
+    const want = opts.some(o => o.tag === prev) ? prev : (Store.data.activeBook || (opts[0] && opts[0].tag));
+    if (want) srcSel.value = want;
+    const level = lvlSel.value || 'cet4';
+    const b = resolveBook(srcSel.value);
+    box.innerHTML = '';
+    if (!b || !b.entries.length) { box.appendChild(el('div', 'empty-hint', '请选择一本有单词的词书。')); return; }
+    const r = Library.compareToOfficial(b.entries, level);
+    const lvlName = level === 'cet6' ? '六级（B组·★）' : '四级（A组·无★）';
+    const sum = el('div', 'cmp-summary');
+    sum.appendChild(el('div', 'cmp-line', '本书 ' + r.total + ' 词 · 考纲内 ' + r.covered + ' · 超纲 ' + r.beyond));
+    sum.appendChild(el('div', 'cmp-line', '官方' + lvlName + ' ' + r.offTotal + ' 词 · 本书覆盖 ' + (r.offTotal - r.missing) + ' · 缺失 ' + r.missing));
+    const bar = el('div', 'cmp-bar'); const fill = el('div', 'cmp-fill');
+    fill.style.width = Math.round(r.coverageBook * 100) + '%';
+    bar.appendChild(fill); sum.appendChild(bar);
+    sum.appendChild(el('div', 'cmp-pct', '本书考纲内占比 ' + Math.round(r.coverageBook * 100) + '% · 考纲覆盖率 ' + Math.round(r.coverageOfficial * 100) + '%'));
+    box.appendChild(sum);
+    box.appendChild(cmpSection('考纲内', r.coveredWords, 'green', '本书中属于官方考纲的词'));
+    box.appendChild(cmpSection('超纲', r.beyondWords, 'amber', '本书中超出官方考纲的词'));
+    box.appendChild(cmpSection('考纲缺失', r.missingWords, 'gray', '官方考纲有、本书未收录的词'));
+  }
+
   function renderBooks() {
     const b = activeBook();
     const known = knownCount(b.entries);
@@ -2045,13 +2113,14 @@
       const row = el('button', 'row book-row' + (bk.tag === Store.data.activeBook ? ' active' : '')); row.type = 'button';
       const main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', bk.name));
-      main.appendChild(el('div', 'row-sub', bk.n + ' 词 · 已掌握 ' + kn));
+      main.appendChild(el('div', 'row-sub', bk.n + ' 词 · 已掌握 ' + kn + (bk.official ? ' · 官方考纲' : '')));
       row.appendChild(main);
       row.appendChild(el('span', 'row-badge ' + (bk.tag === Store.data.activeBook ? 'green' : 'gray'), bk.tag === Store.data.activeBook ? '当前' : Math.round(bk.n ? (kn / bk.n) * 100 : 0) + '%'));
       row.addEventListener('click', () => switchBook(bk.tag));
       wrap.appendChild(row);
     });
     list.appendChild(wrap);
+    renderCompare();
 
     const customKeys = Object.keys(Store.data.customBooks);
     const cl = $('custom-books-list');
@@ -2500,6 +2569,8 @@
     $('book-skip-lower').addEventListener('change', onBookFilter);
     $('book-skip-known').addEventListener('change', onBookFilter);
     $('import-book').addEventListener('click', importBook);
+    $('cmp-source').addEventListener('change', renderCompare);
+    $('cmp-level').addEventListener('change', renderCompare);
 
     $('set-new').addEventListener('change', applyPlan);
     $('set-review').addEventListener('change', applyPlan);
