@@ -2,7 +2,7 @@
 
 > 本文逐模块说明 Glance 的**全部功能**、**已实现状态**与**后续可迭代优化方向**，作为产品与开发的单一参照。
 > 实现细节与逐项验证记录见 [DEVELOPMENT.md](../DEVELOPMENT.md);数据 schema 见 [DATA.md](DATA.md)。
-> 文中 `文件:行号` 为编写时（2026-11-14，`android-35`）核实的代码位置，重构后需同步更新。
+> 文中 `文件:行号` 为编写时（2026-11-14，`android-37`）核实的代码位置，重构后需同步更新。
 
 **状态标记**
 
@@ -14,15 +14,15 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 2750 | UI 渲染、交互、会话编排、设置 |
-| [quiz.js](../app/js/quiz.js) | 764 | 测试引擎：组卷、难度、干扰项、约束 |
+| [app.js](../app/js/app.js) | 2755 | UI 渲染、交互、会话编排、设置 |
+| [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
 | [store.js](../app/js/store.js) | 571 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
 | [library.js](../app/js/library.js) | 469 | 词书组织、词条富化、官方考纲、对比 |
 | [dictionary.js](../app/js/dictionary.js) | 384 | 外部词典检索与多源归一化 |
 | [platform.js](../app/js/platform.js) | 284 | 平台适配（存储/网络/发音/文件/镜像） |
 | [themes.js](../app/js/themes.js) | 244 | 专项主题分类器（29 主题） |
-| [srs.js](../app/js/srs.js) | 190 | FSRS-6 调度内核 + 个性化优化 |
-| [ai.js](../app/js/ai.js) | 107 | 大模型按词讲解（13 服务商） |
+| [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
+| [ai.js](../app/js/ai.js) | 129 | 大模型按词讲解（13 服务商） |
 
 ---
 

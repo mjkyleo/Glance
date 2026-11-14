@@ -146,10 +146,10 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`55356ef`（`main`），「我的」支持头像与昵称：图片自动裁剪压缩后仅存本机，昵称最多 16 字符，随备份导出/覆盖导入恢复。
-- 最新交付：`android-27` APK → `https://github.com/mjkyleo/Glance/releases/download/android-27/Glance-android.apk`（13,168,277 字节）。
+- 最新提交：`4c38e14`（`main`），FSRS-6 对照验证旁路（ts-fsrs 6）+ migrate 保真修复 + 组卷主题/词性交错（FEATURES §13.1/§13.2，仅对照不迁移）。
+- 最新交付：`android-37` APK → `https://github.com/mjkyleo/Glance/releases/download/android-37/Glance-android.apk`（13,225,651 字节，versionCode 37 / versionName `1.0.6+37`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.13；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.26；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -752,7 +752,7 @@
 **核心 bug 修复：migrate() 保真守卫**
 
 - **问题**：`migrate()` 原先每次非首复习都无条件以粗粒度 Leitner `INTERVALS[box]` 重置 `S/D`（经 [srs.js:90](app/js/srs.js#L90) 调用），使连续 FSRS 稳定度退化为近似 Leitner——对照整段序列 4200 步中 3893 步偏离、max|ΔS|≈145.77。
-- **修复**：[srs.js:76-83](app/js/srs.js#L76-L83) 加保真守卫——含有效 `S>0 && D>0` 的状态**原样返回**，仅 legacy（无 S/D）状态按 box 升级。修复后 4200 步 **S/D 零偏离**，稳定度恢复连续增长（6 次「认识」探针 10.96→46.3→161→494→1352→3266）。legacy 迁移仍正确（box:3→S=4,D=4.6），状态形状不变 → `Store.recordGrade` 集成安全、向后兼容、**无需数据迁移**。
+- **修复**：[srs.js:76-83](app/js/srs.js#L76-L83) 加保真守卫——含有效 `S>0 && D>0` 的状态**原样返回**，仅 legacy（无 S/D）状态按 box 升级。修复后 4200 步 **S/D 零偏离**，稳定度恢复连续增长（6 次「认识」、每次间隔 1 天探针 S：2.31→7.32→11.99→16.41→20.65→24.76，单调增长而非塌缩回 Leitner）。legacy 迁移仍正确（box:3→S=4,D=4.6），状态形状不变 → `Store.recordGrade` 集成安全、向后兼容、**无需数据迁移**。
 - **稳定度边界对齐**：[srs.js:11](app/js/srs.js#L11) 新增 `S_MIN=0.001 / S_MAX=36500`（对齐 ts-fsrs `FSRS6_MODEL_BOUNDS`），[nextS srs.js:37-52](app/js/srs.js#L37-L52) 三个分支返回均 clamp;forget 分支先 clamp 再取 `min(forget, S/exp(w17·w18))`。
 - **保留为设计取舍（非 bug）**：短期稳定度触发 `sameDay = elapsed<1`（Glance 以毫秒分数计 elapsed，24h 滚动窗近似同日）vs 参考 `t===0`;`0<elapsed<1` 时分支不同，已注明不改。
 
@@ -774,7 +774,7 @@
 - **FSRS 对照（Node 实跑 `npm run contrast:fsrs`，seed 20261114 / 300 段 × 14 步）**：权重一致 true、decay 0.1542;方法级网格 retrievability/initDS/nextD/nextS(recall·forget·short-term)/interval **全部 0 deviation**（仅 nextS recall 127 样本为 precision 级，maxAbs 3.21e-5，源于参考逐步 roundTo 8 位）;migrate 探针 `S=24.4728247,D=4.99022837,box=4` → 原样保留（preserved=true）;整段 **4200 步 devS=0 / devD=0**;短期触发探针差异仅 `0<elapsed<1`（设计取舍）。
 - **组卷交错（浏览器实测，当前词书 12 轮 × 20 题，online:false）**：词性最长连续段 **avg 2.0 / max 2**（随机基线 avg 3.75），主题最长连续段 **1.0**，题量填充率 **100%**、**零放宽**;`node --check` srs.js/quiz.js/旁路/vendor 全通过;控制台仅有道词典浏览器直连 CORS 报错（既有限制，Electron/Android 走 IPC/CapacitorHttp 正常），与本次改动无关。
 
-**交付**：见 §3 与 §10（CI 构建后回填 `android-N`）。
+**交付**：`android-37`（target `4c38e14`，CI run 43558201944 成功;12 步全绿，含新增第 8 步 `Strip dev-only FSRS contrast side-path` 与第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 37` / `versionName 1.0.6+37` / 证书 `CN=Glance Debug`，APK 13,225,651 字节，较 android-36 仅 +924 字节，远小于旁路 ~37KB，佐证已剥离）— `https://github.com/mjkyleo/Glance/releases/download/android-37/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
 
 ---
 
@@ -796,6 +796,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `4c38e14` | FSRS-6 对照验证旁路（FEATURES §13.1/§13.2，仅对照不迁移）：vendor ts-fsrs 6 FSRS-6 模型为浏览器全局 + dev 对照 harness（Node `contrast:fsrs` / 浏览器页）+ 报告 FSRS-CONTRAST.md;修复 migrate() 每次复习以 Leitner box 重置 S/D 的核心 bug（保真守卫，4200 步零偏离）+ 稳定度边界对齐 sMin/sMax;组卷主题/词性交错（不连出三题同主题/词性，词性最长连续段 2 vs 随机 3.75、填充 100%、零放宽）;旁路经 build.files + CI strip 步骤排除出正式包 |
 | `ac3fc5b` | 开发期免费 AI 预设（DEV-ONLY，发布前移除）：ai.js 内置 devfree 免费 OpenAI 兼容服务商（默认 DeepSeek-V4-Flash，另 DeepSeek-V4.1-Flash / GLM-5.3-Flash），Key 留空回退内置开发 Key;单一移除点 DEV_FREE_API 块;DEVELOPMENT §8.25/§9 + FEATURES §6.1 + DATA §5.5 记录移除清单与公开 Key/git 历史警示 |
 | `8f735f5` | 官方考纲词库为根：2016 修订版四六级大纲词表逐行提取（A 无★ 6,632 / B 带★ 1,264）→ official.json + 两份纯文本;考纲四级/六级官方书置顶可学习;词书「考纲对比」面板（考纲内/超纲/缺失 + 双向覆盖率）;功能全景文档 FEATURES.md |
 | `cda5116` | 修复 GlanceStorage 文件夹选择器适配 Capacitor 6 activity-result API（存储功能交付 android-34） |
@@ -837,4 +838,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-36` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除；并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 36 / versionName `1.0.6+36`）— `https://github.com/mjkyleo/Glance/releases/download/android-36/Glance-android.apk`（13,224,727 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-35` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-37` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除;新增 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错，对照旁路已剥离出包;并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 37 / versionName `1.0.6+37`）— `https://github.com/mjkyleo/Glance/releases/download/android-37/Glance-android.apk`（13,225,651 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-36` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
