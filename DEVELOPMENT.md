@@ -146,7 +146,7 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`94ae892`（`main`），文档 `文件:行号` 引用全量复核修正（仅 md，不触发 CI）;功能最新提交仍为 `a12ba4e`（QNAI 免费 AI 服务商预设，§8.31）。
+- 最新提交：功能提交 `a12ba4e`（`main`，QNAI 免费 AI 服务商预设，§8.31）;其后的文档提交（如 `94ae892`）只复核修正 `文件:行号` 引用，属 md-only，`paths-ignore` 不触发 CI、不改变 APK。
 - 最新交付：`android-42` APK → `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`（13,236,662 字节，versionCode 42 / versionName `1.0.6+42`）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.31；**不能按编号折算完成度**，以本文实际勾选为准。
