@@ -2,7 +2,7 @@
 
 > 本文逐模块说明 Glance 的**全部功能**、**已实现状态**与**后续可迭代优化方向**，作为产品与开发的单一参照。
 > 实现细节与逐项验证记录见 [DEVELOPMENT.md](../DEVELOPMENT.md);数据 schema 见 [DATA.md](DATA.md)。
-> 文中 `文件:行号` 为编写时（2026-11-14，`android-38`）核实的代码位置，重构后需同步更新。
+> 文中 `文件:行号` 为编写时（2026-11-14，`android-39`）核实的代码位置，重构后需同步更新。
 
 **状态标记**
 
@@ -14,12 +14,12 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 2774 | UI 渲染、交互、会话编排、设置 |
+| [app.js](../app/js/app.js) | 2790 | UI 渲染、交互、会话编排、设置 |
 | [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
 | [store.js](../app/js/store.js) | 571 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
 | [library.js](../app/js/library.js) | 469 | 词书组织、词条富化、官方考纲、对比 |
 | [dictionary.js](../app/js/dictionary.js) | 384 | 外部词典检索与多源归一化 |
-| [platform.js](../app/js/platform.js) | 284 | 平台适配（存储/网络/发音/文件/镜像） |
+| [platform.js](../app/js/platform.js) | 294 | 平台适配（存储/网络/发音/文件/镜像） |
 | [themes.js](../app/js/themes.js) | 244 | 专项主题分类器（29 主题） |
 | [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
 | [ai.js](../app/js/ai.js) | 129 | 大模型按词讲解（13 服务商） |
@@ -166,6 +166,7 @@
 - **开发期免费预设 🚧 DEV-ONLY**：置顶且为开发期默认服务商的「开发免费（发布前移除）」内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用；三个模型 `DeepSeek-V4-Flash`（默认）/ `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash` 以**下拉选择器**直接可选。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
 - **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器（当前仅 devfree 的三模型），其余服务商保留自由文本输入；切换服务商自动切换形态并持久化所选模型（[app.js:2358 syncAiProviderUi](../app/js/app.js#L2358)、[app.js:2618](../app/js/app.js#L2618)、[index.html:746](../app/index.html#L746)）。开发期默认服务商为 devfree（[store.js:32](../app/js/store.js#L32)）。
 - 按词生成结构化解释，解析失败重试一次（[ai.js:99](../app/js/ai.js#L99)）;平台网络通道绕 CORS（[platform.js:196 llmChat](../app/js/platform.js#L196)）。浏览器直连受 CORS 限制，Electron / Android 正常。
+- **连通性测试 + 可操作错误** ✅：「模型」栏下方「测试连通性」按钮发一条最小 ping 请求，显示 `✓ 连通正常 · 模型 · 耗时s` 或可操作错误，切换服务商自动清空（[index.html:747](../app/index.html#L747)、[app.js:2624](../app/js/app.js#L2624)、[app.js:2381](../app/js/app.js#L2381)）。网络错误分类为「超时（120 秒）」/「浏览器 CORS 拦截，请改用 Electron/Android」，取代裸 `Failed to fetch`（[platform.js:226-233](../app/js/platform.js#L226-L233)、[main.js:348-352](../main.js#L348-L352)）;三端 LLM 超时统一 120s 以适配慢端点（[platform.js:206](../app/js/platform.js#L206)、[main.js:337-340](../main.js#L337-L340)）。
 - 学习页 AI 区 [app.js:1564 aiSection](../app/js/app.js#L1564)，渲染 [app.js:1421 renderAiExplanation](../app/js/app.js#L1421)。
 
 ### 6.2 AI 解释库 ✅
@@ -341,7 +342,7 @@
 | 测试 | 6 范围 4 题型 + 自动难度 + 约束 | ✅ | quiz.js |
 | 测试 | 干扰项（同根/音近/词形镜像） | ✅ | quiz.js:296-448 |
 | 查词 | 查词/历史/生词本 + 外部词典 | ✅ | app.js:1378-1725 / dictionary.js |
-| AI | 13 服务商按词讲解 + 缓存导出 | ✅ | ai.js / app.js:1564-1631 |
+| AI | 13 服务商按词讲解 + 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:1564-1631 / app.js:2624 |
 | 发音 | 真人音频优先 + 原生/Web TTS | ✅ | platform.js:53 |
 | 统计 | 日历/掌握/正确率/趋势/接触榜 | ✅ | app.js:1827-1975 |
 | 我的 | 头像昵称 + 设置中心 | ✅ | app.js:1761-2322 |
