@@ -736,6 +736,8 @@
 3. 重跑 CI 构建确认 APK 不含 devfree 服务商与内置 Key（可 `grep -r "DEV_FREE_API\|rc-366f" app/` 应为空）。
 4. 注意：开发期若以 devfree 导出过学习数据，备份 `settings.ai.provider='devfree'`;移除后导入会回退到首个服务商（deepseek），属预期降级。
 
+**交付**：`android-36`（target `ac3fc5b`，CI run 43554509635 成功;CI apksigner 断言 `com.glance.app` / `versionCode 36` / `versionName 1.0.6+36` / 证书 `CN=Glance Debug`，APK 13,224,727 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-36/Glance-android.apk`。**此包内含 devfree 开发预设，仅供开发试用，非正式发布包。**
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -755,6 +757,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `ac3fc5b` | 开发期免费 AI 预设（DEV-ONLY，发布前移除）：ai.js 内置 devfree 免费 OpenAI 兼容服务商（默认 DeepSeek-V4-Flash，另 DeepSeek-V4.1-Flash / GLM-5.3-Flash），Key 留空回退内置开发 Key;单一移除点 DEV_FREE_API 块;DEVELOPMENT §8.25/§9 + FEATURES §6.1 + DATA §5.5 记录移除清单与公开 Key/git 历史警示 |
 | `8f735f5` | 官方考纲词库为根：2016 修订版四六级大纲词表逐行提取（A 无★ 6,632 / B 带★ 1,264）→ official.json + 两份纯文本;考纲四级/六级官方书置顶可学习;词书「考纲对比」面板（考纲内/超纲/缺失 + 双向覆盖率）;功能全景文档 FEATURES.md |
 | `cda5116` | 修复 GlanceStorage 文件夹选择器适配 Capacitor 6 activity-result API（存储功能交付 android-34） |
 | `92b8b93` | 存储位置可配置（Windows 自定义目录 / Android 共享目录镜像卸载不丢）+ API Key AES-256-GCM 静态加密（密钥只留本机私有目录，备份/镜像不含 Key）+ 数据规范文档 DATA.md |
@@ -795,4 +798,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-35` APK（官方考纲词库为根 + 词书考纲对比，并含存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 35 / versionName `1.0.6+35`）— `https://github.com/mjkyleo/Glance/releases/download/android-35/Glance-android.apk`（13,223,689 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-34` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-36` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除；并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 36 / versionName `1.0.6+36`）— `https://github.com/mjkyleo/Glance/releases/download/android-36/Glance-android.apk`（13,224,727 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-35` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
