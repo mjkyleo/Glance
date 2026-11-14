@@ -146,10 +146,10 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`b63a4ff`（`main`），AI 连通性测试（模型栏「测试连通性」）+ 可操作网络错误提示 + 三端 LLM 超时统一 120s（§8.28）。
-- 最新交付：`android-39` APK → `https://github.com/mjkyleo/Glance/releases/download/android-39/Glance-android.apk`（13,226,822 字节，versionCode 39 / versionName `1.0.6+39`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
+- 最新提交：`4b1dde0`（`main`），导航/返回栈 + 原生震动 + 词书选择停留原页 + 多书排除过滤 + 基础词过滤（默认开）（§8.29）。
+- 最新交付：`android-40` APK → `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`（13,234,588 字节，versionCode 40 / versionName `1.0.6+40`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.28；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.29；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -829,6 +829,8 @@
 
 **验证**（browser-use，ignoreCache 重载 127.0.0.1:8123）：选「考纲四级（官方）」后仍停留词书页（`view-books` 可见、`view-study` 隐藏）;`skipBasic` 默认勾选、基础词集 326;排除 chip 14 个，选「四级词库」后 `excludeBooks=['四级']`、hint「词书重复 2300」；基础词开=312/关=0 且剩余词数相应变化;`books-back` 回「我的」、tab 切换正常;控制台无报错;`node --check` 全通过;`npx cap sync android` 识别 3 插件（text-to-speech/app/haptics）。震动与硬件返回为原生能力，浏览器仅验证 no-op 与逻辑不回归，实机效果随 APK 交付。
 
+**交付**：`android-40`（target `4b1dde0`，CI run 43563901478 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 40` / `versionName 1.0.6+40` / 证书 `CN=Glance Debug`，APK 13,234,588 字节，较 android-39 +7,766 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -849,6 +851,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `4b1dde0` | 导航/返回栈 + 原生震动 + 词书选择与过滤增强（§8.29）：选书停留「词书与计划」不再跳学习页;新增 `@capacitor/app` 统一硬件返回优先级（嵌套弹层→弹层→子页→测试态→tab 历史→根节点退出）;新增 `@capacitor/haptics`，评分/答题 success/warn/error、tab/模式/选书/过滤 light tap（仅原生）;词书过滤新增「过滤基础词」（326 个小学/初中极基础词，默认开、可关）+ 多选其它词书排除 chip，仅裁剪每日队列;DEVELOPMENT §8.29 + FEATURES §1.5/§2.6/§12.3/矩阵 + README 同步 |
 | `b63a4ff` | AI 连通性测试 + 可操作网络错误（§8.28）：模型栏新增「测试连通性」按钮（最小 ping 请求 + 耗时/错误显示，切换服务商清空）;`llmChat`/`llm-chat` 错误分类为超时（120s）与浏览器 CORS 可操作提示，取代裸 `Failed to fetch`;三端 LLM 超时统一 120s（CapacitorHttp connect/read、浏览器 AbortController、Electron net.fetch）适配慢端点;DEVELOPMENT §8.28 + FEATURES §6.1/矩阵 + README 同步 |
 | `5a6e183` | AI 模型选择器 + devfree 开发期默认（§8.27）：带固定模型清单的服务商（devfree）在「模型」栏渲染下拉，三模型 DeepSeek-V4-Flash / DeepSeek-V4.1-Flash / GLM-5.3-Flash 直接可选，其余服务商保留文本输入;切换服务商自动切换形态并持久化所选;默认 ai.provider 改 devfree 使免费模型开箱可见（发布改回 deepseek）;次级提示间距/浅色样式;DEVELOPMENT §8.25/§8.27 + FEATURES §6.1 + README 同步 |
 | `4c38e14` | FSRS-6 对照验证旁路（FEATURES §13.1/§13.2，仅对照不迁移）：vendor ts-fsrs 6 FSRS-6 模型为浏览器全局 + dev 对照 harness（Node `contrast:fsrs` / 浏览器页）+ 报告 FSRS-CONTRAST.md;修复 migrate() 每次复习以 Leitner box 重置 S/D 的核心 bug（保真守卫，4200 步零偏离）+ 稳定度边界对齐 sMin/sMax;组卷主题/词性交错（不连出三题同主题/词性，词性最长连续段 2 vs 随机 3.75、填充 100%、零放宽）;旁路经 build.files + CI strip 步骤排除出正式包 |
@@ -893,4 +896,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-39` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除;新增 AI 连通性测试（模型栏「测试连通性」）+ 可操作网络错误提示 + 三端 LLM 超时 120s;含 AI 模型选择器（三免费模型下拉可选）+ devfree 开发期默认;含 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错，对照旁路已剥离出包;并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 39 / versionName `1.0.6+39`）— `https://github.com/mjkyleo/Glance/releases/download/android-39/Glance-android.apk`（13,226,822 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-38` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-40` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除;新增导航/返回栈（硬件返回逐级回退而非退出）+ 原生震动反馈 + 词书选择停留原页 + 多书排除过滤 + 基础词过滤（默认开）;含 AI 连通性测试 + 可操作网络错误提示 + 三端 LLM 超时 120s + AI 模型选择器（三免费模型下拉）+ devfree 开发期默认;含 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错，对照旁路已剥离出包;并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 40 / versionName `1.0.6+40`）— `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`（13,234,588 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-39` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
