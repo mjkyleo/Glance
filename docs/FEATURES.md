@@ -256,11 +256,11 @@
 
 ---
 
-## 13. 后续可迭代优化（🔭 规划，尚未实现）
+## 13. 后续可迭代优化（🔭 规划 / ✅ 部分已落地）
 
-> 本节均为**未实现**的候选方向，按价值与成本排序。落地前应先只读勘察、出方案、单点执行。
+> 本节为候选方向，按价值与成本排序；已落地者标注 ✅，其余 🔭 未实现。落地前应先只读勘察、出方案、单点执行。
 
-### 13.1 FSRS 调度升级：引入 / 对照 ts-fsrs ⭐ 推荐优先评估
+### 13.1 FSRS 调度升级：引入 / 对照 ts-fsrs ⭐（对照验证 ✅；迁移 🔭）
 
 **现状结论**：Glance 的 FSRS 是**自研 FSRS-6**（§1.1），不是第三方库。优点是零依赖、体积小（190 行）、与三档 UI 和 legacy 统计深度耦合;局限是权重硬编码、优化器简陋（仅 5 权重坐标下降）、缺 FSRS-7 新特性与成熟调度策略。
 
@@ -273,19 +273,31 @@
   - **参数优化器是独立包** [`@open-spaced-repetition/binding`](https://github.com/open-spaced-repetition/ts-fsrs/blob/main/packages/binding/README_CN.md)（基于 `fsrs-rs` + `napi-rs`，支持浏览器/WASI）：从复习历史训练参数、CSV→训练数据转换、推荐学习步骤。比自研坐标下降更准确、更省维护。
 - **关于「rs-everything」**：对话片段提到的这个包名**经检索未能核实存在**（npm/GitHub 搜索仅返回 ts-fsrs、simple-ts-fsrs、@squeakyrobot/fsrs 等）。其宣称的 interleaving / 队列管理思路可取，但**不建议依赖一个无法核实的包**;组卷交错见 §13.2，宜自研或用 ts-fsrs 中间件扩展。
 
+**本期已落地（2026-11-14 · 对照验证旁路，零用户数据风险）**：
+
+- 以 esbuild 将 **ts-fsrs 6.0.0 的 FSRS-6 模型**打包为浏览器全局旁路（[scripts/vendor-ts-fsrs.mjs](../scripts/vendor-ts-fsrs.mjs) → [app/js/vendor/ts-fsrs.js](../app/js/vendor/ts-fsrs.js)，`window.TSFSRS`，约 19 KB，**不引入在用调度器**；dev 旁路文件不入正式包）。
+- 对照引擎 [app/dev/srs-contrast.js](../app/dev/srs-contrast.js) 在相同 `{S,D,elapsed,grade}`、相同 21 权重、关闭 fuzz 下逐方法比对（retrievability / initDS / nextD / nextS·recall·forget·short-term / interval）+ 整段复习序列 + migrate 保真探针;Node 运行器 [scripts/fsrs-contrast.mjs](../scripts/fsrs-contrast.mjs)（`npm run contrast:fsrs`）与浏览器页 [app/dev/fsrs-contrast.html](../app/dev/fsrs-contrast.html) 双通道。报告：[docs/FSRS-CONTRAST.md](FSRS-CONTRAST.md)。
+- **结论**：自研 FSRS-6 核心公式与参考实现**逐方法一致**（差异≤精度级）。发现并修复一处**核心 bug**：`migrate()` 原先每次复习都从粗粒度 Leitner `box` 重置 `S/D`（[srs.js:76-83](../app/js/srs.js#L76-L83)），使连续稳定度退化为近似 Leitner;已加保真守卫（含有效 S/D 的状态原样返回，仅 legacy 升级）。修复后 4200 步随机序列 **S/D 零偏离**，稳定度恢复连续增长。另对齐稳定度边界 `sMin=0.001 / sMax=36500`（[srs.js:37-52](../app/js/srs.js#L37-L52)）。
+- **保留为设计取舍**：短期稳定度触发 `elapsed<1`（Glance 以毫秒分数计 elapsed，近似同日）vs 参考算法 `t===0`;非 bug，不改。
+- **未做（仍 🔭）**：替换在用调度器、四档评分、binding 优化器、FSRS-7 / 中间件策略 —— 见下方迁移路径，需独立迭代与用户数据兼容回归。
+
 **迁移路径（建议先对照、再择机替换）**：
 
-1. **对照验证（低风险，先做）**：引入 ts-fsrs 作旁路，用相同 `{S,D,elapsed,grade}` 输入比对自研 `interval/nextS` 输出，校验自研 FSRS-6 公式正确性，发现偏差再修。
+1. **对照验证 ✅ 已完成（2026-11-14）**：引入 ts-fsrs 作旁路，用相同 `{S,D,elapsed,grade}` 输入比对自研 `interval/nextS` 输出，校验自研 FSRS-6 公式正确性，发现偏差再修（见上「本期已落地」与 [FSRS-CONTRAST.md](FSRS-CONTRAST.md)）。
 2. **评分映射**：三档 → 四档（忘记=Again、模糊=Hard、认识=Good，Easy 暂不用）。
 3. **状态映射**：`{S,D,due,reps,lapses,box,state}` ↔ ts-fsrs card `{stability,difficulty,dueAt,reps,lapses,...}`;保留 `boxFromS` 派生以兼容统计 UI。
 4. **优化器替换**：把现有 `fsrs.seqs`（`{t,g}`，[store.js:165-182](../app/js/store.js#L165-L182)）转换为 binding 训练格式，替换 `SRS.optimize`;需补充每复习时间戳以符合训练数据要求。
 5. **策略增强**：按需启用 Leech / LearningSteps / MaximumInterval。
 6. **风险与成本**：替换在用调度器需迁移既有用户 SRS 状态并充分回归;新增依赖（可 tree-shake，体积可控）；Capacitor/Electron 需打包 WASM/native binding。**建议作为独立迭代，先验证后迁移，不冒进替换。**
 
-### 13.2 组卷与队列优化（interleaving）🔭
+### 13.2 组卷与队列优化（interleaving）（主题/词性交错 ✅；复习推迟 🔭）
 
-- 现状已自研「同根不连续 / 题型不连出三题 / 近期降权」（§4.2）。可进一步做**主题/词性交错**（interleaving）与**复习推迟**（reschedule）策略，提升长期保持。
-- 实现宜在 [quiz.js:611 sample](../app/js/quiz.js#L611) 与 [srs.js:155-176 buildQueue/session](../app/js/srs.js#L155-L176) 上扩展，或借 ts-fsrs 中间件；不依赖未核实的第三方包。
+- 现状已自研「同根不连续 / 题型不连出三题 / 近期降权」（§4.2）。
+- **本期已落地（2026-11-14）· 主题/词性交错**：在 [quiz.js sample](../app/js/quiz.js#L634) 新增两条交错轴——
+  - **主题**：候选取首要主题（`themeOf` = `Themes.themesOf(word)[0]`），硬约束「不连出三题同主题」+ 新主题加分（×1.08）+ 近期主题降权;
+  - **词性**：候选取 `posGroup`，硬约束「不连出三题同词性」+ 近期词性降权;
+  - 两轴随既有三段放宽（phase 0 严格 → phase 1 减半 → phase 2 忽略）逐级松弛，**保题量优先**。实测（六级书，20 题×多轮）：词性最长连续段由随机基线 ~4–5 降到 **≤2**，题量填充率 **100%、零放宽**;主题轴在主题覆盖稀疏的书里作用有限（数据覆盖问题，非代码）。
+- **未做（仍 🔭）· 复习推迟（reschedule）**：宜在 [srs.js buildQueue/session](../app/js/srs.js#L160-L181) 上扩展，或借 ts-fsrs 中间件；不依赖未核实的第三方包。
 
 ### 13.3 AI 学习空间（AI 辅助学习）🔭 明确不在本期实现
 
@@ -314,9 +326,9 @@
 
 | 域 | 功能 | 状态 | 主要位置 |
 |---|---|---|---|
-| 记忆 | FSRS-6 调度（自研） | ✅ | srs.js:16-111 |
-| 记忆 | 个性化权重优化（自研） | ✅ | srs.js:113-152 / store.js:164-182 |
-| 记忆 | 每日计划 + 会话交错 | ✅ | srs.js:155-176 |
+| 记忆 | FSRS-6 调度（自研，对照 ts-fsrs 校验） | ✅ | srs.js:18-119 |
+| 记忆 | 个性化权重优化（自研） | ✅ | srs.js:121-158 / store.js:164-182 |
+| 记忆 | 每日计划 + 会话交错 | ✅ | srs.js:160-181 |
 | 学习 | 内容开关 + 排序 + 详解卡片 | ✅ | app.js:344-656 |
 | 学习 | 词书过滤（跳低阶/跳已掌握） | ✅ | app.js:263-272 |
 | 词库 | 官方考纲为根（四/六级） | ✅ | library.js:219-312 |
@@ -335,8 +347,8 @@
 | 外观 | 8 主题 + 壁纸 + 透明度 | ✅ | app.js:69-114 |
 | 数据 | 导出导入 + 存储位置 + 镜像 + Key 加密 | ✅ | store.js / main.js / platform.js |
 | 平台 | Electron/Android/浏览器 + CI/CD | ✅ | main.js / android-build.yml |
-| 迭代 | ts-fsrs 迁移/对照（FSRS-7） | 🔭 | §13.1 |
-| 迭代 | 组卷 interleaving / 复习推迟 | 🔭 | §13.2 |
+| 迭代 | ts-fsrs 对照验证 ✅ / 迁移 🔭（FSRS-7） | ✅/🔭 | §13.1 |
+| 迭代 | 组卷主题/词性交错 ✅ / 复习推迟 🔭 | ✅/🔭 | §13.2 |
 | 迭代 | AI 学习空间（Speak/Gemini 评估） | 🔭 | §13.3 |
 
 ---

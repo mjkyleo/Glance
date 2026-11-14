@@ -7,6 +7,8 @@
   const INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
   const MAX_BOX = INTERVALS.length - 1;
   const GRADUATED = 5; // stability >= 15 days counts as "已掌握"
+  // FSRS-6 stability bounds (match ts-fsrs FSRS6_MODEL_BOUNDS sMin/sMax).
+  const S_MIN = 0.001, S_MAX = 36500;
 
   const GRADE = { KNOW: 'know', FUZZY: 'fuzzy', FORGOT: 'forgot' };
   const G = { forgot: 1, fuzzy: 2, know: 3 }; // FSRS grade codes (no "easy" in this app)
@@ -36,17 +38,17 @@
     if (sameDay) {
       let mult = Math.exp(w[17] * (g - 3 + w[18])) * Math.pow(S, -w[19]);
       if (g >= 2) mult = Math.max(mult, 1);
-      return Math.max(S * mult, 0.01);
+      return clamp(S * mult, S_MIN, S_MAX);
     }
     const R = retrievability(t, S, w);
     if (g === 1) {
-      const forget = w[11] * Math.pow(D, -w[12]) * (Math.pow(S + 1, w[13]) - 1) * Math.exp(w[14] * (1 - R));
-      return Math.max(Math.min(forget, S / Math.exp(w[17] * w[18])), 0.01);
+      const forget = clamp(w[11] * Math.pow(D, -w[12]) * (Math.pow(S + 1, w[13]) - 1) * Math.exp(w[14] * (1 - R)), S_MIN, S_MAX);
+      return clamp(Math.min(forget, S / Math.exp(w[17] * w[18])), S_MIN, S_MAX);
     }
     const hard = g === 2 ? w[15] : 1;
     const easy = g === 4 ? w[16] : 1;
     const growth = 1 + Math.exp(w[8]) * (11 - D) * Math.pow(S, -w[9]) * (Math.exp(w[10] * (1 - R)) - 1) * hard * easy;
-    return Math.max(S * growth, 0.01);
+    return clamp(S * growth, S_MIN, S_MAX);
   }
   // Scheduled interval (days) for a target retention, with ±5% fuzz once long enough.
   function interval(S, w, r) {
@@ -69,7 +71,10 @@
   function isKnown(s) { return !!s && s.box >= GRADUATED; }
 
   // Upgrade a legacy Leitner state (no S/D) into FSRS form, preserving progress.
+  // A state that already carries valid FSRS S/D is returned untouched — re-deriving S/D
+  // from the coarse box on every review would collapse continuous stability back to Leitner.
   function migrate(prev) {
+    if (typeof prev.S === 'number' && prev.S > 0 && typeof prev.D === 'number' && prev.D > 0) return prev;
     const box = prev.box || 0;
     return Object.assign({}, prev, {
       S: Math.max(0.212, INTERVALS[box] || 0.212),
@@ -186,6 +191,8 @@
   window.SRS = {
     GRADE, G, INTERVALS, MAX_BOX, GRADUATED, DEFAULT_W, RETENTION, DAY,
     newState, isNew, isDue, isKnown, review, migrate, retrievability, interval,
-    optimize, buildQueue, session, nextDueLabel
+    optimize, buildQueue, session, nextDueLabel,
+    // Pure internals exposed for the ts-fsrs contrast side-path (app/dev). No behavior change.
+    factor, initDS, nextD, nextS, boxFromS
   };
 })();

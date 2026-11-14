@@ -78,6 +78,12 @@
     return '';
   }
   function rootOf(e) { return e.root || (e.rootFamily && e.rootFamily.root) || ''; }
+  // Primary theme for interleaving: first taxonomy theme the word belongs to ('' if none/unready).
+  function themeOf(e) {
+    if (!window.Themes || !Themes.isReady()) return '';
+    const ts = Themes.themesOf(e.word);
+    return ts && ts.length ? ts[0] : '';
+  }
   function norm(s) { return String(s || '').toLowerCase().replace(/[\s"'“”‘’.,，。;；:：!?！？()（）\[\]【】\-—–]/g, ''); }
   function glossKey(e) { return norm(primaryGloss(e)); }
   function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -592,27 +598,47 @@
     if (phase > 0 || !root) return true;
     return !(recentRoots.length >= 2 && recentRoots[recentRoots.length - 1] === root && recentRoots[recentRoots.length - 2] === root);
   }
+  // No three consecutive questions sharing a primary theme (relaxed in later phases).
+  function themeAllowed(theme, recentThemes, phase) {
+    if (phase > 0 || !theme) return true;
+    return !(recentThemes.length >= 2 && recentThemes[recentThemes.length - 1] === theme && recentThemes[recentThemes.length - 2] === theme);
+  }
+  // No three consecutive questions sharing a POS group (relaxed in later phases).
+  function posAllowed(pos, recentPos, phase) {
+    if (phase > 0 || !pos) return true;
+    return !(recentPos.length >= 2 && recentPos[recentPos.length - 1] === pos && recentPos[recentPos.length - 2] === pos);
+  }
   function chooseType(types, recentTypes) {
     const last = recentTypes[recentTypes.length - 1];
     const weights = types.map(t => (t === last ? 0.55 : 1));
     return types[pickWeighted(weights)];
   }
-  function candidateScore(c, usedRoots, recentRoots, cfg, now, phase) {
+  function candidateScore(c, usedRoots, recentRoots, usedThemes, recentThemes, recentPos, cfg, now, phase) {
     const rootBonus = c.root && !usedRoots.has(c.root) ? 1.15 : 1;
+    const themeBonus = c.theme && !usedThemes.has(c.theme) ? 1.08 : 1;
     const target = targetDifficulty(cfg);
     let fit = 0;
     for (const t of c.types) fit = Math.max(fit, fitScore(questionDifficulty(c.e, t), target));
     const rp = phase >= 2 ? 0 : recentPenalty(c.e.word, now) * (phase === 1 ? 0.5 : 1);
     const last = recentRoots[recentRoots.length - 1];
     const rootPenalty = c.root && recentRoots.includes(c.root) ? (c.root === last ? 0.9 : 0.35) : 0;
-    return Math.max(0.02, c.base * fit * rootBonus * c.novelty - rp - rootPenalty);
+    // Theme/POS interleaving: secondary axes, softer than root; scaled down as phases relax.
+    const ip = phase >= 2 ? 0 : (phase === 1 ? 0.5 : 1);
+    const lastTheme = recentThemes[recentThemes.length - 1];
+    const themePenalty = c.theme && recentThemes.includes(c.theme) ? (c.theme === lastTheme ? 0.5 : 0.2) * ip : 0;
+    const lastPos = recentPos[recentPos.length - 1];
+    const posPenalty = c.pos && recentPos.includes(c.pos) ? (c.pos === lastPos ? 0.25 : 0.1) * ip : 0;
+    return Math.max(0.02, c.base * fit * rootBonus * themeBonus * c.novelty - rp - rootPenalty - themePenalty - posPenalty);
   }
 
   function sample(scored, cfg, p, now) {
     const used = new Set();
     const usedRoots = new Set();
+    const usedThemes = new Set();
     const recentTypes = [];
     const recentRoots = [];
+    const recentThemes = [];
+    const recentPos = [];
     const questions = [];
     const relaxations = [];
     const limit = cfg.count;
@@ -622,12 +648,14 @@
         for (const c of scored) {
           if (used.has(c.e.word)) continue;
           if (!rootAllowed(c.root, recentRoots, phase)) continue;
+          if (!themeAllowed(c.theme, recentThemes, phase)) continue;
+          if (!posAllowed(c.pos, recentPos, phase)) continue;
           const types = c.types.filter(t => typeAllowed(t, recentTypes, phase));
           if (!types.length) continue;
           allowed.push(c);
         }
         if (!allowed.length) break;
-        const weights = allowed.map(c => candidateScore(c, usedRoots, recentRoots, cfg, now, phase));
+        const weights = allowed.map(c => candidateScore(c, usedRoots, recentRoots, usedThemes, recentThemes, recentPos, cfg, now, phase));
         const c = allowed[pickWeighted(weights)];
         let types = c.types.filter(t => typeAllowed(t, recentTypes, phase));
         let q = null;
@@ -643,13 +671,18 @@
         questions.push(q);
         used.add(c.e.word);
         if (c.root) usedRoots.add(c.root);
+        if (c.theme) usedThemes.add(c.theme);
         recentRoots.push(c.root || '');
         if (recentRoots.length > 2) recentRoots.shift();
+        recentThemes.push(c.theme || '');
+        if (recentThemes.length > 2) recentThemes.shift();
+        recentPos.push(c.pos || '');
+        if (recentPos.length > 2) recentPos.shift();
         recentTypes.push(q.type);
         if (recentTypes.length > 2) recentTypes.shift();
       }
       if (questions.length >= limit) break;
-      if (phase === 0) relaxations.push('放宽词根/题型连续限制');
+      if (phase === 0) relaxations.push('放宽词根/主题/词性/题型连续限制');
       if (phase === 1) relaxations.push('忽略近期已测惩罚');
     }
     return { questions, relaxations };
@@ -666,7 +699,7 @@
       let fit = 0;
       for (const t of types) fit = Math.max(fit, fitScore(questionDifficulty(e, t), target));
       out.push({
-        e, types, base, fit, novelty, root: rootOf(e),
+        e, types, base, fit, novelty, root: rootOf(e), theme: themeOf(e), pos: posGroup(e),
         // Sorting hint only; the sampler re-scores with live root coverage.
         hint: base * fit * novelty
       });

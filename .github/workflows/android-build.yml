@@ -42,6 +42,10 @@ jobs:
       - name: Sync Capacitor web assets
         run: npx cap sync android
 
+      - name: Strip dev-only FSRS contrast side-path
+        run: |
+          rm -rf android/app/src/main/assets/public/dev android/app/src/main/assets/public/js/vendor
+
       - name: Build debug APK
         run: |
           cd android

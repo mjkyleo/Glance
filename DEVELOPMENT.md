@@ -738,6 +738,44 @@
 
 **交付**：`android-36`（target `ac3fc5b`，CI run 43554509635 成功;CI apksigner 断言 `com.glance.app` / `versionCode 36` / `versionName 1.0.6+36` / 证书 `CN=Glance Debug`，APK 13,224,727 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-36/Glance-android.apk`。**此包内含 devfree 开发预设，仅供开发试用，非正式发布包。**
 
+### 8.26 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错 ✅
+
+**需求与范围**：开发 [docs/FEATURES.md](docs/FEATURES.md) §13.1（FSRS 调度升级：引入/对照 ts-fsrs）与 §13.2（组卷 interleaving）。经确认本期只做**对照验证旁路**——引入 ts-fsrs 作参考、逐方法校验自研 FSRS-6 公式、发现偏差即修，**不替换在用调度器、零用户数据风险**;§13.2 落地主题/词性交错。迁移 ts-fsrs / 四档评分 / binding 优化器 / 复习推迟仍为 🔭 后续独立迭代。
+
+**对照旁路（dev-only，不入正式包）**
+
+- **vendor**：[scripts/vendor-ts-fsrs.mjs](scripts/vendor-ts-fsrs.mjs) 用 esbuild 把 **ts-fsrs 6.0.0 的 FSRS-6 模型**（`ts-fsrs/models/fsrs-6` + `@open-spaced-repetition/srs-kit` 的 Rating）打包为浏览器全局 [app/js/vendor/ts-fsrs.js](app/js/vendor/ts-fsrs.js)（IIFE，`window.TSFSRS`，19,407 字节，`npm run vendor:fsrs` 再生）。**预构建产物入库**，CI 无需 esbuild;不引入在用调度器。
+- **对照引擎**：[app/dev/srs-contrast.js](app/dev/srs-contrast.js)（UMD，导出 `runContrast/mulberry32`）在相同 `{S,D,elapsed,grade}`、相同 21 权重、`Math.random()=0.5` 关闭 fuzz 下逐方法比对：retrievability / initDS(S,D) / nextD / nextS(recall·forget·short-term) / interval，外加 migrate 保真探针、整段随机复习序列、短期触发阈值探针。
+- **双通道运行**：Node 运行器 [scripts/fsrs-contrast.mjs](scripts/fsrs-contrast.mjs)（`npm run contrast:fsrs`，`global.window=global` + `vm.runInThisContext` 加载 srs.js 与 vendor）与浏览器页 [app/dev/fsrs-contrast.html](app/dev/fsrs-contrast.html)（苹果风 harness，可改 seed/段数）。报告生成物 [docs/FSRS-CONTRAST.md](docs/FSRS-CONTRAST.md)。
+- **纯内部函数导出**：[srs.js:195-196](app/js/srs.js#L195-L196) 增 `factor/initDS/nextD/nextS/boxFromS` 供旁路调用，**无行为改动**。
+
+**核心 bug 修复：migrate() 保真守卫**
+
+- **问题**：`migrate()` 原先每次非首复习都无条件以粗粒度 Leitner `INTERVALS[box]` 重置 `S/D`（经 [srs.js:90](app/js/srs.js#L90) 调用），使连续 FSRS 稳定度退化为近似 Leitner——对照整段序列 4200 步中 3893 步偏离、max|ΔS|≈145.77。
+- **修复**：[srs.js:76-83](app/js/srs.js#L76-L83) 加保真守卫——含有效 `S>0 && D>0` 的状态**原样返回**，仅 legacy（无 S/D）状态按 box 升级。修复后 4200 步 **S/D 零偏离**，稳定度恢复连续增长（6 次「认识」探针 10.96→46.3→161→494→1352→3266）。legacy 迁移仍正确（box:3→S=4,D=4.6），状态形状不变 → `Store.recordGrade` 集成安全、向后兼容、**无需数据迁移**。
+- **稳定度边界对齐**：[srs.js:11](app/js/srs.js#L11) 新增 `S_MIN=0.001 / S_MAX=36500`（对齐 ts-fsrs `FSRS6_MODEL_BOUNDS`），[nextS srs.js:37-52](app/js/srs.js#L37-L52) 三个分支返回均 clamp;forget 分支先 clamp 再取 `min(forget, S/exp(w17·w18))`。
+- **保留为设计取舍（非 bug）**：短期稳定度触发 `sameDay = elapsed<1`（Glance 以毫秒分数计 elapsed，24h 滚动窗近似同日）vs 参考 `t===0`;`0<elapsed<1` 时分支不同，已注明不改。
+
+**§13.2 组卷主题/词性交错**
+
+- 在 [quiz.js sample](app/js/quiz.js#L634) 既有「同根不连续 / 题型不连出三题 / 近期降权」上新增两条交错轴：
+  - **主题**：[themeOf quiz.js:82](app/js/quiz.js#L82) 取首要主题（`Themes.themesOf(word)[0]`）;硬约束 [themeAllowed quiz.js:602](app/js/quiz.js#L602)「不连出三题同主题」+ 新主题加分 ×1.08 + 近期主题降权。
+  - **词性**：[posGroup quiz.js:69](app/js/quiz.js#L69) 取词性组;硬约束 [posAllowed quiz.js:607](app/js/quiz.js#L607)「不连出三题同词性」+ 近期词性降权。
+  - [candidateScore quiz.js:616](app/js/quiz.js#L616) 计入 `themeBonus/themePenalty/posPenalty`，惩罚随既有三段放宽（phase 0 严格 → phase 1 减半 → phase 2 忽略）逐级松弛，**保题量优先**;[buildScored quiz.js:691](app/js/quiz.js#L691) 候选附 `theme/pos`。
+
+**生产隔离（旁路不进正式包）**
+
+- Electron：[package.json](package.json) `build.files` 增 `!app/dev/**/*` 与 `!app/js/vendor/**/*`。
+- Android：`cap sync` 会把整个 `app/` webDir 拷进 APK，故 [android-build.yml](.github/workflows/android-build.yml) 在 sync 后新增 `Strip dev-only FSRS contrast side-path` 步骤 `rm -rf android/app/src/main/assets/public/dev android/app/src/main/assets/public/js/vendor`。
+- `index.html` 不引用 dev/vendor，正式应用不加载旁路。
+
+**验证**
+
+- **FSRS 对照（Node 实跑 `npm run contrast:fsrs`，seed 20261114 / 300 段 × 14 步）**：权重一致 true、decay 0.1542;方法级网格 retrievability/initDS/nextD/nextS(recall·forget·short-term)/interval **全部 0 deviation**（仅 nextS recall 127 样本为 precision 级，maxAbs 3.21e-5，源于参考逐步 roundTo 8 位）;migrate 探针 `S=24.4728247,D=4.99022837,box=4` → 原样保留（preserved=true）;整段 **4200 步 devS=0 / devD=0**;短期触发探针差异仅 `0<elapsed<1`（设计取舍）。
+- **组卷交错（浏览器实测，当前词书 12 轮 × 20 题，online:false）**：词性最长连续段 **avg 2.0 / max 2**（随机基线 avg 3.75），主题最长连续段 **1.0**，题量填充率 **100%**、**零放宽**;`node --check` srs.js/quiz.js/旁路/vendor 全通过;控制台仅有道词典浏览器直连 CORS 报错（既有限制，Electron/Android 走 IPC/CapacitorHttp 正常），与本次改动无关。
+
+**交付**：见 §3 与 §10（CI 构建后回填 `android-N`）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -746,6 +784,7 @@
 - **推送安全**：仅 SSH（HTTPS 被墙）+ 专用密钥 `id_ed25519_glance`（comment `mjkyleo-glance`），`GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_glance -o IdentitiesOnly=yes"`。**不得触碰/使用** `sczhang0504` 的默认密钥 `~/.ssh/id_ed25519`。
 - **提交隐私**：用 noreply 邮箱，勿暴露私有 `437257976@qq.com`。
 - **开发期免费 AI（发布前移除）**：`ai.js` 内置 `DEV_FREE_API`（devfree 服务商 + 公开开发 Key，见 §8.25）。**正式发布前必须删除该整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -r "DEV_FREE_API\|rc-366f" app/` 须为空。
+- **FSRS 对照旁路（dev-only）**：`app/dev/` 与 `app/js/vendor/ts-fsrs.js` 仅供对照验证（§8.26），**不得进入正式包**——Electron 由 `build.files` 排除、Android 由 CI `Strip dev-only FSRS contrast side-path` 步骤删除;**不得据旁路直接替换在用调度器**（迁移需另行评估用户数据兼容性）。改 `srs.js` 公式或 ts-fsrs 版本后须重跑 `npm run contrast:fsrs` 刷新报告。
 - **本地工具链**：无 Android SDK（靠 CI）；WMI 启动 Electron；CDP（端口 9222）截图/smoke；npmmirror；本机无 `gh`，repo 公开（api.github.com 可达）。
 - **渲染层改动**：renderer-only 改动 `Page.reload` 即可；`main.js` 改动需重启 Electron。
 - **Node harness**：需 `global.window=global`；Git Bash 用 `taskkill //F //PID`。

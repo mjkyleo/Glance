@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glance · FSRS-6 对照验证</title>
+<style>
+  :root { --bg:#f5f5f7; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --line:#e5e5ea; --blue:#0071e3; --green:#34c759; --amber:#ff9f0a; --red:#ff3b30; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; padding:32px 16px; }
+  .wrap { max-width:920px; margin:0 auto; }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .lead { color:var(--sub); margin:0 0 24px; }
+  .card { background:var(--card); border-radius:18px; padding:20px 22px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .card h2 { font-size:17px; font-weight:650; margin:0 0 12px; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px 18px; color:var(--sub); font-size:13px; }
+  .meta b { color:var(--ink); font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--sub); font-weight:600; }
+  td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:none; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
+  .b-info { background:rgba(0,113,227,.12); color:var(--blue); }
+  .b-low { background:rgba(255,159,10,.16); color:#b26a00; }
+  .b-medium { background:rgba(255,159,10,.22); color:#9a5b00; }
+  .b-high { background:rgba(255,59,48,.14); color:var(--red); }
+  .ok { color:var(--green); font-weight:600; }
+  .bad { color:var(--red); font-weight:600; }
+  .finding { padding:12px 0; border-bottom:1px solid var(--line); }
+  .finding:last-child { border-bottom:none; }
+  .finding .t { font-weight:600; margin:6px 0 2px; }
+  .finding .d { color:var(--sub); font-size:13px; }
+  .finding .r { font-size:13px; margin-top:4px; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  button { background:var(--blue); color:#fff; border:none; border-radius:999px; padding:9px 20px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:active { opacity:.8; }
+  input { border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:14px; width:120px; }
+  label { color:var(--sub); font-size:13px; }
+  .pill { font-size:12px; color:var(--sub); }
+  code { background:#f0f0f2; padding:1px 6px; border-radius:6px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FSRS-6 对照验证</h1>
+  <p class="lead">自研调度器（<code>app/js/srs.js</code>）vs ts-fsrs 6 参考实现 · 旁路验证，不替换在用调度器、零用户数据风险。</p>
+
+  <div class="row">
+    <button id="run">重新运行</button>
+    <label>seed <input id="seed" type="number" value="20261114"></label>
+    <label>序列数 <input id="seqs" type="number" value="300"></label>
+    <span class="pill" id="status"></span>
+  </div>
+
+  <div class="card">
+    <h2>口径</h2>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="card">
+    <h2>结论</h2>
+    <div id="findings"></div>
+  </div>
+
+  <div class="card">
+    <h2>方法级网格对照</h2>
+    <table id="methods">
+      <thead><tr><th>方法</th><th class="num">n</th><th class="num">match</th><th class="num">precision</th><th class="num">deviation</th><th class="num">maxAbs</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>migrate() 状态保真探针</h2>
+    <div id="migrate"></div>
+  </div>
+
+  <div class="card">
+    <h2>整段复习序列对照</h2>
+    <div id="integrated"></div>
+  </div>
+
+  <div class="card">
+    <h2>短期稳定度触发阈值探针</h2>
+    <table id="trigger">
+      <thead><tr><th class="num">elapsed(天)</th><th class="num">自研 S</th><th class="num">参考 S</th><th class="num">|ΔS|</th><th>自研分支</th><th>参考分支</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="../js/vendor/ts-fsrs.js"></script>
+<script src="../js/srs.js"></script>
+<script src="srs-contrast.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = x => typeof x === 'number' ? (Number.isInteger(x) ? String(x) : x.toFixed(6)) : String(x);
+  const sevClass = s => 'b-' + s;
+  const sevText = { info:'信息', low:'低', medium:'中', high:'高' };
+
+  function render(r) {
+    $('meta').innerHTML =
+      `<span>权重一致 <b>${r.meta.weightsIdentical ? '是' : '否'}</b></span>` +
+      `<span>decay <b>${r.meta.selfDecay}</b></span>` +
+      `<span>seed <b>${r.meta.seed}</b></span>` +
+      `<span>序列 <b>${r.meta.sequences}×${r.meta.stepsPerSeq}</b></span>` +
+      `<span>生成 <b>${r.meta.generatedAt}</b></span>`;
+
+    $('findings').innerHTML = r.findings.map(f =>
+      `<div class="finding"><span class="badge ${sevClass(f.severity)}">${sevText[f.severity] || f.severity}</span>` +
+      `<div class="t">${f.title}</div><div class="d">${f.detail}</div><div class="r">建议：${f.recommendation}</div></div>`
+    ).join('') || '<div class="pill">无</div>';
+
+    $('methods').querySelector('tbody').innerHTML = Object.entries(r.methods).map(([k, b]) =>
+      `<tr><td>${k}</td><td class="num">${b.n}</td><td class="num">${b.match}</td><td class="num">${b.precision}</td>` +
+      `<td class="num ${b.deviation ? 'bad' : 'ok'}">${b.deviation}</td><td class="num">${b.maxAbs.toExponential(2)}</td></tr>`
+    ).join('');
+
+    const mp = r.migrateProbe;
+    $('migrate').innerHTML =
+      `<p>输入 <code>S=${mp.input.S}, D=${mp.input.D}, box=${mp.input.box}</code> → 输出 <code>S=${mp.output.S}, D=${mp.output.D}</code></p>` +
+      `<p>FSRS 状态保留：<span class="${mp.preserved ? 'ok' : 'bad'}">${mp.preserved ? '是（未被 box 覆盖）' : '否（被 box 覆盖 —— bug）'}</span></p>`;
+
+    const it = r.integrated;
+    $('integrated').innerHTML =
+      `<p>${it.steps} 步：S 偏离 <span class="${it.devS ? 'bad' : 'ok'}">${it.devS}</span> 步、D 偏离 <span class="${it.devD ? 'bad' : 'ok'}">${it.devD}</span> 步</p>` +
+      `<p class="pill">max|ΔS|=${it.maxAbsS.toFixed(6)} · max|ΔD|=${it.maxAbsD.toFixed(6)}</p>`;
+
+    $('trigger').querySelector('tbody').innerHTML = r.triggerProbe.map(p =>
+      `<tr><td class="num">${p.elapsed}</td><td class="num">${fmt(p.selfS)}</td><td class="num">${fmt(p.refS)}</td>` +
+      `<td class="num">${p.absS.toExponential(2)}</td><td>${p.selfBranch}</td><td>${p.refBranch}</td></tr>`
+    ).join('');
+  }
+
+  function run() {
+    $('status').textContent = '运行中…';
+    setTimeout(() => {
+      try {
+        const r = FsrsContrast.runContrast(window.SRS, window.TSFSRS, {
+          seed: Number($('seed').value) || 20261114,
+          sequences: Number($('seqs').value) || 300,
+          stepsPerSeq: 14
+        });
+        render(r);
+        $('status').textContent = '完成';
+      } catch (e) {
+        $('status').textContent = '错误：' + e.message;
+        console.error(e);
+      }
+    }, 30);
+  }
+  $('run').addEventListener('click', run);
+  run();
+})();
+</script>
+</body>
+</html>

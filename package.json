@@ -9,7 +9,9 @@
     "build": "electron-builder",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
-    "android:run": "cap run android"
+    "android:run": "cap run android",
+    "vendor:fsrs": "node scripts/vendor-ts-fsrs.mjs",
+    "contrast:fsrs": "node scripts/fsrs-contrast.mjs"
   },
   "build": {
     "appId": "com.glance.app",
@@ -27,6 +29,8 @@
       "!.scratch/**/*",
       "!scripts/**/*",
       "!data/**/*",
+      "!app/dev/**/*",
+      "!app/js/vendor/**/*",
       "assets/**"
     ],
     "win": {
@@ -53,7 +57,9 @@
     "@capacitor/cli": "^6.2.3",
     "@capacitor/core": "^6.2.3",
     "electron": "^31.0.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.28.2",
+    "ts-fsrs": "^6.0.0"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^5.1.0",
