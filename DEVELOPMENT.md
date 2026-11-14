@@ -146,8 +146,8 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`4b1dde0`（`main`），导航/返回栈 + 原生震动 + 词书选择停留原页 + 多书排除过滤 + 基础词过滤（默认开）（§8.29）。
-- 最新交付：`android-40` APK → `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`（13,234,588 字节，versionCode 40 / versionName `1.0.6+40`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
+- 最新提交：`91f5ef3`（`main`），查词在线入口 + UAPI 中英词典集成 + 多源回退（有道→UAPI→dictionaryapi.dev）（§8.30）。
+- 最新交付：`android-41` APK → `https://github.com/mjkyleo/Glance/releases/download/android-41/Glance-android.apk`（13,236,335 字节，versionCode 41 / versionName `1.0.6+41`）。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.29；**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -854,6 +854,8 @@
 - Node 单测 `normalizeUapis` 对 uapis.cn 实时返回（present）：词性 adj./n./v. 归并、中英义项、音频补主机、考试标签映射（中考/高考/四级/六级/考研/雅思）、词形/词组齐全。
 - browser-use（ignoreCache 重载 127.0.0.1:8123）：查「defenestration」（本地未收录）出现在线查词行→点击开卡→自动联网;浏览器下有道/UAPI 均被 CORS 拦截→回退 dictionaryapi.dev 成功并**缓存到本机**（`Store.dictEntry` 命中，meta「免费词典 (dictionaryapi.dev) · 已从中英词典回退」）;服务商选择器渲染 5 行含 UAPI（标记 U/免 Key）;注入 UAPI 缓存记录开卡渲染「词形变化/常见词组」正确;控制台仅有预期的有道/UAPI CORS 报错（已被回退处理），无其它 JS 错误;`node --check` app.js/dictionary.js 通过。UAPI 直连为原生能力，实机随 APK 交付。
 
+**交付**：`android-41`（target `91f5ef3`，CI run 43567367381 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 41` / `versionName 1.0.6+41` / 证书 `CN=Glance Debug`，APK 13,236,335 字节，较 android-40 +1,747 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-41/Glance-android.apk`。**仍含 DEV-ONLY devfree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -874,6 +876,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `91f5ef3` | 查词在线化 + UAPI 中英词典 + 多源回退（§8.30）：查词页对本地未收录词置顶「在线查词」入口，点击即联网查询并按词缓存（复用 `Dictionary.lookup → saveDictEntry`）;新增 UAPI 服务商（免 Key，中英双释义/英美音标音频/考试标签/词形/词组/近义/双语例句），`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签;多源回退 有道→UAPI→dictionaryapi.dev，命中「未找到该词」即停省积分，词卡显示「已从〈源〉回退」;词卡新增词形变化/常见词组渲染;默认仍 freezh，无 schema 改动;DEVELOPMENT §8.30 + FEATURES §5/矩阵 + README 同步 |
 | `4b1dde0` | 导航/返回栈 + 原生震动 + 词书选择与过滤增强（§8.29）：选书停留「词书与计划」不再跳学习页;新增 `@capacitor/app` 统一硬件返回优先级（嵌套弹层→弹层→子页→测试态→tab 历史→根节点退出）;新增 `@capacitor/haptics`，评分/答题 success/warn/error、tab/模式/选书/过滤 light tap（仅原生）;词书过滤新增「过滤基础词」（326 个小学/初中极基础词，默认开、可关）+ 多选其它词书排除 chip，仅裁剪每日队列;DEVELOPMENT §8.29 + FEATURES §1.5/§2.6/§12.3/矩阵 + README 同步 |
 | `b63a4ff` | AI 连通性测试 + 可操作网络错误（§8.28）：模型栏新增「测试连通性」按钮（最小 ping 请求 + 耗时/错误显示，切换服务商清空）;`llmChat`/`llm-chat` 错误分类为超时（120s）与浏览器 CORS 可操作提示，取代裸 `Failed to fetch`;三端 LLM 超时统一 120s（CapacitorHttp connect/read、浏览器 AbortController、Electron net.fetch）适配慢端点;DEVELOPMENT §8.28 + FEATURES §6.1/矩阵 + README 同步 |
 | `5a6e183` | AI 模型选择器 + devfree 开发期默认（§8.27）：带固定模型清单的服务商（devfree）在「模型」栏渲染下拉，三模型 DeepSeek-V4-Flash / DeepSeek-V4.1-Flash / GLM-5.3-Flash 直接可选，其余服务商保留文本输入;切换服务商自动切换形态并持久化所选;默认 ai.provider 改 devfree 使免费模型开箱可见（发布改回 deepseek）;次级提示间距/浅色样式;DEVELOPMENT §8.25/§8.27 + FEATURES §6.1 + README 同步 |
@@ -919,4 +922,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-40` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除;新增导航/返回栈（硬件返回逐级回退而非退出）+ 原生震动反馈 + 词书选择停留原页 + 多书排除过滤 + 基础词过滤（默认开）;含 AI 连通性测试 + 可操作网络错误提示 + 三端 LLM 超时 120s + AI 模型选择器（三免费模型下拉）+ devfree 开发期默认;含 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错，对照旁路已剥离出包;并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 40 / versionName `1.0.6+40`）— `https://github.com/mjkyleo/Glance/releases/download/android-40/Glance-android.apk`（13,234,588 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-39` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-41` APK（**开发包**：含 DEV-ONLY 免费 AI 预设 devfree，发布前须移除;新增查词在线入口（本地未收录词联网查询并缓存）+ UAPI 中英词典（免 Key，中英双释义/英美音标音频/词形/词组/近义/双语例句）+ 多源回退（有道→UAPI→dictionaryapi.dev）;含导航/返回栈（硬件返回逐级回退而非退出）+ 原生震动反馈 + 词书选择停留原页 + 多书排除过滤 + 基础词过滤（默认开）;含 AI 连通性测试 + 可操作网络错误提示 + 三端 LLM 超时 120s + AI 模型选择器（三免费模型下拉）+ devfree 开发期默认;含 FSRS-6 对照验证旁路 + migrate 保真修复 + 组卷主题/词性交错，对照旁路已剥离出包;并含官方考纲词库为根 + 词书考纲对比 + 存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 41 / versionName `1.0.6+41`）— `https://github.com/mjkyleo/Glance/releases/download/android-41/Glance-android.apk`（13,236,335 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-40` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
