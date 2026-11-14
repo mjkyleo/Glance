@@ -270,14 +270,14 @@ app/                共享 Web 核心（Electron / Android / 浏览器）
 main.js             Electron 主进程（窗口、IPC、网络通道、文件对话框）
 android/            Capacitor Android 工程
 assets/words/       官方考纲 PDF 词表与 A/B 两组纯文本列表（考纲词库之源）
-docs/               DATA.md 数据规范、LOGO-SPEC.md、screenshots 截图
+docs/               FEATURES.md 功能全景与迭代规划、DATA.md 数据规范、LOGO-SPEC.md、screenshots 截图
 scripts/            词库构建与开发启动脚本
 DEVELOPMENT.md      开发清单与详细变更记录
 ```
 
 ## 文档
 
-开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)；词库组织、导入格式、本地存储与备份 schema 见 [docs/DATA.md](docs/DATA.md)；Logo 图形、图标安全区与启动页规范见 [docs/LOGO-SPEC.md](docs/LOGO-SPEC.md)。
+开发进度、逐项实现与验证记录见 [DEVELOPMENT.md](DEVELOPMENT.md)；**逐模块功能全景、已实现状态与后续迭代规划见 [docs/FEATURES.md](docs/FEATURES.md)**；词库组织、导入格式、本地存储与备份 schema 见 [docs/DATA.md](docs/DATA.md)；Logo 图形、图标安全区与启动页规范见 [docs/LOGO-SPEC.md](docs/LOGO-SPEC.md)。
 
 ## License
 

@@ -2,7 +2,8 @@
 
 > 本文件系统性记录 Glance 的全部开发过程、当前真实状态与待办明细。
 > 状态标记：`[x]` 已完成并验证 · `[~]` 进行中/部分完成 · `[ ]` 未开始。
-> 最后更新：2026-11-13
+> 逐模块功能全景与后续迭代规划见 [docs/FEATURES.md](docs/FEATURES.md);数据 schema 见 [docs/DATA.md](docs/DATA.md)。
+> 最后更新：2026-11-14
 
 ---
 
@@ -699,7 +700,7 @@
 
 **验证（浏览器 + browser-use，127.0.0.1:8123）**：官方书置顶且可学习（abandon → 释义「vt. 放弃, 抛弃…」CEFR B1、词素 1）;考纲四级自比 100%;自定义导入 6 词 TSV（abandon/apple/mould/according to/adviser/zzzcustom）→ 对比四级 covered 5 / beyond 1（zzzcustom）/ coverageBook 83%，归一化正确命中 `mould↔mo(u)ld`、`adviser↔advisor/adviser`、短语 `according to`;三个折叠段展开 / 收起、展开全部词、级别切换均正常;五 tab 巡览无控制台错误。`officialCount` cet4=6,552（6,632 原始去重约 80 同形异义）、cet6=1,264;`officialWordSet` cet4=6,735 形、cet6=1,284 形。
 
-**交付**：`android-35`（待 CI 完成后回填 target / run / APK 校验）。
+**交付**：`android-35`（target `8f735f5`，CI run 43551989662 成功;CI apksigner 断言 `com.glance.app` / `versionCode 35` / `versionName 1.0.6+35` / 证书 `CN=Glance Debug`，固定签名 SHA-256 `82:F7:…:C9:AF`，APK 13,223,689 字节）。
 
 ---
 
@@ -719,6 +720,8 @@
 
 | 提交 | 内容 |
 |---|---|
+| `8f735f5` | 官方考纲词库为根：2016 修订版四六级大纲词表逐行提取（A 无★ 6,632 / B 带★ 1,264）→ official.json + 两份纯文本;考纲四级/六级官方书置顶可学习;词书「考纲对比」面板（考纲内/超纲/缺失 + 双向覆盖率）;功能全景文档 FEATURES.md |
+| `cda5116` | 修复 GlanceStorage 文件夹选择器适配 Capacitor 6 activity-result API（存储功能交付 android-34） |
 | `92b8b93` | 存储位置可配置（Windows 自定义目录 / Android 共享目录镜像卸载不丢）+ API Key AES-256-GCM 静态加密（密钥只留本机私有目录，备份/镜像不含 Key）+ 数据规范文档 DATA.md |
 | `6391fc0` | 词书过滤可选开关：跳过低阶重复词（考试阶梯）+ 跳过已掌握，仅影响每日学习队列，词书与测试范围不裁剪 |
 | `c65087d` | 听音选词（音标音近干扰项）+ 打卡日历月份/日期 + 词根词缀学习进度条与开关 + 头像去掉摄像头角标 |
@@ -757,4 +760,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-32` APK（词书过滤可选开关：跳过低阶重复词 / 跳过已掌握，versionCode 32 / versionName `1.0.6+32`）— `https://github.com/mjkyleo/Glance/releases/download/android-32/Glance-android.apk`（13,175,977 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-31` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-35` APK（官方考纲词库为根 + 词书考纲对比，并含存储位置可配置 / 卸载不丢镜像 / API Key 加密，versionCode 35 / versionName `1.0.6+35`）— `https://github.com/mjkyleo/Glance/releases/download/android-35/Glance-android.apk`（13,223,689 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-34` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。

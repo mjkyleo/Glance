@@ -1,7 +1,7 @@
 # Glance 数据格式与组织规范
 
 本文档说明 Glance 的词库组织、自定义词书导入格式、本地存储结构、存储位置与持久化、敏感数据加密及备份导出/导入规范。
-依据代码现状编写（2026-11-14，android-33）;**任何 schema 变更必须同步更新本文档**（见 §8）。
+依据代码现状编写（2026-11-14，android-35）;**任何 schema 变更必须同步更新本文档**（见 §8）。
 
 - 内置词库：`app/data/*.json`（只读，随包分发）
 - 用户状态：Electron `userData/settings.json`（可改自定义目录）/ Android 与浏览器 `localStorage['glance.settings']`
