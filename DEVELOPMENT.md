@@ -146,10 +146,10 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：功能提交 `a12ba4e`（`main`，QNAI 免费 AI 服务商预设，§8.31）;其后的文档提交（如 `94ae892`）只复核修正 `文件:行号` 引用，属 md-only，`paths-ignore` 不触发 CI、不改变 APK。
-- 最新交付：`android-42` APK → `https://github.com/mjkyleo/Glance/releases/download/android-42/Glance-android.apk`（13,236,662 字节，versionCode 42 / versionName `1.0.6+42`）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
+- 最新提交：功能提交 `1cfd1b6`（`main`，多词典开关 + 自定义词典添加 + 并行合并去重，§8.32，交付 `android-43`）;其后 `7ebb3f7` 补充专项词汇原始素材（未接入应用，交付 `android-44`）;再后的文档提交只复核修正 `文件:行号` 引用与交付记录，属 md-only，`paths-ignore` 不触发 CI、不改变 APK。
+- 最新交付：`android-44` APK → `https://github.com/mjkyleo/Glance/releases/download/android-44/Glance-android.apk`（13,245,959 字节，versionCode 44 / versionName `1.0.6+44`，CI run 43582214869 全 12 步成功）。功能与 `android-43` 一致（多词典，§8.32）;android-44 只多了 `assets/words/` 的原始语料，未接入应用。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
 - 工作区：干净（`.scratch/` 为本地调试产物，已忽略；`assets/` 下两张用户提供的 Logo 参考图未提交）。
-- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.31；**不能按编号折算完成度**，以本文实际勾选为准。
+- 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.32；**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
 
@@ -888,6 +888,7 @@
 
 - Node 单测 `.scratch/dict-unit.cjs` **93/93**：schema 归一与三种旧版迁移、增删改调序、Key 集中存取、四种鉴权的 URL/头构造、四种格式归一 + 自动嗅探、合并去重与词性别名、上限裁剪、并行/串行两条路径、逐源错误、无启用源指引、RESCUE 触发条件、`sig` 失效。
 - Electron 主进程 harness `.scratch/dict-crypto.cjs` **23/23**：多 Key 密封/还原往返、单 id 解密失败只保留该 id 密文、空串占位不被抹掉、删除源清理孤儿密文、旧 `safeStorage` blob 兼容。
+- **真实 Electron 落盘与重启往返** `.scratch/dict-keys-electron.cjs` **21/21**（临时 profile，真起两次进程）：写入内置 Key + 自定义源 Key + AI Key 后 `settings.json` **不含任何明文**、两个词典 Key 都在 `dict.keysEnc[id]` 且都是 `g1:` 信封、明文 `keys` 映射被移除、自定义词条本身不带 Key、密钥文件留在私有目录;导出文件既无明文也无 `g1:` 密文，但保留源列表与顺序;**杀进程重启后三个 Key 全部还原**、live 对象里不残留 `keysEnc`;删除自定义源后其孤儿密文被清掉、剩下的 Key 仍是密封态;零未捕获错误。
 - 真实网络 `.scratch/dict-live.cjs`：freezh + uapis + free 三源并行合并 951 ms、缓存 8.7 KB，跨源同义项去重生效。
 - 浏览器端到端 `.scratch/dict-e2e.cjs` **60/60**（Chrome + CDP 真实点击，460×900 / 360×640 / 1280×900）：添加 → 连通性测试 → 保存 → 编辑 → 非法 URL 拦截 → 逐源开关 → 调序 → 批量开关 → 缓存清空 → 删除;中英跨语言合并渲染与去重、来源筛选、部分源失败可见、单源模式、全关指引与设置直达、**改启用集合后旧缓存自动重查**;三档视口无横向溢出，零未捕获错误。
 - 真实 Electron 渲染进程（CDP 9444）：`petrichor` 四源合并 `['freezh','uapis','free','custom-1']`，无失败行、无运行时错误;README 三张词典截图即由此捕获（浏览器截图会带 CORS 噪声，不能代表桌面/安卓端）。
@@ -896,7 +897,9 @@
 
 **文档**：README「顺手用」条 / 使用第 5 步 / `## 外部词典`（新增「合并与优先级」「添加自定义词典」两小节）/ 备份剔除说明 + 两张新截图;FEATURES §5.2 重写、§5.3 行号对齐;DATA §5.1 新增 `dict` schema 与迁移说明、§5.5 改为逐 id Key 密封、§8 新增第 8 条维护清单（加源需同步的七处 + 合并上限 + **新增带 Key 的源必须走 `dict.keys[id]`**）。
 
-**引用复核**：`.scratch/check-citations.cjs`（标签/锚点一致性 + 范围越界）与 `.scratch/citation-audit.cjs`（引用行段是否真含所述符号）查出历史遗留的标签/锚点错位与行号漂移，用 `.scratch/fix-citations.cjs` 按符号声明重新锚定 + 两批人工核对，**311 条引用全部核对通过、0 处失效**;剩余语义启发式告警逐条确认为误报（所述符号属同句的其它引用）。
+**引用复核**：`.scratch/check-citations.cjs`（标签/锚点一致性 + 范围越界）与 `.scratch/citation-audit.cjs`（引用行段是否真含所述符号）查出历史遗留的标签/锚点错位与行号漂移，用 `.scratch/fix-citations.cjs` 按符号声明重新锚定 + 两批人工核对，**335 条引用全部核对通过、0 处失效**;剩余语义启发式告警逐条确认为误报（所述符号属同句的其它引用）。
+
+**交付**：`android-43`（target `1cfd1b6`，CI run 43581194577 成功;12 步全绿，第 8 步 `Strip dev-only FSRS contrast side-path` + 第 10 步 `Verify APK build metadata` 断言 `com.glance.app` / `versionCode 43` / `versionName 1.0.6+43` / 证书 `CN=Glance Debug`，APK 13,245,967 字节，较 android-42 +9,305 字节）— `https://github.com/mjkyleo/Glance/releases/download/android-43/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包。** Release 资产 CDN 限速/超时，APK 核验依 CI 断言（见 §9）。
 
 ---
 
@@ -918,7 +921,8 @@
 
 | 提交 | 内容 |
 |---|---|
-| `1cfd1b6` | 多词典：自定义添加 + 逐源开关 + 并行合并去重（§8.32）：`dict` 由单选 `provider` 升级为 `{provider, enabled[], merge, custom[], keys{}}`，`enabled` 顺序即优先级、`provider` 退化为 `enabled[0]` 镜像，旧单选数据自动迁移;Key 集中到 `dict.keys[id]` 并逐 id AES-256-GCM 密封（解密失败仍不销毁密文）;自定义端点数据驱动生成，支持 `{word}`/`{key}` 占位、四种鉴权与五种返回格式（含自动嗅探）;并行查询后按词性归一 + 释义去重合并、累积来源标记并设条数上限，缓存加 `sig` 使配置变更自动重查，逐源失败可见，旧回退链降级为仅全网失败时的 RESCUE;设置页改为源列表（开关 / ↑↓ 调序 / 批量开关 / 添加编辑弹层 + 连通性测试 / 缓存管理），词卡加来源筛选片与内联来源徽章;实测 unit 93/93 + crypto 23/23 + 浏览器 E2E 60/60 + 全应用回归 48/48 + 真实 Electron 四源合并;README / FEATURES §5.2 / DATA §5.1·§5.5·§8 同步，335 条 `文件:行号` 引用 0 失效 |
+| `7ebb3f7` | 补充专项词汇（用户提交的原始素材，**尚未接入应用**）：`assets/words/cet6_full_vocabulary_frequency.csv/.xlsx`（六级核心词 + 全站出现频次排名，11,970 行）与 `assets/words/六级选词填空词库_2021-2026.json`（真题 Section A 15 选 10 词库，2021-06–2026-06 共 18 场 + 2016–2020 共 8 场，另 14 场原仓库缺失记于 `missing_in_repo`）;`scripts/` 与 `app/data/` 均未引用，属后续「选词填空」专项的语料准备，不改变当前词书与 APK 行为。同时把两张 Logo 设计参考图与本地存储测试目录加入 `.gitignore`（参考图按约定不进仓库，成品图标在 `assets/icons` 与 `assets/logo`） |
+| `1cfd1b6` | 多词典：自定义添加 + 逐源开关 + 并行合并去重（§8.32）：`dict` 由单选 `provider` 升级为 `{provider, enabled[], merge, custom[], keys{}}`，`enabled` 顺序即优先级、`provider` 退化为 `enabled[0]` 镜像，旧单选数据自动迁移;Key 集中到 `dict.keys[id]` 并逐 id AES-256-GCM 密封（解密失败仍不销毁密文）;自定义端点数据驱动生成，支持 `{word}`/`{key}` 占位、四种鉴权与五种返回格式（含自动嗅探）;并行查询后按词性归一 + 释义去重合并、累积来源标记并设条数上限，缓存加 `sig` 使配置变更自动重查，逐源失败可见，旧回退链降级为仅全网失败时的 RESCUE;设置页改为源列表（开关 / ↑↓ 调序 / 批量开关 / 添加编辑弹层 + 连通性测试 / 缓存管理），词卡加来源筛选片与内联来源徽章;实测 unit 93/93 + crypto 23/23 + 真实 Electron 落盘重启往返 21/21 + 浏览器 E2E 60/60 + 全应用回归 48/48 + 真实 Electron 四源合并;README / FEATURES §5.2 / DATA §5.1·§5.5·§8 同步，335 条 `文件:行号` 引用 0 失效;交付 `android-43` |
 | `94ae892` | 文档引用复核：用符号定义审计脚本重算 FEATURES.md / DATA.md / DEVELOPMENT.md 中全部 `文件:行号`，修正约 100 处随功能落地而漂移的指针（srs.js 公式区、app.js 渲染函数区、library.js 官方与解析区、platform.js 网络与存储适配区、store.js 导出导入区），并把功能矩阵速查的整段范围对齐当前代码;纯 md 改动，`paths-ignore` 不触发 CI，最新交付仍为 `android-42` |
 | `a12ba4e` | QNAI 免费 AI 服务商预设（DEV-ONLY，§8.31）：`ai.js` 同区追加 `QNAI_FREE_API`（`api.qnaigc.com/v1`，`id:'qnafree'`，双模型下拉 `qiniu/conatus-free`（默认，实测可用 + JSON 模式;免费档全局限流 429）/ `nvidia/nemotron-3-ultra-550b-a55b0-free`（上游暂不可用，待恢复）+ 内置开发 Key），复用 §8.27 的 `dev/devKey/models` 数据驱动机制，零 UI/schema 改动，服务商 14→15 项;开发期默认仍 devfree;DEVELOPMENT §8.25/§8.31/§9 + FEATURES §6.1/矩阵同步（并修正 FEATURES 中 app.js/platform.js 的过期行号引用） |
 | `91f5ef3` | 查词在线化 + UAPI 中英词典 + 多源回退（§8.30）：查词页对本地未收录词置顶「在线查词」入口，点击即联网查询并按词缓存（复用 `Dictionary.lookup → saveDictEntry`）;新增 UAPI 服务商（免 Key，中英双释义/英美音标音频/考试标签/词形/词组/近义/双语例句），`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签;多源回退 有道→UAPI→dictionaryapi.dev，命中「未找到该词」即停省积分，词卡显示「已从〈源〉回退」;词卡新增词形变化/常见词组渲染;默认仍 freezh，无 schema 改动;DEVELOPMENT §8.30 + FEATURES §5/矩阵 + README 同步 |

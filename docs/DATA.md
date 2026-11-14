@@ -300,7 +300,7 @@
 - **Android / 浏览器**：Key 仅存应用私有 `localStorage`，不上传;共享镜像与导出均剔除 Key。
 - **备份剔除**：`exportData` 显式 `delete ai.key/keyEnc`、`delete dict.key/keyEnc/keys/keysEnc`，并逐个清洗 `dict.custom[].key`（[store.js:498-503](../app/js/store.js#L498-L503)）;`importData` replace 时**保留本机整个 Key 映射**，导入的自定义词典若与本机同 id 则沿用本机 Key（[store.js:645-652](../app/js/store.js#L645-L652)）。
 - 推论：卸载重装后共享镜像可恢复学习进度，但 **Key 需重新填写**（Key 不在镜像里）。
-- **开发期免费 Key（DEV-ONLY，例外说明）**：`ai.js` 的 `DEV_FREE_API.devKey` 是内置在**代码**里的公开开发密钥（非用户私密 Key），供开发期免配置试用 AI；它不属于 `data.ai.key`，故没入备份/镜像（备份只剔除用户 Key）。**正式发布前必须删除该代码块并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)。本节加密保护的是**用户自填 Key**，与公开开发 Key 是两回事。
+- **开发期免费 Key（DEV-ONLY，例外说明）**：`ai.js` 的 `DEV_FREE_API.devKey` 与 `QNAI_FREE_API.devKey` 是内置在**代码**里的公开开发密钥（非用户私密 Key），供开发期免配置试用 AI；它们不属于 `data.ai.key`，故没入备份/镜像（备份只剔除用户 Key）。**正式发布前必须删除这两整块代码并到服务端作废 Key**（Key 已进公开 git 历史），详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)。本节加密保护的是**用户自填 Key**，与公开开发 Key 是两回事。
 
 ## 6. 备份导出 / 导入规范
 
