@@ -335,6 +335,18 @@
           <p class="field-hint">复习上限 0 表示不限。已掌握的词会自动减少出现。</p>
         </section>
         <section class="panel">
+          <div class="panel-head"><h3>词书过滤</h3><span class="panel-sub">可选</span></div>
+          <div class="set-row">
+            <span class="set-row-label">跳过低阶重复词<small>去掉已出现在更低阶考试词书中的单词</small></span>
+            <label class="switch"><input type="checkbox" id="book-skip-lower" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <span class="set-row-label">跳过已掌握<small>已掌握的词不再进入每日学习队列</small></span>
+            <label class="switch"><input type="checkbox" id="book-skip-known" /><span class="slider"></span></label>
+          </div>
+          <p class="field-hint" id="book-filter-hint"></p>
+        </section>
+        <section class="panel">
           <div class="panel-head"><h3>选择词书</h3></div>
           <div id="books-list"></div>
         </section>

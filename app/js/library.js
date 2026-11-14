@@ -153,6 +153,7 @@
     DS = dataset || {};
     affixMap = new Map((DS.affixes || []).map(a => [a.id, a]));
     for (const k of Object.keys(books)) delete books[k];
+    for (const k of Object.keys(lowerCache)) delete lowerCache[k];
   }
 
   function getBook(tag) {
@@ -187,6 +188,26 @@
       for (const w of ex.loose || []) if (passesQuality(w[2], t)) n++;
       return { tag: t, name: t + '词库', n };
     });
+  }
+
+  // Exam ladder for the optional "skip lower-book duplicates" filter: a book's
+  // lower set is every exam strictly below it (六级 → 中考/高考/四级).
+  const BOOK_RANK = { '中考': 0, '高考': 1, '四级': 2, '六级': 3, '专四': 4, '考研': 5, '专八': 6, '雅思': 7, '托福': 8, 'GRE': 9 };
+  const lowerCache = {};
+  function lowerTags(tag) {
+    const r = BOOK_RANK[tag];
+    if (r === undefined) return [];
+    return Object.keys(BOOK_RANK).filter(t => BOOK_RANK[t] < r);
+  }
+  function lowerWordSet(tag) {
+    if (lowerCache[tag]) return lowerCache[tag];
+    const set = new Set();
+    for (const t of lowerTags(tag)) {
+      const b = getBook(t);
+      if (b) for (const e of b.entries) set.add(e.word);
+    }
+    lowerCache[tag] = set;
+    return set;
   }
 
   function getFamily(root) {
@@ -344,5 +365,5 @@
     return { name: name || 'library', entries: base.entries, custom: true };
   }
 
-  window.Library = { init, getBook, listBooks, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse };
+  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse };
 })();

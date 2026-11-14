@@ -254,6 +254,17 @@
     return Library.getBook(tag) || Library.getBook('六级') || { tag: '六级', name: '六级词库', n: 0, entries: [] };
   }
   function knownCount(entries) { let n = 0; for (const e of entries) if (SRS.isKnown(Store.data.srs[e.word])) n++; return n; }
+  // Optional book filters only trim the daily study queue; the book itself and quiz scopes stay intact.
+  function studyEntries(b) {
+    const f = Store.data.bookFilter || {};
+    let entries = b.entries;
+    if (f.skipLower && !b.custom) {
+      const lower = Library.lowerWordSet(b.tag);
+      if (lower.size) entries = entries.filter(e => !lower.has(e.word));
+    }
+    if (f.skipKnown) entries = entries.filter(e => !SRS.isKnown(Store.data.srs[e.word]));
+    return entries;
+  }
 
   // ===================== study session =====================
   function buildSession(bonusNew) {
@@ -261,7 +272,7 @@
     const now = Date.now();
     const prog = Store.planProgress();
     const newLeft = bonusNew ? 10 : prog.newLeft;
-    const q = SRS.buildQueue(book.entries, Store.data.srs, { newLeft, reviewCap: Store.data.plan.reviewCap }, now);
+    const q = SRS.buildQueue(studyEntries(book), Store.data.srs, { newLeft, reviewCap: Store.data.plan.reviewCap }, now);
     session = SRS.session(q.reviews, q.news);
     sessionMeta = q;
     sessionIdx = 0;
@@ -2006,6 +2017,25 @@
     $('plan-new-input').value = Store.data.plan.newPerDay;
     $('plan-review-input').value = Store.data.plan.reviewCap;
 
+    const f = Store.data.bookFilter || {};
+    $('book-skip-lower').checked = !!f.skipLower;
+    $('book-skip-known').checked = !!f.skipKnown;
+    const hint = $('book-filter-hint');
+    if (!f.skipLower && !f.skipKnown) {
+      hint.textContent = '默认不裁剪词书；开关只影响每日学习队列，测试范围不受影响。';
+    } else {
+      const lower = f.skipLower && !b.custom ? Library.lowerWordSet(b.tag) : null;
+      let dropLower = 0, dropKnown = 0;
+      for (const e of b.entries) {
+        if (lower && lower.has(e.word)) { dropLower++; continue; }
+        if (f.skipKnown && SRS.isKnown(Store.data.srs[e.word])) dropKnown++;
+      }
+      const parts = [];
+      if (lower && lower.size) parts.push('低阶重复 ' + dropLower);
+      if (f.skipKnown) parts.push('已掌握 ' + dropKnown);
+      hint.textContent = '过滤后剩 ' + (b.n - dropLower - dropKnown) + ' 词' + (parts.length ? '（' + parts.join(' · ') + '）' : '') + '。';
+    }
+
     const list = $('books-list');
     list.innerHTML = '';
     const wrap = el('div', 'list-gap');
@@ -2396,6 +2426,16 @@
 
     $('plan-new-input').addEventListener('change', () => { $('set-new').value = $('plan-new-input').value; applyPlanFromBooks(); });
     $('plan-review-input').addEventListener('change', () => { $('set-review').value = $('plan-review-input').value; applyPlanFromBooks(); });
+    const onBookFilter = () => {
+      Store.data.bookFilter = { skipLower: $('book-skip-lower').checked, skipKnown: $('book-skip-known').checked };
+      Store.save();
+      buildSession();
+      renderBooks();
+      updatePlanBar();
+      if (mode === 'study') renderStudy();
+    };
+    $('book-skip-lower').addEventListener('change', onBookFilter);
+    $('book-skip-known').addEventListener('change', onBookFilter);
     $('import-book').addEventListener('click', importBook);
 
     $('set-new').addEventListener('change', applyPlan);
