@@ -26,3 +26,10 @@ debug.log
 
 # Large source PDF kept locally; official.json + the A/B txt lists are the committed extract
 assets/words/*.pdf
+
+# Logo design references stay local; the committed artwork is generated into assets/icons + assets/logo
+assets/Glance应用图标Logo设计-*.png
+assets/Glance应用图标Logo设计-*.jpeg
+
+# Local Electron data dir from storage-location tests
+kymy_vocabulary.scratchstorage-aes-test/
