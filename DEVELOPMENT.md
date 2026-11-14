@@ -649,6 +649,21 @@
 
 **交付**：`android-31`（target `c65087d`，CI run 43436045398 成功，Range 复核 `com.glance.app` / `versionCode 31` / `versionName 1.0.6+31`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,174,684 字节）。
 
+### 8.22 词书去重开关（跳过低阶重复 / 跳过已掌握） ✅
+
+**需求**：「词书与计划」新增两个可选开关：「跳过低阶重复词」去掉已出现在更低阶考试词书中的单词，「跳过已掌握」让已掌握词不再进入每日学习队列；默认均关闭，不裁剪词书本身（延续高阶词书默认不裁剪的策略），也不影响测试范围。
+
+**实现**
+
+- `store.js`：DEFAULTS 新增 `bookFilter: { skipLower: false, skipKnown: false }`；normalize 做对象类型纠正与布尔归一；不进 export/import（与 progressBars 同例，属本机偏好）。
+- `library.js`：考试阶梯 `BOOK_RANK`（中考 0 → GRE 9），`lowerTags(tag)` 取严格低于当前考试的全部词书（六级 → 中考/高考/四级）；`lowerWordSet(tag)` 汇总低阶词书词条为 Set 并缓存于 `lowerCache`，`init` 时随词书缓存一起清空。
+- `app.js`：新增 `studyEntries(b)`，仅对每日队列输入依次应用两个过滤（自定义词书无低阶集合，skipLower 为 no-op）；`buildSession` 改用它；`renderBooks` 同步开关状态并实时计算提示——全关时「默认不裁剪词书；开关只影响每日学习队列，测试范围不受影响。」，开启时「过滤后剩 N 词（低阶重复 X · 已掌握 Y）。」。开关 change → 保存 + 重建会话 + 刷新词书页/计划条，学习模式下立即重渲染学习页。
+- 测试引擎不受影响：'book' / 'mixed' 范围仍用词书全量 entries。
+
+**验证（Electron + CDP，390×844 @1.25 与 360×800）**：六级当前书开「跳过低阶重复词」提示「过滤后剩 1655 词（低阶重复 2672）。」（4327−2672，与实测重叠一致），再开「跳过已掌握」为「过滤后剩 1637 词（低阶重复 2672 · 已掌握 18）。」。队首对照：关开关时已掌握词 `producer` 与低阶词 `conduct`（due=1）依次入队，开对应开关立即跳过，测后恢复 due；双开时测试 'book' 范围候选池仍 4327。自定义词书 skipLower 为 no-op（提示仅已掌握子句）；自定义书全词已掌握 + skipKnown 时学习页正确显示空状态；删除自定义书回退六级。开关状态、提示与队列 reload 后保持；五 tab 巡览无控制台错误；360px 无溢出。截图新增 `book-filter.png`。
+
+**交付**：`android-32`（target `6391fc0`，CI run 43539898766 成功，Range 复核 `com.glance.app` / `versionCode 32` / `versionName 1.0.6+32`，证书 SHA-256 `82:F7:…:C9:AF`，APK 13,175,977 字节）。
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -667,6 +682,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `6391fc0` | 词书过滤可选开关：跳过低阶重复词（考试阶梯）+ 跳过已掌握，仅影响每日学习队列，词书与测试范围不裁剪 |
 | `c65087d` | 听音选词（音标音近干扰项）+ 打卡日历月份/日期 + 词根词缀学习进度条与开关 + 头像去掉摄像头角标 |
 | `f3fde1d` | 移除词根/专项/查词/我的顶部品牌栏（眼睛图标 + Glance + 词库），首屏直接进入内容 |
 | `a99523d` | 词典服务商改成二级底部弹层卡片选择（推荐/Key 徽章 + 能力说明）；测试「结束」收进顶部胶囊，操作条仅答错时显示 |
@@ -703,4 +719,4 @@
 | `a21ee5e` | Capacitor gradle 注册 Android TTS 插件 |
 | `8ebdb66` | 索引化词素数据集 + SRS 学习系统（P0/P1） |
 
-**交付物**：`android-31` APK（听音选词 / 日历日期 / 词根词缀进度 / 头像去角标，versionCode 31 / versionName `1.0.6+31`）— `https://github.com/mjkyleo/Glance/releases/download/android-31/Glance-android.apk`（13,174,684 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-30` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
+**交付物**：`android-32` APK（词书过滤可选开关：跳过低阶重复词 / 跳过已掌握，versionCode 32 / versionName `1.0.6+32`）— `https://github.com/mjkyleo/Glance/releases/download/android-32/Glance-android.apk`（13,175,977 字节）；历史版本 `android-2`–`android-6`、`android-10`–`android-31` 保留在 Releases，`android-7/8/9` 的 release 已按用户要求删除（git tag 保留）。
