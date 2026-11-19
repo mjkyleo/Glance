@@ -146,9 +146,9 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：功能提交 `1cfd1b6`（`main`，多词典开关 + 自定义词典添加 + 并行合并去重，§8.32，交付 `android-43`）;其后 `7ebb3f7` 补充专项词汇原始素材（未接入应用，交付 `android-44`）;再后的文档提交只复核修正 `文件:行号` 引用与交付记录，属 md-only，`paths-ignore` 不触发 CI、不改变 APK。
-- 最新交付：`android-44` APK → `https://github.com/mjkyleo/Glance/releases/download/android-44/Glance-android.apk`（13,245,959 字节，versionCode 44 / versionName `1.0.6+44`，CI run 43582214869 全 12 步成功）。功能与 `android-43` 一致（多词典，§8.32）;android-44 只多了 `assets/words/` 的原始语料，未接入应用。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已从 APK 剥离。
-- 工作区：**有未提交改动**——§8.34 单一解释源改造（数据 + 代码 + 验收门）与 §8.35 统一学习面板（学习页/词卡同源、16 块单一列表、缓存优先手动联网）均已完成并实测通过，**等待用户指示后再提交 / 推送 / 触发 CI**;`.scratch/` 为本地调试产物（已忽略），`assets/` 下两张用户提供的 Logo 参考图永不提交。
+- 最新提交：`cd2f07a`（`main`，CI `paths-ignore` 纳入 AOCI 认知层 + 本轮认知维护结果）;其前 `d649888`（单一解释源 + 统一学习面板，§8.34/§8.35）、`d6c7fee`（真题词频与选词填空数据管线，§8.33）、`de09715`（AOCI 认知层 + `.gitattributes` 强制 LF）。均已推送;`d649888` 触发 run 44456228181（`android-45`），`cd2f07a` 因改动 workflow 自身触发 run 44457599040（`android-46`，应用内容与 45 相同）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新交付：**`android-46`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`（**10,383,617 字节**，versionCode 46 / versionName `1.0.6+46`，CI run **44457599040** 全 12 步成功，第 10 步断言包名/版本/证书 `CN=Glance Debug`，第 8 步 Strip 已执行）。应用内容与 `android-45`（10,383,615 字节，run 44456228181）一致，仅因 workflow 改动多构建一次;内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）;体积较 android-44 减少约 2.86MB（exams.json 7.6MB→1.45MB）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
+- 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
@@ -954,6 +954,8 @@
 
 **文档**：DATA 新增 §2.8 frequency.json / §2.9 cloze.json（信封样例 + 逐字段表 + 归并顺序 + 未匹配不写入 + 牌组顺序 + 8 个词库外词 + 14 套缺失卷），§2.1 数据表补两行，§2.6 补两条管线与**跑序依赖**，§3 补 `examFreq`/freqBook/cloze 运行时 API/兜底规则/搜索补位，§8 新增第 9 条维护清单（**三处加载点必须同改**、不得重排牌组）。FEATURES 新增 §2.7 真题词频书 / §3.5 选词填空选项库 / §3.6 真题卷浏览与词卡真题块，§3.4 改为 29 个静态主题，§14 矩阵补 4 行并手工校正约 16 处**纯文本**位置（矩阵不是 markdown 链接，重定位脚本碰不到）。README 补三条功能说明、两条构建命令与跑序警告、目录结构，并新增四张 360×640 截图。
 
+**交付**：本节的数据与 UI 已随 `d6c7fee`（数据管线）+ `d649888`（接入与单一解释源）提交并推送，CI run **44456228181** 成功 → `android-45`;最新交付为 **`android-46`**（run 44457599040，versionCode 46 / versionName `1.0.6+46`，APK 10,383,617 字节，应用内容与 45 相同）— `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`。`platform.js loadDataset` 与 `main.js get-dataset` 均已含 `frequency`/`cloze`，三处加载点同步（§8 第 9 条）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包。**
+
 ---
 
 ## 9. 关键约束与注意事项
@@ -961,9 +963,10 @@
 - **URL 完整性**：工具 URL 必须匹配当前任务目标，严禁替换为 routify 等临时代理；历史调用不代表正确，每次重新核对来源。
 - **推送安全**：仅 SSH（HTTPS 被墙）+ 专用密钥 `id_ed25519_glance`（comment `mjkyleo-glance`），`GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_glance -o IdentitiesOnly=yes"`。**不得触碰/使用** `sczhang0504` 的默认密钥 `~/.ssh/id_ed25519`。
 - **提交隐私**：用 noreply 邮箱，勿暴露私有 `437257976@qq.com`。
-- **开发期免费 AI（发布前移除）**：`ai.js` 内置两个 DEV-ONLY 预设 `DEV_FREE_API`（devfree）与 `QNAI_FREE_API`（qnafree，QNAI 双模型），各带公开开发 Key（见 §8.25）。**正式发布前必须删除这两整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -rE "DEV_FREE_API|QNAI_FREE_API|rc-366f|sk-91774e" app/` 须为空。
+- **开发期免费 AI（发布前移除）**：`ai.js` 内置两个 DEV-ONLY 预设 `DEV_FREE_API`（devfree）与 `QNAI_FREE_API`（qnafree，QNAI 双模型），各带公开开发 Key（见 §8.25）。**正式发布前必须删除这两整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -rE "DEV_FREE_API|QNAI_FREE_API|rc-366f|sk-91774e" app/` 须为空。**2026-11-19 实测**：`qnafree` 上游返回 HTTP 403「Account is suspended」（免费账号已被停用），`devfree` 在纯浏览器被 CORS 拦截、Electron/Android 原生通道不受限;两者无论可用与否都须在发布前删除并作废。
 - **FSRS 对照旁路（dev-only）**：`app/dev/` 与 `app/js/vendor/ts-fsrs.js` 仅供对照验证（§8.26），**不得进入正式包**——Electron 由 `build.files` 排除、Android 由 CI `Strip dev-only FSRS contrast side-path` 步骤删除;**不得据旁路直接替换在用调度器**（迁移需另行评估用户数据兼容性）。改 `srs.js` 公式或 ts-fsrs 版本后须重跑 `npm run contrast:fsrs` 刷新报告。
-- **本地工具链**：无 Android SDK（靠 CI）；WMI 启动 Electron；CDP（端口 9222）截图/smoke；npmmirror；本机无 `gh`，repo 公开（api.github.com 可达）。
+- **本地工具链**：无 Android SDK（靠 CI）；WMI 启动 Electron；CDP（端口 9222）截图/smoke；npmmirror；本机无 `gh`，repo 公开（api.github.com 可达）。Release 资产下载 CDN 本机不可达（HEAD 无响应），APK 内容核验依 CI 第 10 步断言 + 第 8 步 Strip。
+- **AOCI 认知层**：`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt` 与 `.aoci/` 白名单资产（`.gitignore`/`baseline.json`/`config.json`）入库，运行时产物（ledger/fingerprints/transactions/governance/drafts）与 `.mcp.json` 不入库;这四类路径已加入 CI `paths-ignore`，认知与文档提交不再触发 APK 构建（**改 `android-build.yml` 本身仍会触发一次**）。受管理对象变化后只在本次任务的最终稳定态调用一次 `aoci_maintain`，按机器签发批次创作并提交，`terminal_proof` 即对齐证明，不重复维护。
 - **渲染层改动**：renderer-only 改动 `Page.reload` 即可；`main.js` 改动需重启 Electron。
 - **Node harness**：需 `global.window=global`；Git Bash 用 `taskkill //F //PID`。
 - **记忆**：仅在用户明确要求时修改持久记忆。
@@ -984,7 +987,7 @@
 
 **边界与残留**（如实记录）：`roots.json/roottrees.json` 仍携带**全局未收录的屈折/派生词形**注释（如 `greyer`，11,236 个），运行时全局优先、副本仅对这些词形生效;`scripts/build-cet6.js` legacy 输出路径仍指向不存在的根 `data/`（不更新在用文件，未修）;`aiCache` 加 `sig` 按要求**不与本次混做**;「四六级词库_Glance格式_8016词.json」不在本仓库，`words.json` 仍为唯一全局源，未来该文件只能以 `word` 主键并入全局、不得写入词书。
 
-**交付**：本次改造**尚未提交 / 尚未触发 CI**（等待用户指示）;文档同步 DATA §2.1/2.3/2.4/2.5/2.6/2.9/3/4/7/8、FEATURES §2.2/3.5/3.6、README 词性牌组数、DEVELOPMENT §3 数据表与本节。
+**交付**：已随 `d649888` 提交并推送（SSH + 专用密钥），CI run **44456228181** 成功 → `android-45`;最新交付 **`android-46`**（run 44457599040，versionCode 46 / versionName `1.0.6+46`，APK **10,383,617 字节**，应用内容与 45 相同，较 android-44 的 13,245,959 字节减少约 2.86MB，主要来自 exams.json 7.6MB→1.45MB）— `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`。Release 资产 CDN 在本机仍不可达（HEAD 无响应），APK 内容核验依 CI 断言与 Strip 步骤（§9）。文档同步 DATA §2.1/2.3/2.4/2.5/2.6/2.9/3/4/7/8、FEATURES §2.2/3.5/3.6、README 词性牌组数、DEVELOPMENT §3 数据表与本节。
 
 ### 8.35 统一学习面板：学习页与词卡同源、去掉「详细讲解」✅
 
@@ -1009,12 +1012,16 @@
 
 **残留（如实记录）**：`docs/screenshots/*.png` 仍是改造前界面（内置浏览器视口不可见，无法重新截图），README 截图区已加注说明;AI 免费预设实测 `qnafree` 返回 **HTTP 403「Account is suspended」**、`devfree` 在纯浏览器被 CORS 拦截（Electron / Android 原生通道不受限）——两者本就是 DEV-ONLY，发布前整块删除并作废 Key（§9）;`roots.json / roottrees.json` 的非词头词形注释残留同 §8.34。
 
-**交付**：与 §8.34 一样**尚未提交 / 尚未触发 CI**（等待用户指示）。文档同步 DATA §3 / §5.1 / §6.1 / §6.2 / §6.3、FEATURES §1.4 / §2.5 / §3.6 / §5.1 / §5.2 / §5.3 / §6.1 / §6.2 / §14、README 使用 1 / 4 / 5 与截图注、DEVELOPMENT §3 与本节;§8.34 的 `文件:行号` 已按本次重构后的真实位置复核修正。
+**交付**：已随 `d649888` 提交并推送，CI run **44456228181** 全步骤成功 → `android-45`;最新交付 **`android-46`**（run **44457599040**，`com.glance.app` / versionCode 46 / versionName `1.0.6+46` / 证书 `CN=Glance Debug` 均由第 10 步 `Verify APK build metadata` 断言，第 8 步 Strip 已执行，APK 10,383,617 字节，应用内容与 45 相同）— `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设，非正式发布包**;实测 `qnafree` 上游返回 403「Account is suspended」，发布前除删除两块外还须到服务端作废 Key（§9）。文档同步 DATA §3 / §5.1 / §6.1 / §6.2 / §6.3、FEATURES §1.4 / §2.5 / §3.6 / §5.1 / §5.2 / §5.3 / §6.1 / §6.2 / §14、README 使用 1 / 4 / 5 与截图注、DEVELOPMENT §3 与本节;§8.34 的 `文件:行号` 已按本次重构后的真实位置复核修正。
 
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| `cd2f07a` | CI 卫生：把 AOCI 认知层四类路径（`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt`/`.aoci/**`）加入 `android-build.yml` 的 `paths-ignore`，认知与文档提交不再发布内容相同的重复 APK;同时入库本轮认知维护结果（81 条 Entry 的 code 卷与 baseline）。改 workflow 自身仍触发一次构建（`android-46`，应用内容与 `android-45` 相同） |
+| `d649888` | 单一解释源 + 统一学习面板（§8.34/§8.35）：词书/词表降为纯引用 + 词根分组，`enrich` 的 zh/ipa/cefr/def 一律取全局 `words.json`，exams.json 7.6MB→1.45MB、legacy cet6 与 cloze 去释义副本，构建器同步改造防复发，旧导入与旧落盘自定义书保留一次性读时迁移（已知词去副本、用户自造词留释义）;学习页与词卡共用 `renderWordBlocks` 的 16 块单一列表（一份顺序 + 一份开关），删除详细讲解按钮、`Library.buildCards`、`cardOrder` 与两套卡片拖动代码，词典/AI 块缓存优先 + 块内手动按钮，旧配置缓存标注并可手动重查，旧 `cardOrder` 迁移保序、`ai.autoExplain` 全链路删除;新增三门 `verify-single-source` / `verify-custom-compat` / `verify-panel-order`（57,402 首行同源 0 例外、跨书字节一致、面板顺序与导出导入契约）;DATA/FEATURES/README/DEVELOPMENT 同步并复核受影响行号;交付 `android-45` |
+| `d6c7fee` | 真题词频与选词填空数据管线（§8.33）：`data:frequency` 把 11,970 词形经共用 `scripts/lib/lemma.js` 归并为 5,772 词头（词头自身 er/ef 与归并 r/f/n 分开保存），`data:cloze` 由 2021–2026 选项库生成 26 套卷 + 7 个词性牌组（纯词引用、保持印刷顺序、14 套上游缺失卷如实列说明行），8 个源站缺词释义在构建期并入全局 `words.json`;附四张 360×640 专项截图 |
+| `de09715` | AOCI 仓库认知层：`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt`（81 条 Entry）+ `AGENTS.md` 接入与收尾原则 + `.aoci` 白名单治理资产（`.gitignore`/`baseline.json`/`config.json`），运行时产物与 `.mcp.json` 不入库;`.gitattributes` 强制文本 LF，避免 Windows autocrlf 令基线整树判 stale |
 | `7ebb3f7` | 补充专项词汇（用户提交的原始素材，**尚未接入应用**）：`assets/words/cet6_full_vocabulary_frequency.csv/.xlsx`（六级核心词 + 全站出现频次排名，11,970 行）与 `assets/words/六级选词填空词库_2021-2026.json`（真题 Section A 15 选 10 词库，2021-06–2026-06 共 18 场 + 2016–2020 共 8 场，另 14 场原仓库缺失记于 `missing_in_repo`）;`scripts/` 与 `app/data/` 均未引用，属后续「选词填空」专项的语料准备，不改变当前词书与 APK 行为。同时把两张 Logo 设计参考图与本地存储测试目录加入 `.gitignore`（参考图按约定不进仓库，成品图标在 `assets/icons` 与 `assets/logo`） |
 | `1cfd1b6` | 多词典：自定义添加 + 逐源开关 + 并行合并去重（§8.32）：`dict` 由单选 `provider` 升级为 `{provider, enabled[], merge, custom[], keys{}}`，`enabled` 顺序即优先级、`provider` 退化为 `enabled[0]` 镜像，旧单选数据自动迁移;Key 集中到 `dict.keys[id]` 并逐 id AES-256-GCM 密封（解密失败仍不销毁密文）;自定义端点数据驱动生成，支持 `{word}`/`{key}` 占位、四种鉴权与五种返回格式（含自动嗅探）;并行查询后按词性归一 + 释义去重合并、累积来源标记并设条数上限，缓存加 `sig` 使配置变更自动重查，逐源失败可见，旧回退链降级为仅全网失败时的 RESCUE;设置页改为源列表（开关 / ↑↓ 调序 / 批量开关 / 添加编辑弹层 + 连通性测试 / 缓存管理），词卡加来源筛选片与内联来源徽章;实测 unit 93/93 + crypto 23/23 + 真实 Electron 落盘重启往返 21/21 + 浏览器 E2E 60/60 + 全应用回归 48/48 + 真实 Electron 四源合并;README / FEATURES §5.2 / DATA §5.1·§5.5·§8 同步，335 条 `文件:行号` 引用 0 失效;交付 `android-43` |
 | `94ae892` | 文档引用复核：用符号定义审计脚本重算 FEATURES.md / DATA.md / DEVELOPMENT.md 中全部 `文件:行号`，修正约 100 处随功能落地而漂移的指针（srs.js 公式区、app.js 渲染函数区、library.js 官方与解析区、platform.js 网络与存储适配区、store.js 导出导入区），并把功能矩阵速查的整段范围对齐当前代码;纯 md 改动，`paths-ignore` 不触发 CI，最新交付仍为 `android-42` |
