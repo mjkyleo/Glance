@@ -33,3 +33,7 @@ assets/Glance应用图标Logo设计-*.jpeg
 
 # Local Electron data dir from storage-location tests
 kymy_vocabulary.scratchstorage-aes-test/
+
+# AOCI agent host integration (machine-bound; do not commit)
+.mcp.json
+.mcp.json.backup.*
