@@ -146,8 +146,8 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`cd2f07a`（`main`，CI `paths-ignore` 纳入 AOCI 认知层 + 本轮认知维护结果）;其前 `d649888`（单一解释源 + 统一学习面板，§8.34/§8.35）、`d6c7fee`（真题词频与选词填空数据管线，§8.33）、`de09715`（AOCI 认知层 + `.gitattributes` 强制 LF）。均已推送;`d649888` 触发 run 44456228181（`android-45`），`cd2f07a` 因改动 workflow 自身触发 run 44457599040（`android-46`，应用内容与 45 相同）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
-- 最新交付：**`android-46`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`（**10,383,617 字节**，versionCode 46 / versionName `1.0.6+46`，CI run **44457599040** 全 12 步成功，第 10 步断言包名/版本/证书 `CN=Glance Debug`，第 8 步 Strip 已执行）。应用内容与 `android-45`（10,383,615 字节，run 44456228181）一致，仅因 workflow 改动多构建一次;内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）;体积较 android-44 减少约 2.86MB（exams.json 7.6MB→1.45MB）。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
+- 最新提交：`5608b68`（`main`，UI/UX 无障碍与规范达标审计 P0，§8.36）;其前 `cd2f07a`（CI `paths-ignore` 纳入 AOCI 认知层 + 认知维护）、`d649888`（单一解释源 + 统一学习面板，§8.34/§8.35）、`d6c7fee`（真题词频与选词填空数据管线，§8.33）、`de09715`（AOCI 认知层 + `.gitattributes` 强制 LF）。均已推送;`5608b68` 触发 run 44467606665（`android-47`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新交付：**`android-47`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-47/Glance-android.apk`（**10,385,001 字节**，versionCode 47 / versionName `1.0.6+47`，CI run **44467606665** 全 12 步成功，第 10 步断言包名/版本/证书 `CN=Glance Debug`，第 8 步 Strip 已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ **UI/UX 无障碍与规范达标 P0（§8.36：对比度 AA、44px 触控、≥11px 字号、200% 缩放、焦点环、弹层焦点管理、aria-live、undefined 历史修复）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
 - 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -1014,10 +1014,33 @@
 
 **交付**：已随 `d649888` 提交并推送，CI run **44456228181** 全步骤成功 → `android-45`;最新交付 **`android-46`**（run **44457599040**，`com.glance.app` / versionCode 46 / versionName `1.0.6+46` / 证书 `CN=Glance Debug` 均由第 10 步 `Verify APK build metadata` 断言，第 8 步 Strip 已执行，APK 10,383,617 字节，应用内容与 45 相同）— `https://github.com/mjkyleo/Glance/releases/download/android-46/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设，非正式发布包**;实测 `qnafree` 上游返回 403「Account is suspended」，发布前除删除两块外还须到服务端作废 Key（§9）。文档同步 DATA §3 / §5.1 / §6.1 / §6.2 / §6.3、FEATURES §1.4 / §2.5 / §3.6 / §5.1 / §5.2 / §5.3 / §6.1 / §6.2 / §14、README 使用 1 / 4 / 5 与截图注、DEVELOPMENT §3 与本节;§8.34 的 `文件:行号` 已按本次重构后的真实位置复核修正。
 
+### 8.36 UI/UX 无障碍与规范达标（审计 P0）✅
+
+**来源**：基于 designer-skills 方法论对全项目做 UI/UX 审计——源码勘察 + 真实 Chromium 实测（browser-use）+ 22 个产品/规范调研（Apple HIG / Material 3 / WCAG 2.2 + Anki / 墨墨 / 不背单词 / 百词斩 / 欧路 / 扇贝 / Duolingo / Clozemaster / Linear 等，量化矩阵存 `.scratch/research/`、方案存 `.scratch/uiux-plan.md`）。用户裁决先做 **P0（规范底线 + 明确缺陷）**，P1/P2 后续。实测改前：学习页 9 处对比度失败、词书页 30 处、专项页 10.5px 文本、底栏 11px、`user-scalable=no`、0 个 `:focus-visible`、0 个 `aria-live`、弹层无焦点管理、查词历史出现 `undefined` chip。
+
+**实现**（不触碰单一解释源 §8.34 与统一 16 块面板 §8.35）：
+- **对比度**：重算 8 主题浅/深 `--text-3`，使 muted 标签在 card 与 fill/fill-2 表面均 ≥4.5:1（浅色趋深 `#606065` 族、深色趋浅 `#a9a9ae` 族，逐主题保色相）;深色 active 分段控件改实色 `accent`+`accent-fg`（原 `fill-2` 上白字仅 3.63:1）（[app.css:8](app/css/app.css#L8)、[app.css:134](app/css/app.css#L134)、[app.css:393](app/css/app.css#L393)、[app.css:578](app/css/app.css#L578)）。
+- **触控目标**：孤立图标按钮扩到 44px（弹层关闭 / 收藏删除 / 昵称编辑 / 返回 / 测试齿轮 / 测试结束 / 朗读）;`.btn-ghost` 加 `flex:0 0 auto` 修复词卡朗读按钮被弹性压缩到 19.2px;开关命中区 28→44px 但视觉滑块仍 28px（`inset:8px 0`）;分段控件 30→44px。内联词 chip 保持 ≥24px+间距，符合 WCAG 2.5.8 AA 例外（[app.css:551](app/css/app.css#L551)、[app.css:695](app/css/app.css#L695)、[app.css:1089](app/css/app.css#L1089)、[app.css:1150](app/css/app.css#L1150)、[app.css:1275](app/css/app.css#L1275)）。
+- **字号**：消除 10.5px/10px（→11.5/11px），底栏 `--tab-size` 11→12px，关键数据/ section 标签 11.5→12px（[app.css:104](app/css/app.css#L104)、[app.css:655](app/css/app.css#L655)、[app.css:843](app/css/app.css#L843)）。
+- **缩放**：viewport 去掉 `maximum-scale=1.0, user-scalable=no`，允许 200% 缩放（[index.html:5](app/index.html#L5)）。
+- **键盘焦点**：新增全局 `:focus-visible` 焦点环 + `:focus:not(:focus-visible){outline:none}`，移除输入框 `outline:none`（[app.css:532-533](app/css/app.css#L532-L533)）。
+- **弹层焦点管理**：`openSheet/closeSheet/openNestedSheet/closeNestedSheet` 打开聚焦弹层（`role=dialog`/`aria-modal`/`tabindex=-1`）、`inert` 屏蔽背景、Tab 焦点陷阱、关闭还原焦点;硬编码 280ms 改读 `--dur-slow` token（`sheetDurMs`）（[app.js:230 sheetDurMs](app/js/app.js#L230)、[app.js:240 focusSheet](app/js/app.js#L240)、[app.js:254 trapSheetFocus](app/js/app.js#L254)、[app.js:273 openSheet](app/js/app.js#L273)、[app.js:286 closeSheet](app/js/app.js#L286)）。
+- **屏幕阅读器**：新增 `role=status` `aria-live=polite` 播报区 `#sr-status` + `.sr-only`，评分（认识/模糊/忘记）、测试对错、加载均播报（[index.html:871](app/index.html#L871)、[app.css:530](app/css/app.css#L530)、[app.js:267 announce](app/js/app.js#L267)）。
+- **缺陷修复**：`addHistory` 加非字符串/空守卫，`renderHistory` 过滤遗留 `undefined`/`null` 垃圾 chip（[store.js:316](app/js/store.js#L316)、[app.js:2085](app/js/app.js#L2085)）。
+
+**验证**：
+- **浏览器实测（browser-use 真实渲染，gray 深色）**：学习/词书/查词/词根/我的五视图对比度失败 **9+30+4→0**;最小字号 10.5→11.5px;弹层打开焦点落入弹层、Tab 陷阱循环正确、Esc 关闭并还原焦点到搜索框、`inert` 正确开关;开关命中区 44px / 视觉 28px、分段控件 44px、朗读 44px、评分 62px;`aria-live`=2;viewport 允许缩放;历史无 `undefined`;0 横向溢出。`:focus-visible` 规则实测存在。
+- **回归门复跑全绿**：`verify-single-source.js`（首行同源 0 例外）、`verify-panel-order.js`、`verify-custom-compat.js`——单一解释源 / 16 块面板顺序与导出导入 / 自定义词书兼容均未破坏。`node --check` app.js / store.js 通过。
+
+**残留（如实记录）**：内联词 chip（info-chip/word-chip/filter-chip）与重排 ↑↓ 仍 <44px，但 ≥24px+间距满足 WCAG 2.5.8 AA;将其舒适区扩到 44px 属 P1（避免破坏紧凑排版与命中区重叠）。P1（统一字阶/动效 token、设置面板内切换、搜索防抖、自动前进可关、词根长列表导航、趋势图拉伸修复、柔和圆角统一、原生对话框替换）与 P2（完成峰值庆祝、滑动评分、第 4 评分档、填空输入式、主题 base/accent/contrast 派生）见 `.scratch/uiux-plan.md`，本轮未做。内置浏览器视口不可见，无法重新截图，`docs/screenshots/*.png` 仍为旧界面。
+
+**交付**：随 `5608b68` 提交并推送（noreply 身份 + SSH 专用密钥），CI run **44467606665**（build #47）全 12 步成功 → `android-47`（versionCode 47 / versionName `1.0.6+47`，APK **10,385,001 字节**，第 8 步 Strip 已移除 dev-only FSRS 旁路、第 10 步断言包名 `com.glance.app` / 版本 / 证书 `CN=Glance Debug`）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-47/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25/§8.31），非正式发布包**;发布前整块删除并作废 Key（§9）。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| `5608b68` | UI/UX 无障碍与规范达标（审计 P0，§8.36）：8 主题浅/深 `--text-3` 重算使 muted 文本 ≥4.5:1（实测对比度失败 9+30+4→0）、深色 active 分段控件改实色 accent;孤立图标按钮扩 44px、`.btn-ghost` 防压缩修复朗读按钮 19.2px、开关命中区 44px（视觉 28px）、分段控件 44px;消除 10.5/10px 文本、底栏 11→12px、关键标签 11.5→12px;viewport 去 `user-scalable=no` 允许 200% 缩放;全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原）+ 280ms 改读 `--dur-slow`;`aria-live` 播报评分/测试/加载;`addHistory` 守卫 + 过滤遗留 `undefined` 历史 chip。三门回归全绿、浏览器实测验收;不触碰单一解释源与 16 块面板;交付 `android-47` |
 | `cd2f07a` | CI 卫生：把 AOCI 认知层四类路径（`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt`/`.aoci/**`）加入 `android-build.yml` 的 `paths-ignore`，认知与文档提交不再发布内容相同的重复 APK;同时入库本轮认知维护结果（81 条 Entry 的 code 卷与 baseline）。改 workflow 自身仍触发一次构建（`android-46`，应用内容与 `android-45` 相同） |
 | `d649888` | 单一解释源 + 统一学习面板（§8.34/§8.35）：词书/词表降为纯引用 + 词根分组，`enrich` 的 zh/ipa/cefr/def 一律取全局 `words.json`，exams.json 7.6MB→1.45MB、legacy cet6 与 cloze 去释义副本，构建器同步改造防复发，旧导入与旧落盘自定义书保留一次性读时迁移（已知词去副本、用户自造词留释义）;学习页与词卡共用 `renderWordBlocks` 的 16 块单一列表（一份顺序 + 一份开关），删除详细讲解按钮、`Library.buildCards`、`cardOrder` 与两套卡片拖动代码，词典/AI 块缓存优先 + 块内手动按钮，旧配置缓存标注并可手动重查，旧 `cardOrder` 迁移保序、`ai.autoExplain` 全链路删除;新增三门 `verify-single-source` / `verify-custom-compat` / `verify-panel-order`（57,402 首行同源 0 例外、跨书字节一致、面板顺序与导出导入契约）;DATA/FEATURES/README/DEVELOPMENT 同步并复核受影响行号;交付 `android-45` |
 | `d6c7fee` | 真题词频与选词填空数据管线（§8.33）：`data:frequency` 把 11,970 词形经共用 `scripts/lib/lemma.js` 归并为 5,772 词头（词头自身 er/ef 与归并 r/f/n 分开保存），`data:cloze` 由 2021–2026 选项库生成 26 套卷 + 7 个词性牌组（纯词引用、保持印刷顺序、14 套上游缺失卷如实列说明行），8 个源站缺词释义在构建期并入全局 `words.json`;附四张 360×640 专项截图 |

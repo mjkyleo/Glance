@@ -282,6 +282,14 @@
 
 - 透明度设置与纯文本隐藏模式（学习面板设置）。
 
+### 10.4 无障碍与规范达标（审计 P0）✅
+
+- **对比度**：8 主题浅/深 `--text-3` 重算，muted 标签在 card 与 fill 表面均 ≥4.5:1（WCAG AA）;深色 active 分段控件用实色 accent（[app.css:8](../app/css/app.css#L8)、[app.css:578](../app/css/app.css#L578)）。实测对比度失败 0。
+- **触控目标**：孤立图标按钮 44px、开关命中区 44px（视觉 28px）、分段控件 44px、朗读按钮防压缩;内联词 chip ≥24px+间距（WCAG 2.5.8）（[app.css:1150](../app/css/app.css#L1150)）。
+- **字号 / 缩放**：最小字号 ≥11px、底栏 12px;viewport 允许 200% 缩放（[index.html:5](../app/index.html#L5)）。
+- **键盘 / 屏幕阅读器**：全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原，[app.js:240](../app/js/app.js#L240)）;`aria-live` 播报评分/测试/加载（[app.js:267](../app/js/app.js#L267)）。
+- 详见 DEVELOPMENT §8.36;P1/P2（字阶/动效 token 统一、设置面板内切换、搜索防抖、自动前进可关、词根导航、趋势图修复、完成庆祝、滑动评分等）见 `.scratch/uiux-plan.md`，规划中。
+
 ---
 
 ## 11. 数据与存储
