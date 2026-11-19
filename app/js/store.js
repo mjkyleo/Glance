@@ -42,6 +42,7 @@
       ability: 0.5, answered: 0, correct: 0, streak: 0, history: {}
     },
     quizExamples: {},
+    exams: { progress: {}, wrong: [], aiCache: {} },
     background: { image: '', veil: 38, blur: 0 }
   };
 
@@ -148,6 +149,7 @@
     d.dict = normalizeDict(d.dict);
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
+    d.exams = normalizeExams(d.exams);
     if (!d.quiz || typeof d.quiz !== 'object') d.quiz = {};
     const QSCOPES = ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'];
     const QTYPES = ['en2zh', 'zh2en', 'cloze', 'audio2word'];
@@ -322,6 +324,86 @@
     save();
   }
   function clearHistory() { data.history = []; save(); }
+
+  // ===================== exam practice（真题刷题） =====================
+  const EXAM_ID_RE = /^\d{4}-\d{2}[-_]\d{2}$/;
+  const EXAM_TYPES = ['reading', 'matching', 'writing', 'translation', 'cloze', 'listening'];
+  function normalizeExams(raw) {
+    const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const out = { progress: {}, wrong: [], aiCache: {} };
+    if (src.progress && typeof src.progress === 'object') {
+      for (const id of Object.keys(src.progress)) {
+        if (!EXAM_ID_RE.test(id)) continue;
+        const p = src.progress[id];
+        if (!p || typeof p !== 'object') continue;
+        const a = {};
+        if (p.a && typeof p.a === 'object') for (const key of Object.keys(p.a)) {
+          const no = +key;
+          if (!(no >= 1 && no <= 57)) continue;
+          const r = p.a[key];
+          if (!r || typeof r !== 'object') continue;
+          a[no] = { p: typeof r.p === 'string' ? r.p.slice(0, 200) : '', ok: r.ok === 1 ? 1 : r.ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai'].includes(r.m) ? r.m : 'self', t: +r.t || 0 };
+        }
+        const done = {};
+        if (p.done && typeof p.done === 'object') for (const ty of Object.keys(p.done)) {
+          if (EXAM_TYPES.includes(ty)) done[ty] = +p.done[ty] || 0;
+        }
+        out.progress[id] = { a, done, at: +p.at || 0 };
+      }
+    }
+    if (Array.isArray(src.wrong)) src.wrong.forEach(w => {
+      if (!w || typeof w !== 'object' || !EXAM_ID_RE.test(w.examId || '')) return;
+      const no = +w.no;
+      if (!(no >= 1 && no <= 57)) return;
+      if (out.wrong.some(x => x.examId === w.examId && x.no === no)) return;
+      out.wrong.push({ examId: w.examId, no, type: typeof w.type === 'string' ? w.type : 'reading', t: +w.t || 0 });
+    });
+    out.wrong = out.wrong.slice(0, 300);
+    if (src.aiCache && typeof src.aiCache === 'object') for (const k of Object.keys(src.aiCache)) {
+      const v = src.aiCache[k];
+      if (!v || typeof v !== 'object' || typeof v.text !== 'string') continue;
+      out.aiCache[k] = { text: v.text.slice(0, 4000), t: +v.t || 0, provider: typeof v.provider === 'string' ? v.provider : '', model: typeof v.model === 'string' ? v.model : '' };
+    }
+    return out;
+  }
+  function examProgress(examId) { return data.exams.progress[examId] || null; }
+  function examAnswer(examId, no, type, pick, ok, mode) {
+    if (!EXAM_ID_RE.test(String(examId || '')) || !(no >= 1 && no <= 57)) return;
+    const now = Date.now();
+    let p = data.exams.progress[examId];
+    if (!p) { p = data.exams.progress[examId] = { a: {}, done: {}, at: 0 }; }
+    p.a[no] = { p: String(pick == null ? '' : pick).slice(0, 200), ok: ok === 1 ? 1 : ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai'].includes(mode) ? mode : 'self', t: now };
+    p.at = now;
+    data.exams.wrong = data.exams.wrong.filter(w => !(w.examId === examId && w.no === no));
+    if (ok === 0) {
+      data.exams.wrong.unshift({ examId, no, type: EXAM_TYPES.includes(type) ? type : 'reading', t: now });
+      if (data.exams.wrong.length > 300) data.exams.wrong.length = 300;
+    }
+    save();
+  }
+  function examFinish(examId, type) {
+    if (!EXAM_ID_RE.test(String(examId || '')) || !EXAM_TYPES.includes(type)) return;
+    let p = data.exams.progress[examId];
+    if (!p) { p = data.exams.progress[examId] = { a: {}, done: {}, at: 0 }; }
+    p.done[type] = Date.now(); p.at = p.done[type];
+    save();
+  }
+  function examWrong() { return data.exams.wrong.slice(); }
+  function removeExamWrong(examId, no) {
+    data.exams.wrong = data.exams.wrong.filter(w => !(w.examId === examId && w.no === no));
+    save();
+  }
+  function examAi(key) { return data.exams.aiCache[key] || null; }
+  function saveExamAi(key, text, provider, model) {
+    if (typeof key !== 'string' || !key || typeof text !== 'string' || !text.trim()) return;
+    data.exams.aiCache[key] = { text: text.slice(0, 4000), t: Date.now(), provider: String(provider || ''), model: String(model || '') };
+    const keys = Object.keys(data.exams.aiCache);
+    if (keys.length > 300) {
+      keys.sort((a, b) => (data.exams.aiCache[a].t || 0) - (data.exams.aiCache[b].t || 0));
+      keys.slice(0, keys.length - 300).forEach(k => { delete data.exams.aiCache[k]; });
+    }
+    save();
+  }
 
   // encounters (every time a word is actually shown to the learner)
   function recordView(word) {
@@ -519,6 +601,7 @@
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
         customBooks: clone(data.customBooks || {}),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
+        exams: clone(data.exams || { progress: {}, wrong: [], aiCache: {} }),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook,
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
@@ -594,6 +677,7 @@
       data.history = []; data.favGroups = ['默认']; data.aiCache = {}; data.dictCache = {};
       data.quizExamples = {};
       data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
+      data.exams = { progress: {}, wrong: [], aiCache: {} };
     }
 
     if (src) {
@@ -627,6 +711,28 @@
       if (isObj(src.dictCache)) for (const w of Object.keys(src.dictCache)) if (isObj(src.dictCache[w])) data.dictCache[w] = src.dictCache[w];
       if (isObj(src.customBooks)) for (const k of Object.keys(src.customBooks)) if (isObj(src.customBooks[k])) data.customBooks[k] = src.customBooks[k];
       if (isObj(src.quiz)) mergeQuiz(src.quiz, replace);
+      if (isObj(src.exams)) {
+        const ex = normalizeExams(src.exams);
+        for (const id of Object.keys(ex.progress)) {
+          const cur = data.exams.progress[id];
+          if (!cur) { data.exams.progress[id] = ex.progress[id]; continue; }
+          for (const no of Object.keys(ex.progress[id].a)) {
+            const r = ex.progress[id].a[no];
+            if (!cur.a[no] || r.t >= cur.a[no].t) cur.a[no] = r;
+          }
+          for (const ty of Object.keys(ex.progress[id].done)) cur.done[ty] = Math.max(cur.done[ty] || 0, ex.progress[id].done[ty]);
+          cur.at = Math.max(cur.at || 0, ex.progress[id].at || 0);
+        }
+        ex.wrong.forEach(w => {
+          if (!data.exams.wrong.some(x => x.examId === w.examId && x.no === w.no)) data.exams.wrong.push(w);
+        });
+        data.exams.wrong.sort((a, b) => b.t - a.t);
+        if (data.exams.wrong.length > 300) data.exams.wrong.length = 300;
+        for (const k of Object.keys(ex.aiCache)) {
+          const v = ex.aiCache[k];
+          if (!data.exams.aiCache[k] || v.t >= data.exams.aiCache[k].t) data.exams.aiCache[k] = v;
+        }
+      }
       if (isObj(src.quizExamples)) {
         for (const w of Object.keys(src.quizExamples)) {
           const r = src.quizExamples[w];
@@ -699,6 +805,7 @@
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
     dictKey, setDictKey, setDictEnabled, moveDictSource, addDictSource, updateDictSource, removeDictSource,
-    setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile
+    setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile,
+    examProgress, examAnswer, examFinish, examWrong, removeExamWrong, examAi, saveExamAi
   };
 })();

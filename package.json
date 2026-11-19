@@ -13,7 +13,8 @@
     "vendor:fsrs": "node scripts/vendor-ts-fsrs.mjs",
     "contrast:fsrs": "node scripts/fsrs-contrast.mjs",
     "data:frequency": "node scripts/build-frequency.js",
-    "data:cloze": "node scripts/build-cet6-cloze.js"
+    "data:cloze": "node scripts/build-cet6-cloze.js",
+    "data:exams": "node scripts/build-exams.js"
   },
   "build": {
     "appId": "com.glance.app",

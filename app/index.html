@@ -163,8 +163,31 @@
 
     <main class="view" id="view-themes" hidden>
       <div class="scroll" id="themes-scroll">
+        <button class="exam-entry" id="exams-entry" type="button">
+          <span class="exam-entry-icon"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M6 2h9l5 5v15H6V2Zm8 1.5V8h4.5L14 3.5ZM8 11h8v1.5H8V11Zm0 4h8v1.5H8V15Zm0 4h5v1.5H8V19Z"/></svg></span>
+          <span class="exam-entry-main"><span class="exam-entry-title">真题刷题</span><span class="exam-entry-sub" id="exams-entry-sub">六级真题 · 阅读 / 匹配 / 写译</span></span>
+          <span class="row-arrow">›</span>
+        </button>
         <p class="field-hint themes-intro">按主题集中攻克一类词；四六级翻译与作文常考话题也已整理成专题。</p>
         <div id="themes-groups"></div>
+      </div>
+    </main>
+
+    <main class="view" id="view-exams" hidden>
+      <div class="books-top">
+        <button class="icon-btn" id="exams-back" type="button" title="返回" aria-label="返回">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.4 5.6 9 12l6.4 6.4 1.4-1.4-5-5 5-5z"/></svg>
+        </button>
+        <span class="books-title" id="exams-title">真题刷题</span>
+      </div>
+      <div class="scroll" id="exams-scroll">
+        <div id="exams-list-pane">
+          <p class="field-hint" id="exams-intro">2016–2026 六级真题。语料为抓取文本，部分套残缺会如实标注；听力暂无音频、选词填空请用专项牌组。无官方答案时支持自评与 AI 分析。</p>
+          <div id="exams-list"></div>
+        </div>
+        <div id="exams-detail-pane" hidden></div>
+        <div id="exams-session-pane" hidden></div>
+        <div id="exams-result-pane" hidden></div>
       </div>
     </main>
 
@@ -878,6 +901,7 @@
   <script src="js/ai.js"></script>
   <script src="js/dictionary.js"></script>
   <script src="js/quiz.js"></script>
+  <script src="js/exams.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

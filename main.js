@@ -354,8 +354,16 @@ ipcMain.handle('get-dataset', () => {
     affixes: read('affixes.json'),
     official: read('official.json'),
     frequency: read('frequency.json'),
-    cloze: read('cloze.json')
+    cloze: read('cloze.json'),
+    examManifest: read('exams/manifest.json')
   };
+});
+
+// 真题分片懒加载：只按 examId 取单套（启动不拉全量）
+ipcMain.handle('get-exam-shard', (_e, examId) => {
+  if (!/^\d{4}-\d{2}[-_]\d{2}$/.test(String(examId || ''))) return null;
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'app', 'data', 'exams', examId + '.json'), 'utf-8')); }
+  catch { return null; }
 });
 
 // AI 单词解释：主进程发起 HTTP（绕过浏览器 CORS），统一 OpenAI 兼容 /chat/completions。

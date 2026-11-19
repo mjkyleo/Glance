@@ -32,7 +32,7 @@
 
   // ===================== view router =====================
   const TOP_VIEWS = ['study', 'roots', 'themes', 'search', 'me'];
-  const SUB_VIEWS = ['stats', 'books', 'ai'];
+  const SUB_VIEWS = ['stats', 'books', 'ai', 'exams'];
   let navStack = [];
   function switchView(v, opts) {
     const fromBack = !!(opts && opts.fromBack);
@@ -42,10 +42,10 @@
       if (navStack.length > 24) navStack.shift();
     }
     currentView = v;
-    ['study', 'roots', 'themes', 'search', 'me', 'stats', 'books', 'ai'].forEach(name => {
+    ['study', 'roots', 'themes', 'search', 'me', 'stats', 'books', 'ai', 'exams'].forEach(name => {
       $('view-' + name).hidden = name !== v;
     });
-    const tabView = (v === 'stats' || v === 'books' || v === 'ai') ? (subReturn || 'study') : v;
+    const tabView = SUB_VIEWS.includes(v) ? (subReturn || 'study') : v;
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === tabView));
     if (v === 'study') { updatePlanBar(); updateStudyVisibility(); if (panelDirty && mode === 'study' && currentItem()) renderStudy(); }
     if (v === 'roots') { rootsTab === 'roots' ? renderRoots() : renderAffixes(); }
@@ -55,9 +55,10 @@
     if (v === 'stats') renderStats();
     if (v === 'books') renderBooks();
     if (v === 'ai') renderAiLibrary();
+    if (v === 'exams' && examPane === 'list') renderExamsList();
   }
   function openSub(v) {
-    if (currentView !== 'books' && currentView !== 'ai' && currentView !== 'stats') subReturn = currentView;
+    if (!SUB_VIEWS.includes(currentView)) subReturn = currentView;
     switchView(v);
   }
   function backFromSub() {
@@ -68,6 +69,7 @@
   function handleBack() {
     if (nestedSheetEl) { closeNestedSheet(); return true; }
     if (openSheetEl) { closeSheet(); return true; }
+    if (currentView === 'exams' && examPane !== 'list') { examBack(); return true; }
     if (SUB_VIEWS.includes(currentView)) { backFromSub(); return true; }
     if (currentView === 'study' && mode === 'quiz') { setMode('study'); return true; }
     if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
@@ -2992,6 +2994,9 @@
     $('me-books-link').addEventListener('click', () => openSub('books'));
     $('me-ai-link').addEventListener('click', () => openSub('ai'));
     $('stats-back').addEventListener('click', backFromSub);
+    $('exams-back').addEventListener('click', examBack);
+    $('exams-entry').addEventListener('click', () => openSub('exams'));
+    ['exams-list-pane', 'exams-detail-pane', 'exams-session-pane', 'exams-result-pane'].forEach(id => $(id).addEventListener('click', examClick));
 
     $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
     $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
@@ -3301,6 +3306,400 @@
     buildSession(); updatePlanBar();
   }
 
+  // ===================== exam practice（真题刷题） =====================
+  const EXAM_TYPE_NAME = { reading: '仔细阅读', matching: '信息匹配', writing: '短文写作', translation: '汉译英', cloze: '选词填空', listening: '听力理解' };
+  const EXAM_WRITING_NO = 56, EXAM_TRANSLATION_NO = 57;
+  let examPane = 'list';
+  let examCur = null;
+  let examType = '';
+  let examSessions = [];
+  let examSIdx = 0;
+  let examQIdx = 0;
+  let examPick = null;
+  let examMarked = false;
+  let examDraft = '';
+  let examRunQuestions = [];
+  let examRetryMode = false;
+  let examRestoreKey = '';
+
+  function examShowPane(name) {
+    examPane = name;
+    ['list', 'detail', 'session', 'result'].forEach(p => { $('exams-' + p + '-pane').hidden = p !== name; });
+    $('exams-scroll').scrollTop = 0;
+    $('exams-title').textContent = name === 'list' ? '真题刷题' : name === 'detail' && examCur ? examCur.year + '年' + examCur.month + '月 · 第' + examCur.set + '套' : name === 'session' ? (EXAM_TYPE_NAME[examType] || '刷题') : '练习结果';
+  }
+  function examBack() {
+    if (examPane === 'session' || examPane === 'result') { renderExamDetail(); examShowPane('detail'); }
+    else if (examPane === 'detail') { examCur = null; examShowPane('list'); renderExamsList(); }
+    else backFromSub();
+  }
+  function examNoOf(q) { return q.type === 'writing' ? EXAM_WRITING_NO : q.type === 'translation' ? EXAM_TRANSLATION_NO : q.no; }
+  function examTypeQuestions(type) {
+    const out = [];
+    Exams.sessions(examCur, type).forEach(s => (s.questions || []).forEach(q => out.push(q)));
+    if (type === 'writing') out.push({ no: EXAM_WRITING_NO, type: 'writing', stem: '', options: {} });
+    if (type === 'translation') out.push({ no: EXAM_TRANSLATION_NO, type: 'translation', stem: '', options: {} });
+    return out;
+  }
+
+  function renderExamsList() {
+    const box = $('exams-list');
+    box.innerHTML = '';
+    const exams = Exams.list();
+    if (!exams.length) { box.appendChild(el('p', 'field-hint', '真题数据未加载（app/data/exams/manifest.json）。')); return; }
+    let year = 0;
+    exams.forEach(m => {
+      if (m.year !== year) { year = m.year; box.appendChild(el('h3', 'exam-year', year + ' 年')); }
+      const p = Store.examProgress(m.examId);
+      const answered = p ? Object.keys(p.a).length : 0;
+      const row = el('button', 'exam-row');
+      row.type = 'button';
+      row.dataset.exam = m.examId;
+      const types = (m.types || []).filter(t => ['reading', 'matching'].includes(t)).map(t => EXAM_TYPE_NAME[t]);
+      if (m.writing) types.push('写作');
+      if (m.translation) types.push('翻译');
+      row.innerHTML =
+        '<span class="exam-row-main">' +
+          '<span class="exam-row-title">' + esc(m.year + '年' + m.month + '月 · 第' + m.set + '套') + (m.needsReview ? ' <span class="exam-warn-badge">残缺</span>' : '') + '</span>' +
+          '<span class="exam-row-sub">' + m.questionCount + ' 题 · ' + esc(types.join(' / ') || '写作 / 翻译') + (answered ? ' · 已练 ' + answered + ' 题' : '') + '</span>' +
+        '</span><span class="row-arrow">›</span>';
+      box.appendChild(row);
+    });
+  }
+
+  async function openExam(examId) {
+    examShowPane('detail');
+    $('exams-detail-pane').innerHTML = '<p class="field-hint">正在加载试卷…</p>';
+    const ex = await Exams.load(examId);
+    if (!ex) { $('exams-detail-pane').innerHTML = '<p class="field-hint">加载失败，请返回重试。</p>'; return; }
+    examCur = ex;
+    renderExamDetail();
+  }
+
+  function renderExamDetail() {
+    const ex = examCur;
+    const pane = $('exams-detail-pane');
+    pane.innerHTML = '';
+    if (ex.quality && ex.quality.needsReview) {
+      const banner = el('div', 'exam-banner');
+      banner.textContent = '本套为抓取文本，OCR 不完整：缺 ' + (ex.quality.gaps || []).length + ' 题、' + (ex.quality.optionsIncomplete || []).length + ' 题缺选项。已如实保留，可练其中完整题目。';
+      pane.appendChild(banner);
+    }
+    const avail = Exams.availableTypes(ex);
+    avail.forEach(type => {
+      const qs = examTypeQuestions(type);
+      const st = Exams.typeStats(ex.examId, type, qs);
+      const card = el('div', 'exam-type-card');
+      const desc = type === 'reading' ? '一段材料 + 一组选择题，逐题推进' : type === 'matching' ? '段落 ↔ 陈述句匹配' : type === 'writing' ? '真题作文题，写作后可 AI 批改或自评' : '真题汉译英，完成后 AI 批改或自评';
+      card.innerHTML =
+        '<div class="exam-type-head"><span class="exam-type-name">' + EXAM_TYPE_NAME[type] + '</span>' +
+        '<span class="exam-type-stat">' + (st.answered ? '已练 ' + st.answered + '/' + st.total + (st.correct ? ' · 对 ' + st.correct : '') : st.total + ' 题') + (st.done ? ' · 已完成' : '') + '</span></div>' +
+        '<p class="exam-type-desc">' + desc + '</p>';
+      const btn = el('button', 'btn-primary exam-start', st.answered && !st.done ? '继续练习' : '开始练习');
+      btn.type = 'button';
+      btn.dataset.start = type;
+      card.appendChild(btn);
+      pane.appendChild(card);
+    });
+    const wrong = Exams.wrongQuestions(ex);
+    if (wrong.length) {
+      const card = el('div', 'exam-type-card');
+      card.innerHTML = '<div class="exam-type-head"><span class="exam-type-name">错题重练</span><span class="exam-type-stat">' + wrong.length + ' 题</span></div><p class="exam-type-desc">只刷本套答错过的题</p>';
+      const btn = el('button', 'btn-ghost exam-start', '重练错题');
+      btn.type = 'button';
+      btn.dataset.retry = '1';
+      card.appendChild(btn);
+      pane.appendChild(card);
+    }
+    [['listening', '暂无音频与听力原文，数据已入库，开刷待后续'], ['cloze', '选词填空请用「专项」里的真题选词牌组']].forEach(([type, note]) => {
+      if (!(ex.sections || []).some(s => s.type === type)) return;
+      const card = el('div', 'exam-type-card exam-type-disabled');
+      card.innerHTML = '<div class="exam-type-head"><span class="exam-type-name">' + EXAM_TYPE_NAME[type] + '</span><span class="exam-type-stat">暂不开刷</span></div><p class="exam-type-desc">' + note + '</p>';
+      pane.appendChild(card);
+    });
+    const back = el('button', 'link-btn', '‹ 返回真题列表');
+    back.type = 'button';
+    back.dataset.backList = '1';
+    pane.appendChild(back);
+  }
+
+  function startExamType(type) {
+    examType = type;
+    examRetryMode = false;
+    examSessions = Exams.sessions(examCur, type);
+    examSIdx = 0; examQIdx = 0;
+    examRunQuestions = [];
+    examSessions.forEach(s => (s.questions || []).forEach(q => examRunQuestions.push(q)));
+    if (type === 'writing') examRunQuestions.push({ no: EXAM_WRITING_NO, type: 'writing', stem: '', options: {} });
+    if (type === 'translation') examRunQuestions.push({ no: EXAM_TRANSLATION_NO, type: 'translation', stem: '', options: {} });
+    examDraft = '';
+    examRestoreKey = '';
+    renderExamSession();
+    examShowPane('session');
+  }
+  function startExamRetry() {
+    const wrong = Exams.wrongQuestions(examCur);
+    if (!wrong.length) return;
+    examType = 'reading';
+    examRetryMode = true;
+    const byGroup = new Map();
+    wrong.forEach(w => {
+      const key = w.section.type + '|' + (w.group.range || '') + '|' + w.group.passage.slice(0, 40);
+      if (!byGroup.has(key)) byGroup.set(key, { type: w.section.type, passage: w.group.passage || '', prompt: w.group.prompt || '', paragraphs: w.section.type === 'matching' ? Exams.paragraphsOf(w.group) : undefined, questions: [] });
+      byGroup.get(key).questions.push(w.q);
+    });
+    examSessions = [...byGroup.values()].filter(s => s.type === 'reading' || s.type === 'matching');
+    const wt = wrong.filter(w => w.q.type === 'writing' || w.q.type === 'translation');
+    wt.forEach(w => examSessions.push({ type: w.q.type, directions: (w.q.type === 'writing' ? examCur.writing : examCur.translation).directions || '', prompt: (examCur.writing || {}).prompt || '', passage: (examCur.translation || {}).passage || '' }));
+    examSIdx = 0; examQIdx = 0;
+    examRunQuestions = wrong.map(w => w.q);
+    examDraft = '';
+    examRestoreKey = '';
+    renderExamSession();
+    examShowPane('session');
+  }
+
+  function examCurSession() { return examSessions[examSIdx] || null; }
+  function examCurQuestion() {
+    const s = examCurSession();
+    if (!s) return null;
+    if (s.type === 'writing') return { no: EXAM_WRITING_NO, type: 'writing', stem: '', options: {} };
+    if (s.type === 'translation') return { no: EXAM_TRANSLATION_NO, type: 'translation', stem: '', options: {} };
+    return s.questions[examQIdx] || null;
+  }
+  function examRestoreState() {
+    const q = examCurQuestion();
+    const key = examCur ? examCur.examId + ':' + examType + ':' + examSIdx + ':' + examQIdx : '';
+    if (key === examRestoreKey) return;
+    examRestoreKey = key;
+    examPick = null; examMarked = false;
+    if (!q) return;
+    const p = Store.examProgress(examCur.examId);
+    const r = p && p.a[examNoOf(q)];
+    if (r) { examPick = r.p || null; examMarked = r.ok !== -1; }
+    if ((q.type === 'writing' || q.type === 'translation') && !examDraft && r && r.p) examDraft = r.p;
+  }
+
+  function examFeedbackHtml() {
+    const q = examCurQuestion();
+    if (!q) return '';
+    const isWriting = q.type === 'writing' || q.type === 'translation';
+    if (isWriting ? !examDraft.trim() : !examPick) return '';
+    const auto = Exams.judge(examCur, q, examPick);
+    if (auto) return '<div class="exam-feedback ' + (auto.ok ? 'ok' : 'bad') + '">' + (auto.ok ? '回答正确' : '回答错误，正确答案：' + esc(auto.key)) + '（官方答案）</div>';
+    if (!examMarked) return '';
+    const p = Store.examProgress(examCur.examId);
+    const r = p && p.a[examNoOf(q)];
+    const ok = r && r.ok === 1;
+    return '<div class="exam-feedback ' + (ok ? 'ok' : 'bad') + '">已自评：' + (ok ? (isWriting ? '完成' : '答对') : (isWriting ? '待改进' : '答错')) + '</div>';
+  }
+
+  function examActionBarHtml() {
+    const q = examCurQuestion();
+    if (!q || !examPick) return '';
+    if (Exams.judge(examCur, q, examPick)) return '';
+    let h = '<div class="exam-actions">';
+    if (Exams.aiAvailable()) h += '<button class="btn-ghost" type="button" data-ai="1">AI 分析</button>';
+    h += '<button class="btn-ghost exam-mark-ok" type="button" data-mark="1">自评：答对</button>' +
+         '<button class="btn-ghost exam-mark-bad" type="button" data-mark="0">自评：答错</button></div>';
+    return h;
+  }
+
+  function examNavHtml() {
+    const s = examCurSession();
+    const total = s && s.questions ? s.questions.length : 1;
+    const last = examQIdx >= total - 1;
+    const lastSession = examSIdx >= examSessions.length - 1;
+    let h = '<div class="exam-nav">';
+    if (examQIdx > 0) h += '<button class="btn-ghost" type="button" data-prev="1">‹ 上一题</button>';
+    h += '<button class="btn-primary" type="button" data-next="1">' + (last ? (lastSession ? '完成练习' : '下一组 ›') : '下一题 ›') + '</button></div>';
+    return h;
+  }
+
+  function renderExamSession() {
+    const s = examCurSession();
+    const pane = $('exams-session-pane');
+    if (!s) { renderExamResult(); examShowPane('result'); return; }
+    examRestoreState();
+    const q = examCurQuestion();
+    const total = s.questions ? s.questions.length : 1;
+    const idx = s.questions ? examQIdx : 0;
+    let h = '<div class="exam-session-head"><span>' + esc(EXAM_TYPE_NAME[s.type] || '') + (examRetryMode ? ' · 错题重练' : '') + ' · 第' + (examSIdx + 1) + '/' + examSessions.length + '组</span><span>' + (idx + 1) + ' / ' + total + '</span></div>';
+    h += '<div class="exam-progress"><i style="width:' + Math.round(((idx + (examPick ? 1 : 0)) / total) * 100) + '%"></i></div>';
+    if (s.directions) h += '<p class="exam-directions">' + esc(s.directions) + '</p>';
+    if (s.type === 'reading') {
+      if (s.passage) h += '<div class="exam-passage" tabindex="0" aria-label="阅读材料">' + esc(s.passage).replace(/\n/g, '<br>') + '</div>';
+      if (s.prompt) h += '<p class="exam-prompt-hint">' + esc(s.prompt) + '</p>';
+      h += examQuestionCardHtml(q);
+    } else if (s.type === 'matching') {
+      h += '<div class="exam-passage exam-paras" tabindex="0" aria-label="匹配段落">' + s.paragraphs.map(p => '<div class="exam-para"><span class="exam-para-letter">' + esc(p.letter) + '</span><span>' + esc(p.text) + '</span></div>').join('') + '</div>';
+      h += examQuestionCardHtml(q, true);
+    } else {
+      if (s.type === 'writing') h += '<div class="exam-passage">' + esc(s.prompt || s.directions || '（本套写作题干缺失）') + '</div>';
+      if (s.type === 'translation' && s.passage) h += '<div class="exam-passage">' + esc(s.passage).replace(/\n/g, '<br>') + '</div>';
+      h += '<textarea class="exam-textarea" id="exam-writing-input" rows="8" placeholder="' + (s.type === 'writing' ? '在此写下你的作文（150–200 词）…' : '在此写下你的译文…') + '">' + esc(examDraft) + '</textarea>';
+      h += '<div class="exam-count" id="exam-count">' + examDraft.length + ' 字符</div>';
+      h += '<div id="exam-ai-box"></div>';
+      h += examWritingActionsHtml();
+      h += examFeedbackHtml();
+      h += '<div class="exam-nav"><button class="btn-primary" type="button" data-next="1">' + (examSIdx >= examSessions.length - 1 ? '完成练习' : '下一组 ›') + '</button></div>';
+    }
+    pane.innerHTML = h;
+    const ta = $('exam-writing-input');
+    if (ta) ta.addEventListener('input', () => { examDraft = ta.value; $('exam-count').textContent = examDraft.length + ' 字符'; });
+    const cached = q && Store.examAi(s.type === 'writing' || s.type === 'translation' ? Exams.writingCacheKey(examCur.examId, s.type) : Exams.questionCacheKey(examCur.examId, q.no));
+    if (cached && (s.type === 'writing' || s.type === 'translation')) examRenderAiBox(cached.text, true);
+  }
+
+  function examQuestionCardHtml(q, matching) {
+    if (!q) return '';
+    let h = '<div class="exam-qcard"><div class="exam-qno">Q' + q.no + '</div>';
+    if (q.stem) h += '<p class="exam-stem">' + esc(q.stem) + '</p>';
+    else if (!matching) h += '<p class="exam-stem exam-stem-empty">（本题为题干缺失的听力式排版，请根据选项作答）</p>';
+    if (matching) {
+      const letters = (examCurSession().paragraphs || []).map(p => p.letter);
+      h += '<div class="exam-letters">' + letters.map(L => '<button class="exam-letter' + (examPick === L ? ' selected' : '') + '" type="button" data-opt="' + L + '" aria-label="段落 ' + L + '">' + L + '</button>').join('') + '</div>';
+    } else {
+      h += '<div class="exam-opts">' + Object.entries(q.options).map(([L, t]) =>
+        '<button class="exam-opt' + (examPick === L ? ' selected' : '') + '" type="button" data-opt="' + L + '"><span class="exam-opt-letter">' + L + '</span><span>' + esc(t) + '</span></button>'
+      ).join('') + '</div>';
+      if ((q.missingOptions || []).length) h += '<p class="exam-missing-note">源文本缺选项 ' + esc(q.missingOptions.join('、')) + '（OCR 残缺，如实标注）</p>';
+    }
+    h += '<div id="exam-ai-box"></div>';
+    h += examFeedbackHtml() + examActionBarHtml() + examNavHtml() + '</div>';
+    return h;
+  }
+
+  function examWritingActionsHtml() {
+    let h = '<div class="exam-actions">';
+    if (Exams.aiAvailable()) h += '<button class="btn-ghost" type="button" data-ai="1">AI 批改</button>';
+    h += '<button class="btn-ghost exam-mark-ok" type="button" data-mark="1">自评：完成</button>' +
+         '<button class="btn-ghost exam-mark-bad" type="button" data-mark="0">自评：待改进</button></div>';
+    return h;
+  }
+
+  function examRenderAiBox(text, cached) {
+    const box = $('exam-ai-box');
+    if (!box) return;
+    box.innerHTML = '<div class="exam-ai-note">' + (cached ? 'AI 分析（已缓存）' : 'AI 分析') + ' · 仅供参考，非官方答案</div><div class="exam-ai-text">' + esc(text).replace(/\n/g, '<br>') + '</div>';
+  }
+
+  function examRecord(ok, mode) {
+    const q = examCurQuestion();
+    if (!q) return;
+    const pick = (q.type === 'writing' || q.type === 'translation') ? examDraft.slice(0, 200) : examPick;
+    Store.examAnswer(examCur.examId, examNoOf(q), q.type, pick, ok, mode);
+    examMarked = ok !== -1;
+  }
+
+  async function examAiAnalyze(btn) {
+    const s = examCurSession();
+    const q = examCurQuestion();
+    if (!s || !q) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = '分析中…';
+    let res;
+    if (s.type === 'writing' || s.type === 'translation') {
+      if (!examDraft.trim()) { btn.disabled = false; btn.textContent = old; announce('请先写下你的作答'); return; }
+      res = await Exams.analyzeWriting(examCur, s.type, examDraft);
+    } else {
+      if (!examPick) { btn.disabled = false; btn.textContent = old; announce('请先选择一个选项'); return; }
+      res = await Exams.analyzeQuestion(examCur, q, examPick, s.passage || (s.paragraphs || []).map(p => '[' + p.letter + '] ' + p.text).join('\n'));
+    }
+    btn.disabled = false;
+    btn.textContent = old;
+    if (res.ok) { examRenderAiBox(res.text, res.cached); announce('AI 分析已生成，仅供参考'); }
+    else {
+      const box = $('exam-ai-box');
+      if (box) box.innerHTML = '<div class="exam-feedback bad">AI 分析失败：' + esc(res.error || '未知错误') + '</div>';
+    }
+  }
+
+  function examNext() {
+    const s = examCurSession();
+    const q = examCurQuestion();
+    if (q && examPick && !examMarked) examRecord(-1, 'self');
+    if (q && (s.type === 'writing' || s.type === 'translation') && examDraft.trim() && !examMarked) examRecord(-1, 'self');
+    const total = s && s.questions ? s.questions.length : 1;
+    if (examQIdx < total - 1) { examQIdx++; examDraft = ''; renderExamSession(); return; }
+    if (!examRetryMode && s) Store.examFinish(examCur.examId, s.type);
+    if (examSIdx < examSessions.length - 1) {
+      examSIdx++; examQIdx = 0; examDraft = '';
+      announce('进入下一组');
+      renderExamSession();
+      return;
+    }
+    renderExamResult();
+    examShowPane('result');
+    announce('练习完成');
+  }
+
+  function renderExamResult() {
+    const pane = $('exams-result-pane');
+    let answered = 0, correct = 0, wrong = 0;
+    const wrongList = [];
+    const p = Store.examProgress(examCur.examId);
+    examRunQuestions.forEach(q => {
+      const r = p && p.a[examNoOf(q)];
+      if (!r) return;
+      answered++;
+      if (r.ok === 1) correct++;
+      else if (r.ok === 0) { wrong++; wrongList.push(q); }
+    });
+    const unjudged = answered - correct - wrong;
+    let h = '<div class="exam-result-hero"><div class="exam-result-score">' + (answered ? Math.round(correct / answered * 100) : 0) + '%</div><div class="exam-result-sub">正确率（含自评）</div></div>';
+    h += '<div class="exam-result-grid">' +
+      '<div class="exam-result-cell"><b>' + answered + '</b><span>已答</span></div>' +
+      '<div class="exam-result-cell ok"><b>' + correct + '</b><span>答对</span></div>' +
+      '<div class="exam-result-cell bad"><b>' + wrong + '</b><span>答错</span></div>' +
+      '<div class="exam-result-cell"><b>' + unjudged + '</b><span>未判</span></div></div>';
+    if (!Exams.aiAvailable() && !examCur.answers) h += '<p class="field-hint">本套无官方答案，正确率来自你的自评；接入 AI 后可获得逐题分析。</p>';
+    if (wrongList.length) {
+      h += '<h3 class="exam-year">本组错题</h3>';
+      wrongList.slice(0, 20).forEach(q => {
+        h += '<div class="exam-wrong-row"><span class="exam-qno">Q' + examNoOf(q) + '</span><span>' + esc((q.stem || EXAM_TYPE_NAME[q.type] || '').slice(0, 60)) + '</span></div>';
+      });
+    }
+    h += '<div class="exam-nav">';
+    if (wrongList.length) h += '<button class="btn-ghost" type="button" data-retry="1">重练错题</button>';
+    h += '<button class="btn-ghost" type="button" data-detail="1">返回本套</button>' +
+         '<button class="btn-primary" type="button" data-list="1">真题列表</button></div>';
+    pane.innerHTML = h;
+  }
+
+  function examClick(e) {
+    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list]');
+    if (!t) return;
+    if (t.dataset.exam) { openExam(t.dataset.exam); return; }
+    if (t.dataset.start) { startExamType(t.dataset.start); return; }
+    if (t.dataset.retry) { startExamRetry(); return; }
+    if (t.dataset.backList) { examCur = null; examShowPane('list'); renderExamsList(); return; }
+    if (t.dataset.detail) { renderExamDetail(); examShowPane('detail'); return; }
+    if (t.dataset.list) { examCur = null; examShowPane('list'); renderExamsList(); return; }
+    if (t.dataset.opt) {
+      examPick = t.dataset.opt;
+      const q = examCurQuestion();
+      const auto = q && Exams.judge(examCur, q, examPick);
+      if (auto) { examRecord(auto.ok, 'auto'); announce(auto.ok ? '回答正确' : '回答错误，正确答案 ' + auto.key); Platform.haptic('light'); }
+      renderExamSession();
+      return;
+    }
+    if (t.dataset.mark) {
+      const ok = t.dataset.mark === '1' ? 1 : 0;
+      const s = examCurSession();
+      if (s && (s.type === 'writing' || s.type === 'translation') && !examDraft.trim()) { announce('请先写下你的作答再自评'); return; }
+      if (!examPick && s && (s.type === 'reading' || s.type === 'matching')) { announce('请先选择一个选项'); return; }
+      examRecord(ok, 'self');
+      announce(ok ? '已记录：答对' : '已记录：答错，已加入错题');
+      renderExamSession();
+      return;
+    }
+    if (t.dataset.ai) { examAiAnalyze(t); return; }
+    if (t.dataset.next) { examNext(); return; }
+    if (t.dataset.prev) { if (examQIdx > 0) { examQIdx--; examDraft = ''; renderExamSession(); } return; }
+  }
+
   // ===================== init =====================
   window.addEventListener('DOMContentLoaded', async () => {
     await Store.load();
@@ -3331,6 +3730,11 @@
     Library.init(ds || {});
     if (Library.migrateCustomBooks(Store.data.customBooks)) Store.save();
     if (window.Themes && ds && ds.words) Themes.init(ds.words, ds.cloze);
+    if (window.Exams) {
+      Exams.init(ds && ds.examManifest);
+      const n = Exams.list().length;
+      if (n) $('exams-entry-sub').textContent = n + ' 套六级真题 · 阅读 / 匹配 / 写译';
+    }
     if (!Library.hasData()) {
       $('loading').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3)">词库加载失败。<br>请确认 app/data 数据文件存在。</div>';
       return;

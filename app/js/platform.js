@@ -126,7 +126,16 @@
         try { const r = await fetch('data/' + n + '.json'); out[n] = r.ok ? await r.json() : null; }
         catch { out[n] = null; }
       }));
+      try { const r = await fetch('data/exams/manifest.json'); out.examManifest = r.ok ? await r.json() : null; }
+      catch { out.examManifest = null; }
       return out;
+    },
+
+    async loadExamShard(examId) {
+      if (!/^\d{4}-\d{2}[-_]\d{2}$/.test(String(examId || ''))) return null;
+      if (isElectron) return ipc.invoke('get-exam-shard', examId);
+      try { const r = await fetch('data/exams/' + examId + '.json'); return r.ok ? await r.json() : null; }
+      catch { return null; }
     },
 
     async pickLibrary() {
