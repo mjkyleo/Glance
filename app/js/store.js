@@ -12,14 +12,15 @@
     history: [],
     errors: {},
     customBooks: {},
-    cardOrder: ['mnemonic', 'morphemes', 'family', 'synonyms', 'derivatives', 'inflections', 'examples', 'collocations', 'definitions'],
     studyPanel: {
       phonetic: true, meaning: true, morphemes: true, mnemonic: true, definitions: true,
-      examples: true, family: true, synonyms: true, derivatives: true, etymology: true, inflections: true
+      examples: true, family: true, synonyms: true, derivatives: true, etymology: true, inflections: true,
+      collocations: true, freq: true, cloze: true, dict: true, ai: true
     },
     studyPanelOrder: [
       'phonetic', 'morphemes', 'mnemonic', 'meaning', 'definitions',
-      'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples'
+      'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples',
+      'collocations', 'freq', 'cloze', 'dict', 'ai'
     ],
     theme: 'blue',
     progressBars: true,
@@ -29,7 +30,7 @@
     ttsRate: 1,
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
-    ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false },
+    ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false },
     aiCache: {},
     dict: { provider: 'freezh', enabled: ['freezh'], merge: true, custom: [], keys: {} },
     dictCache: {},
@@ -117,14 +118,15 @@
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
     if (!Array.isArray(d.history)) d.history = [];
     if (!d.views || typeof d.views !== 'object') d.views = {};
-    if (!Array.isArray(d.cardOrder) || !d.cardOrder.length) d.cardOrder = DEFAULTS.cardOrder.slice();
-    // 旧版默认顺序（含独立的释义/词源卡）升级为新版合并结构；用户自定义顺序保持不动。
-    const OLD_CARD_ORDER = 'meaning,mnemonic,morphemes,definitions,family,synonyms,derivatives,etymology,inflections';
-    if (d.cardOrder.join(',') === OLD_CARD_ORDER) d.cardOrder = DEFAULTS.cardOrder.slice();
-    if (!d.cardOrder.includes('mnemonic')) d.cardOrder.unshift('mnemonic');
     if (!d.studyPanel || typeof d.studyPanel !== 'object' || Array.isArray(d.studyPanel)) d.studyPanel = {};
     d.studyPanel = Object.assign({}, DEFAULTS.studyPanel, d.studyPanel);
     const panelIds = DEFAULTS.studyPanelOrder;
+    // 旧版弹层卡片顺序已废除：没有新顺序时它整段接管，否则只补缺失的块。
+    if (Array.isArray(d.cardOrder)) {
+      const legacy = d.cardOrder.filter((id, i) => panelIds.includes(id) && d.cardOrder.indexOf(id) === i);
+      d.studyPanelOrder = Array.isArray(raw && raw.studyPanelOrder) ? d.studyPanelOrder : legacy;
+      delete d.cardOrder;
+    }
     if (!Array.isArray(d.studyPanelOrder)) d.studyPanelOrder = [];
     const savedOrder = d.studyPanelOrder.filter((id, i) => panelIds.includes(id) && d.studyPanelOrder.indexOf(id) === i);
     d.studyPanelOrder = savedOrder.concat(panelIds.filter(id => !savedOrder.includes(id)));
@@ -139,8 +141,9 @@
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
-    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false };
-    else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false, autoExplain: false }, d.ai);
+    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'devfree', key: '', model: '', base: '', enabled: false };
+    else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false }, d.ai);
+    delete d.ai.autoExplain;
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     d.dict = normalizeDict(d.dict);
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
@@ -515,7 +518,7 @@
         customBooks: clone(data.customBooks || {}),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
         settings: {
-          plan: clone(data.plan), activeBook: data.activeBook, cardOrder: (data.cardOrder || []).slice(),
+          plan: clone(data.plan), activeBook: data.activeBook,
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
           profile: { nickname: data.profile.nickname, avatar: data.profile.avatar },
@@ -635,15 +638,19 @@
         const s = src.settings;
         if (isObj(s.plan)) data.plan = Object.assign({ newPerDay: 20, reviewCap: 0 }, s.plan);
         if (typeof s.activeBook === 'string' && s.activeBook) data.activeBook = s.activeBook;
-        if (Array.isArray(s.cardOrder) && s.cardOrder.length) data.cardOrder = s.cardOrder.slice();
         if (isObj(s.studyPanel)) data.studyPanel = Object.assign({}, DEFAULTS.studyPanel, s.studyPanel);
         if (Array.isArray(s.studyPanelOrder) && s.studyPanelOrder.length) data.studyPanelOrder = s.studyPanelOrder.slice();
+        else if (Array.isArray(s.cardOrder)) {
+          const legacy = s.cardOrder.filter((id, i) => DEFAULTS.studyPanelOrder.includes(id) && s.cardOrder.indexOf(id) === i);
+          data.studyPanelOrder = legacy.concat(DEFAULTS.studyPanelOrder.filter(id => !legacy.includes(id)));
+        }
         if (['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(s.theme)) data.theme = s.theme;
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;
         if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;
         const keepAi = data.ai.key || '';
         if (isObj(s.ai)) data.ai = Object.assign({}, data.ai, s.ai, { key: keepAi });
+        delete data.ai.autoExplain;
         const keepDictKeys = Object.assign({}, data.dict.keys);
         if (isObj(s.dict)) {
           data.dict = normalizeDict(Object.assign({}, s.dict, { keys: keepDictKeys }));
@@ -686,7 +693,7 @@
     addHistory, clearHistory, addError, clearError, errorWords,
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     exportData, importData,
-    defaultCardOrder: () => DEFAULTS.cardOrder.slice(),
+    defaultPanelOrder: () => DEFAULTS.studyPanelOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
     dictKey, setDictKey, setDictEnabled, moveDictSource, addDictSource, updateDictSource, removeDictSource,

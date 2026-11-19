@@ -77,7 +77,7 @@
 
   function userPrompt(word, entry) {
     const lines = ['请讲解单词：' + word];
-    if (entry && entry.meaning) lines.push('参考释义：' + entry.meaning);
+    if (entry && entry.zh) lines.push('参考释义：' + entry.zh);
     const root = entry && (entry.root || (entry.rootFamily && entry.rootFamily.root));
     if (root) lines.push('词根：' + root);
     return lines.join('\n');

@@ -142,6 +142,10 @@
   let byTheme = {};      // themeId -> [word]
   let wordThemes = {};   // word -> [themeId]
   let ready = false;
+  // Decks derived from the 六级选词填空真题 corpus (app/data/cloze.json). They lead the
+  // 考试专项 group because they are the actual A–O options the exam printed.
+  let clozeThemes = [];
+  function allThemes() { return clozeThemes.concat(THEMES); }
 
   // Gloss words too generic to prove a topic on their own: they show up in unrelated
   // definitions ("it is dark outside" for night, "very light element" for helium).
@@ -188,8 +192,8 @@
     return n;
   }
 
-  function init(words) {
-    byTheme = {}; wordThemes = {};
+  function init(words, cloze) {
+    byTheme = {}; wordThemes = {}; clozeThemes = [];
     const base = THEMES.filter(t => !t.composite);
     base.forEach(compile);
     const entries = Object.keys(words || {});
@@ -227,15 +231,24 @@
     for (const t of base) {
       (byTheme[t.id] || []).sort((a, b) => ((words[a] || {}).fr || 1e9) - ((words[b] || {}).fr || 1e9));
     }
+    // 真题选词填空 decks keep the build's own order (exam repeat count, then corpus
+    // frequency), so re-sorting by the library's generic fr would undo it.
+    for (const d of (cloze && cloze.decks) || []) {
+      const t = { id: 'cloze_' + d.id, name: d.name, group: 'exam', desc: d.desc || '', cloze: d.id };
+      clozeThemes.push(t);
+      const arr = (d.words || []).slice();
+      byTheme[t.id] = arr;
+      arr.forEach(w => { (wordThemes[w] = wordThemes[w] || []).push(t.id); });
+    }
     ready = true;
   }
 
-  function meta(t) { return { id: t.id, name: t.name, group: t.group, desc: t.desc || '', n: (byTheme[t.id] || []).length }; }
-  function list() { return THEMES.map(meta); }
+  function meta(t) { return { id: t.id, name: t.name, group: t.group, desc: t.desc || '', n: (byTheme[t.id] || []).length, cloze: t.cloze || '' }; }
+  function list() { return allThemes().map(meta); }
   function groups() {
-    return GROUPS.map(g => ({ id: g.id, name: g.name, themes: THEMES.filter(t => t.group === g.id).map(meta) }));
+    return GROUPS.map(g => ({ id: g.id, name: g.name, themes: allThemes().filter(t => t.group === g.id).map(meta) }));
   }
-  function get(id) { const t = THEMES.find(x => x.id === id); return t ? meta(t) : null; }
+  function get(id) { const t = allThemes().find(x => x.id === id); return t ? meta(t) : null; }
   function wordsOf(id) { return (byTheme[id] || []).slice(); }
   function themesOf(word) { return (wordThemes[word] || []).slice(); }
   function isReady() { return ready; }

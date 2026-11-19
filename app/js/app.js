@@ -19,7 +19,7 @@
   let sheetFamily = null;
   let sheetTheme = null;
   let lastViewKey = null;
-  let cardsEntry = null;
+  let panelDirty = false;
   let subReturn = 'study';
 
   // quiz state: 'start' | 'session' | 'done'
@@ -47,7 +47,7 @@
     });
     const tabView = (v === 'stats' || v === 'books' || v === 'ai') ? (subReturn || 'study') : v;
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === tabView));
-    if (v === 'study') { updatePlanBar(); updateStudyVisibility(); }
+    if (v === 'study') { updatePlanBar(); updateStudyVisibility(); if (panelDirty && mode === 'study' && currentItem()) renderStudy(); }
     if (v === 'roots') { rootsTab === 'roots' ? renderRoots() : renderAffixes(); }
     if (v === 'themes') renderThemes();
     if (v === 'search') renderSearchDefault();
@@ -269,12 +269,12 @@
   function activeBook() {
     const tag = Store.data.activeBook;
     const custom = Store.data.customBooks[tag];
-    if (custom) return { tag, name: tag, n: custom.entries.length, entries: custom.entries, custom: true };
+    if (custom) return Library.customBook(tag, custom);
     return Library.getBook(tag) || Library.getBook('六级') || { tag: '六级', name: '六级词库', n: 0, entries: [] };
   }
   function resolveBook(tag) {
     const custom = Store.data.customBooks[tag];
-    if (custom) return { tag, name: tag, n: custom.entries.length, entries: custom.entries, custom: true };
+    if (custom) return Library.customBook(tag, custom);
     return Library.getBook(tag) || null;
   }
   function knownCount(entries) { let n = 0; for (const e of entries) if (SRS.isKnown(Store.data.srs[e.word])) n++; return n; }
@@ -369,6 +369,7 @@
   }
 
   function renderStudy() {
+    panelDirty = false;
     updateStudyVisibility();
     const item = currentItem();
     if (!item) { renderEmpty(); return; }
@@ -378,24 +379,13 @@
     const st = Store.data.srs[e.word];
     const sp = Store.data.studyPanel || {};
     $('word').textContent = e.word;
-    $('phonetic').textContent = e.phonetic ? '/' + e.phonetic + '/' + (e.cefr ? '  ·  ' + e.cefr : '') : (e.cefr || '');
-    $('phonetic').hidden = sp.phonetic === false;
     $('speak-button').hidden = sp.phonetic === false;
     const badge = $('word-badge');
     if (item.kind === 'new') { badge.textContent = '新词'; badge.className = 'word-badge new'; }
     else if (SRS.isKnown(st)) { badge.textContent = '已掌握'; badge.className = 'word-badge known'; }
     else { badge.textContent = '复习'; badge.className = 'word-badge review'; }
     $('word-due').textContent = item.kind === 'new' ? '' : SRS.nextDueLabel(st, Date.now());
-    renderMorphemes(e);
-    const mn = $('word-mnemonic');
-    const m = sp.mnemonic === false ? null : mnemonicText(e);
-    if (m) { mn.textContent = m.text; mn.hidden = false; mn.classList.toggle('ai', m.ai); }
-    else { mn.textContent = ''; mn.hidden = true; }
-    const wm = $('word-meaning');
-    wm.textContent = e.meaning || e.zh || '';
-    wm.hidden = sp.meaning === false;
-    renderStudyInfo(e);
-    applyHeadOrder();
+    renderWordBlocks(e, $('word-blocks'));
     updatePlanBar();
     const panel = $('study-panel');
     panel.classList.remove('anim'); void panel.offsetWidth; panel.classList.add('anim');
@@ -404,38 +394,36 @@
     if (Store.data.autoSpeak) speak(e.word, e.audio);
   }
 
-  const PANEL_HEAD_IDS = ['phonetic', 'morphemes', 'mnemonic', 'meaning'];
-  const PANEL_DETAIL_IDS = ['definitions', 'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples'];
-  const PANEL_IDS = PANEL_HEAD_IDS.concat(PANEL_DETAIL_IDS);
+  // 唯一的信息块清单：学习页与词卡弹层共用一套顺序与开关。
+  const BLOCK_IDS = ['phonetic', 'morphemes', 'mnemonic', 'meaning', 'definitions', 'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples', 'collocations', 'freq', 'cloze', 'dict', 'ai'];
 
   function panelOrder() {
     const saved = Array.isArray(Store.data.studyPanelOrder) ? Store.data.studyPanelOrder : [];
-    const out = saved.filter((id, i) => PANEL_IDS.includes(id) && saved.indexOf(id) === i);
-    PANEL_IDS.forEach(id => { if (!out.includes(id)) out.push(id); });
+    const out = saved.filter((id, i) => BLOCK_IDS.includes(id) && saved.indexOf(id) === i);
+    BLOCK_IDS.forEach(id => { if (!out.includes(id)) out.push(id); });
     return out;
   }
-  function applyHeadOrder() {
-    const block = document.querySelector('.word-block');
-    const end = $('word-detail-btn');
-    if (!block || !end) return;
-    const nodes = { phonetic: $('phonetic'), morphemes: $('morphemes'), mnemonic: $('word-mnemonic'), meaning: $('word-meaning') };
-    panelOrder().forEach(id => { if (nodes[id]) block.insertBefore(nodes[id], end); });
+  function mnemonicText(e) {
+    const ai = Store.aiExplanation(e.word);
+    if (ai && ai.data && ai.data.memoryTip) return { text: ai.data.memoryTip, ai: true };
+    return e.mnemonic ? { text: e.mnemonic, ai: false } : null;
   }
 
-  function renderStudyInfo(e) {
-    const wrap = $('study-info');
-    if (!wrap) return;
-    wrap.innerHTML = '';
+  // 唯一的信息块渲染器：学习页内联与词卡弹层都走这里，顺序/开关只有一套。
+  // 资源来源不同（全局词库 / 真题语料 / 外部词典 / AI 缓存），显示与配置统一。
+  function renderWordBlocks(e, host) {
+    if (!host) return;
+    host.innerHTML = '';
     const sp = Store.data.studyPanel || {};
     const on = k => sp[k] !== false;
 
-    function addRow(label, node) {
-      const row = el('section', 'info-row');
-      row.appendChild(el('div', 'info-label', label));
+    function row(label, node) {
+      const r = el('section', 'info-row');
+      r.appendChild(el('div', 'info-label', label));
       const body = el('div', 'info-body');
       body.appendChild(node);
-      row.appendChild(body);
-      wrap.appendChild(row);
+      r.appendChild(body);
+      return r;
     }
     function chipList(items) {
       const box = el('div', 'info-chips');
@@ -450,21 +438,38 @@
     }
 
     const builders = {
+      phonetic() {
+        if (!on('phonetic')) return null;
+        const text = e.phonetic ? '/' + e.phonetic + '/' + (e.cefr ? '  ·  ' + e.cefr : '') : (e.cefr || '');
+        if (!text) return null;
+        return el('div', 'phonetic', text);
+      },
+      morphemes() { return on('morphemes') ? buildMorphemes(e) : null; },
+      mnemonic() {
+        if (!on('mnemonic')) return null;
+        const m = mnemonicText(e);
+        if (!m) return null;
+        return el('div', 'word-mnemonic' + (m.ai ? ' ai' : ''), m.text);
+      },
+      meaning() {
+        if (!on('meaning') || !e.zh) return null;
+        return el('div', 'word-meaning', e.zh);
+      },
       definitions() {
-        if (!on('definitions') || !(e.definitions || []).length) return;
+        if (!on('definitions') || !(e.definitions || []).length) return null;
         const list = el('div', 'info-defs');
         e.definitions.slice(0, 4).forEach(d => {
-          const row = el('div', 'info-def');
-          if (d[0]) row.appendChild(el('span', 'info-def-pos', d[0] + '.'));
-          row.appendChild(el('span', 'info-def-text', d[1] || ''));
-          list.appendChild(row);
+          const r = el('div', 'info-def');
+          if (d[0]) r.appendChild(el('span', 'info-def-pos', d[0] + '.'));
+          r.appendChild(el('span', 'info-def-text', d[1] || ''));
+          list.appendChild(r);
         });
         if (e.definitions.length > 4) list.appendChild(el('div', 'info-more', '还有 ' + (e.definitions.length - 4) + ' 条'));
-        addRow('英文释义', list);
+        return row('英文释义', list);
       },
       family() {
         const famRoot = e.rootFamily && e.rootFamily.root;
-        if (!on('family') || !famRoot) return;
+        if (!on('family') || !famRoot) return null;
         const fam = Library.getFamily(famRoot);
         const box = el('div', 'info-family');
         const rootBtn = el('button', 'info-root');
@@ -476,44 +481,56 @@
         box.appendChild(rootBtn);
         const words = ((fam && fam.family) || []).filter(w => w.word !== e.word);
         if (words.length) {
-          box.appendChild(chipList(words.slice(0, 8).map(w => ({ main: w.word, sub: w.meaning, word: w.word }))));
+          box.appendChild(chipList(words.slice(0, 8).map(w => ({ main: w.word, sub: w.zh, word: w.word }))));
           if (words.length > 8) box.appendChild(el('span', 'info-more', '+' + (words.length - 8) + ' 词'));
         }
-        addRow('词根家族', box);
+        return row('词根家族', box);
       },
       synonyms() {
-        if (!on('synonyms') || !(e.synonyms || []).length) return;
-        addRow('近义词', chipList(e.synonyms.slice(0, 10).map(w => ({ main: w, word: w }))));
+        if (!on('synonyms') || !(e.synonyms || []).length) return null;
+        return row('近义词', chipList(e.synonyms.slice(0, 10).map(w => ({ main: w, word: w }))));
       },
       derivatives() {
-        if (!on('derivatives') || !(e.derivatives || []).length) return;
-        addRow('派生词', chipList(e.derivatives.slice(0, 8).map(d => ({
+        if (!on('derivatives') || !(e.derivatives || []).length) return null;
+        return row('派生词', chipList(e.derivatives.slice(0, 8).map(d => ({
           main: d[0],
           sub: d[1] ? ({ pre: '前缀 ', suf: '后缀 ' }[d[2]] || '') + d[1] : '',
           word: d[0]
         }))));
       },
       inflections() {
-        if (!on('inflections') || !(e.inflections || []).length) return;
-        addRow('词形变化', chipList(e.inflections.map(w => ({ main: w }))));
+        if (!on('inflections') || !(e.inflections || []).length) return null;
+        return row('词形变化', chipList(e.inflections.map(w => ({ main: w }))));
       },
       etymology() {
-        if (!on('etymology') || !e.etymology) return;
-        addRow('词源', el('p', 'info-etymology', e.etymology));
+        if (!on('etymology') || !e.etymology) return null;
+        return row('词源', el('p', 'info-etymology', e.etymology));
       },
       examples() {
-        if (!on('examples') || !(e.examples || []).length) return;
+        if (!on('examples') || !(e.examples || []).length) return null;
         const list = el('div', 'info-examples');
         e.examples.slice(0, 3).forEach(ex => {
           const line = typeof ex === 'string' ? ex : (ex && (ex.en || ex.example)) || '';
           if (line) list.appendChild(el('p', 'info-example', line));
         });
-        if (list.childNodes.length) addRow('例句', list);
-      }
+        return list.childNodes.length ? row('例句', list) : null;
+      },
+      collocations() {
+        if (!on('collocations') || !(e.collocations || []).length) return null;
+        return row('搭配', chipList(e.collocations.slice(0, 10).map(c => ({ main: c }))));
+      },
+      freq() { return on('freq') ? freqSection(e) : null; },
+      cloze() { return on('cloze') ? clozeSection(e.word) : null; },
+      dict() { return on('dict') ? dictSection(e) : null; },
+      ai() { return on('ai') ? aiSection(e) : null; }
     };
 
-    panelOrder().forEach(id => { if (builders[id]) builders[id](); });
-    wrap.hidden = !wrap.childNodes.length;
+    panelOrder().forEach(id => {
+      const node = builders[id] && builders[id]();
+      if (node) host.appendChild(node);
+    });
+    host.querySelectorAll('.morphemes').forEach(fitMorphemes);
+    host.hidden = !host.childNodes.length;
   }
 
   function renderEmpty() {
@@ -556,13 +573,10 @@
   }
 
   // ===================== morphemes =====================
-  function renderMorphemes(e) {
-    const morphEl = $('morphemes');
-    morphEl.innerHTML = '';
-    const hidden = (Store.data.studyPanel || {}).morphemes === false;
-    const chips = hidden ? [] : (e.morphemes || []);
-    if (!chips.length) { morphEl.style.display = 'none'; return; }
-    morphEl.style.display = '';
+  function buildMorphemes(e) {
+    const morphEl = el('div', 'morphemes');
+    const chips = e.morphemes || [];
+    if (!chips.length) return null;
     chips.forEach((c, i) => {
       if (i > 0) morphEl.appendChild(el('span', 'morph-plus', '+'));
       const chip = el('button', 'morph morph-' + c.type);
@@ -576,125 +590,18 @@
       });
       morphEl.appendChild(chip);
     });
-    fitMorphemes();
+    return morphEl;
   }
 
   // Shrink the decomposition font until every segment fits on a single line.
-  function fitMorphemes() {
-    const m = $('morphemes');
-    if (!m || m.style.display === 'none' || !m.children.length) return;
+  function fitMorphemes(m) {
+    if (!m || !m.children.length) return;
     let size = 16;
     m.style.fontSize = size + 'px';
     while (m.scrollWidth > m.clientWidth + 1 && size > 10) {
       size -= 0.5;
       m.style.fontSize = size + 'px';
     }
-  }
-
-  // ===================== cards =====================
-  function orderedCards(e) {
-    const avail = Library.buildCards(e);
-    const map = new Map(avail.map(c => [c.id, c]));
-    const out = [];
-    for (const id of Store.data.cardOrder) if (map.has(id)) { out.push(map.get(id)); map.delete(id); }
-    for (const c of map.values()) out.push(c);
-    return out;
-  }
-  function cardBody(card, container, interactive) {
-    if (card.kind === 'list') {
-      const ul = el('ul');
-      card.items.forEach(it => ul.appendChild(el('li', null, it)));
-      container.appendChild(ul);
-    } else if (card.kind === 'senses') {
-      const groups = [], byKey = new Map();
-      card.senses.forEach(s => {
-        const info = s.pos ? Library.posInfo(s.pos) : null;
-        const key = info ? info.zh : (s.domain ? 'domain:' + s.domain : 'other');
-        if (!byKey.has(key)) { const g = { info, abbr: s.pos, domain: s.domain, glosses: [] }; byKey.set(key, g); groups.push(g); }
-        byKey.get(key).glosses.push(s.gloss);
-      });
-      groups.forEach(g => {
-        const row = el('div', 'pos-group');
-        const tag = el('div', 'pos-tag');
-        if (g.info) {
-          tag.appendChild(el('span', 'pos-zh', g.info.zh));
-          if (g.abbr) tag.appendChild(el('span', 'pos-abbr', g.abbr + '.'));
-          if (g.info.note) tag.appendChild(el('span', 'pos-note', g.info.note));
-        } else if (g.domain) {
-          tag.appendChild(el('span', 'pos-zh domain', '[' + g.domain + ']'));
-          tag.appendChild(el('span', 'pos-note', '领域义项'));
-        }
-        row.appendChild(tag);
-        row.appendChild(el('div', 'pos-gloss', g.glosses.join('；')));
-        container.appendChild(row);
-      });
-    } else if (card.kind === 'mnemonic') {
-      const box = el('div', 'mnemonic-body' + (card.ai ? ' ai' : ''));
-      box.appendChild(el('span', 'mnemonic-hook', card.text));
-      if (card.ai) box.appendChild(el('span', 'mnemonic-src', 'AI 巧记'));
-      container.appendChild(box);
-    } else if (card.id === 'family' && card.root) {
-      const a = el(interactive ? 'a' : 'div', 'card-link', card.text + (interactive ? '  →' : ''));
-      if (interactive) a.addEventListener('click', () => openFamily(card.root));
-      container.appendChild(a);
-      if (card.etymology) container.appendChild(el('p', 'card-etymology', card.etymology));
-    } else {
-      container.textContent = card.text;
-    }
-  }
-  function mnemonicText(e) {
-    const ai = Store.aiExplanation(e.word);
-    if (ai && ai.data && ai.data.memoryTip) return { text: ai.data.memoryTip, ai: true };
-    return e.mnemonic ? { text: e.mnemonic, ai: false } : null;
-  }
-  function renderCards(e) {
-    const cardsEl = $('cards');
-    if (!cardsEl) return;
-    cardsEl.innerHTML = '';
-    orderedCards(e).forEach(card => {
-      if (card.id === 'mnemonic') { const m = mnemonicText(e); if (m) card = Object.assign({}, card, { text: m.text, ai: m.ai }); }
-      const sec = el('section', 'card');
-      sec.dataset.card = card.id;
-      sec.draggable = true;
-      const head = el('div', 'card-head');
-      head.appendChild(el('span', 'grip', '⠿'));
-      head.appendChild(el('span', 'card-title', card.title));
-      const ops = el('span', 'card-ops');
-      const up = el('button', 'op', '↑'); up.title = '上移';
-      const down = el('button', 'op', '↓'); down.title = '下移';
-      up.addEventListener('click', () => moveCard(card.id, -1));
-      down.addEventListener('click', () => moveCard(card.id, 1));
-      ops.append(up, down); head.appendChild(ops);
-      const body = el('div', 'card-body');
-      cardBody(card, body, true);
-      sec.append(head, body);
-      wireDrag(sec);
-      cardsEl.appendChild(sec);
-    });
-  }
-  function moveCard(id, dir) {
-    const e = cardsEntry; if (!e) return;
-    const ids = orderedCards(e).map(c => c.id);
-    const i = ids.indexOf(id), j = i + dir;
-    if (j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    Store.data.cardOrder = ids; Store.save(); renderCards(e);
-  }
-  let dragId = null;
-  function wireDrag(sec) {
-    sec.addEventListener('dragstart', ev => { dragId = sec.dataset.card; sec.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; });
-    sec.addEventListener('dragend', () => { dragId = null; sec.classList.remove('dragging'); });
-    sec.addEventListener('dragover', ev => ev.preventDefault());
-    sec.addEventListener('drop', ev => {
-      ev.preventDefault();
-      const target = sec.dataset.card;
-      if (!dragId || dragId === target) return;
-      const e = cardsEntry; if (!e) return;
-      const ids = orderedCards(e).map(c => c.id);
-      const from = ids.indexOf(dragId), to = ids.indexOf(target);
-      ids.splice(from, 1); ids.splice(to, 0, dragId);
-      Store.data.cardOrder = ids; Store.save(); renderCards(e);
-    });
   }
 
   // ===================== quiz =====================
@@ -1075,7 +982,7 @@
     if (q.root && q.root.toLowerCase() !== e.word.toLowerCase()) head.appendChild(el('span', 'quiz-reveal-root', '词根 ' + q.root));
     head.appendChild(el('span', 'quiz-reveal-open', '学习卡 ›'));
     card.appendChild(head);
-    const senses = e.senses && e.senses.length ? e.senses : [{ pos: '', domain: '', gloss: e.meaning || e.zh || '' }];
+    const senses = e.senses && e.senses.length ? e.senses : [{ pos: '', domain: '', gloss: e.zh || '' }];
     const list = el('div', 'quiz-reveal-senses');
     senses.forEach(s => {
       const row = el('div', 'quiz-sense');
@@ -1312,7 +1219,7 @@
       row.appendChild(stateDot(w.word));
       const main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', w.word));
-      main.appendChild(el('div', 'row-sub', w.meaning || ''));
+      main.appendChild(el('div', 'row-sub', w.zh || ''));
       row.appendChild(main);
       const st = stateOf(w.word);
       row.appendChild(el('span', 'row-badge ' + (st === 'known' ? 'green' : st === 'new' ? 'gray' : ''), { new: '未学', learning: '学习中', known: '已掌握', relearn: '重学' }[st]));
@@ -1332,14 +1239,23 @@
     Themes.groups().forEach(g => {
       const section = el('section', 'theme-group');
       section.appendChild(el('div', 'section-label', g.name));
+      if (g.id === 'exam') { const hero = clozeHero(); if (hero) section.appendChild(hero); }
       const grid = el('div', 'theme-grid');
       g.themes.forEach(t => {
-        const card = el('button', 'theme-card'); card.type = 'button';
+        const card = el('button', 'theme-card' + (t.cloze ? ' cloze' : '')); card.type = 'button';
+        if (POS_ORDER.includes(t.cloze)) card.dataset.pos = t.cloze;
         const top = el('div', 'theme-card-top');
         top.appendChild(el('span', 'theme-card-name', t.name));
         top.appendChild(el('span', 'theme-card-count', t.n + ' 词'));
         card.appendChild(top);
         if (t.desc) card.appendChild(el('div', 'theme-card-desc', t.desc));
+        if (t.cloze) {
+          const foot = el('div', 'theme-card-foot');
+          foot.appendChild(el('span', 'cloze-pill', POS_ORDER.includes(t.cloze) ? Library.clozePosName(t.cloze) : '真题'));
+          const hits = Themes.wordsOf(t.id).reduce((s, w) => { const c = Library.clozeOf(w); return s + (c ? c.n : 0); }, 0);
+          foot.appendChild(el('span', 'theme-card-hits', hits + ' 次出现'));
+          card.appendChild(foot);
+        }
         card.addEventListener('click', () => openThemeSheet(t.id));
         grid.appendChild(card);
       });
@@ -1347,37 +1263,308 @@
       host.appendChild(section);
     });
   }
+  function clozeHero() {
+    const m = Library.clozeMeta();
+    if (!m) return null;
+    const hero = el('div', 'cloze-hero');
+    const main = el('div', 'cloze-hero-main');
+    main.appendChild(el('div', 'cloze-hero-kicker', 'CET-6 · ' + m.section + ' · ' + m.range));
+    main.appendChild(el('div', 'cloze-hero-title', '选词填空真题选项库'));
+    main.appendChild(el('div', 'cloze-hero-meta', m.setCount + ' 套真题 · ' + m.slotCount + ' 个选项位 · ' + m.wordCount + ' 个去重选项词'));
+    hero.appendChild(main);
+    const btn = el('button', 'cloze-hero-btn', '浏览真题卷'); btn.type = 'button';
+    btn.addEventListener('click', () => openClozeSheet());
+    hero.appendChild(btn);
+    return hero;
+  }
+
+  // Deck word list state: the POS filter and the sort are live controls over the
+  // same deck, and 专项学习 studies exactly what is on screen.
+  let themePos = '';
+  let themeSort = 'exam';
+  let themeShown = [];
+  const POS_ORDER = ['n', 'v', 'adj', 'adv'];
+  function themeDeckWords(id) {
+    const meta = Themes.get(id);
+    let words = Themes.wordsOf(id);
+    if (!meta || !meta.cloze) return words;
+    if (themePos) words = words.filter(w => { const c = Library.clozeOf(w); return c && (c.posAll || []).includes(themePos); });
+    if (themeSort === 'freq') {
+      words = words.slice().sort((a, b) => { const x = Library.clozeOf(a), y = Library.clozeOf(b); return (y ? y.ff : 0) - (x ? x.ff : 0) || a.localeCompare(b); });
+    } else if (themeSort === 'alpha') words = words.slice().sort((a, b) => a.localeCompare(b));
+    return words;
+  }
+  function posChips(words) {
+    const counts = {};
+    words.forEach(w => { const c = Library.clozeOf(w); if (c) (c.posAll || []).forEach(p => { counts[p] = (counts[p] || 0) + 1; }); });
+    const kinds = POS_ORDER.filter(p => counts[p]);
+    if (kinds.length < 2) return null;
+    const row = el('div', 'chip-row');
+    const add = (id, label) => {
+      const c = el('button', 'chip' + (themePos === id ? ' active' : ''), label); c.type = 'button';
+      c.addEventListener('click', () => { themePos = id; renderThemeSheet(); });
+      row.appendChild(c);
+    };
+    add('', '全部 ' + words.length);
+    kinds.forEach(p => add(p, Library.clozePosName(p) + ' ' + counts[p]));
+    return row;
+  }
+  function sortChips() {
+    const row = el('div', 'chip-row');
+    [['exam', '真题次数'], ['freq', '语料词频'], ['alpha', '字母']].forEach(([id, label]) => {
+      const c = el('button', 'chip' + (themeSort === id ? ' active' : ''), label); c.type = 'button';
+      c.addEventListener('click', () => { themeSort = id; renderThemeSheet(); });
+      row.appendChild(c);
+    });
+    return row;
+  }
   function openThemeSheet(id) {
     const meta = window.Themes && Themes.get(id);
     if (!meta) return;
     sheetTheme = id;
-    const words = Themes.wordsOf(id);
+    themePos = '';
+    themeSort = 'exam';
+    renderThemeSheet();
+  }
+  function renderThemeSheet() {
+    const meta = Themes.get(sheetTheme);
+    if (!meta) return;
+    const all = Themes.wordsOf(sheetTheme);
+    const words = themeDeckWords(sheetTheme);
+    themeShown = words;
     const known = words.filter(w => SRS.isKnown(Store.data.srs[w])).length;
     $('theme-title').textContent = meta.name;
     $('theme-meta').textContent = meta.desc + ' · ' + words.length + ' 词 · 已掌握 ' + known;
     const body = $('theme-words');
     body.innerHTML = '';
     $('theme-study-btn').disabled = !words.length;
+    if (meta.cloze) {
+      const chips = posChips(all);
+      if (chips) body.appendChild(chips);
+      body.appendChild(sortChips());
+    }
     if (!words.length) {
-      body.appendChild(el('div', 'empty-hint', '该专题暂无词条'));
+      body.appendChild(el('div', 'empty-hint', all.length ? '当前筛选下没有词条' : '该专题暂无词条'));
       openSheet('theme-sheet');
       return;
     }
     const wrap = el('div', 'list-gap');
     words.forEach(w => {
       const e = Library.lookup(w);
+      const c = meta.cloze ? Library.clozeOf(w) : null;
       const row = el('button', 'row'); row.type = 'button';
       row.appendChild(stateDot(w));
       const main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', w));
-      main.appendChild(el('div', 'row-sub', (e && (e.meaning || e.zh)) || ''));
+      main.appendChild(el('div', 'row-sub', (e && e.zh) || ''));
       row.appendChild(main);
+      if (c) {
+        const tail = el('div', 'row-tail');
+        const pos = el('div', 'pos-chips');
+        (c.posAll || []).forEach(p => pos.appendChild(el('span', 'pos-chip ' + p, Library.clozePosName(p))));
+        tail.appendChild(pos);
+        tail.appendChild(el('span', 'hit-chip' + (c.n >= 2 ? ' hot' : ''), '×' + c.n + ' 套'));
+        row.appendChild(tail);
+      }
       row.appendChild(el('span', 'row-badge ' + (stateOf(w) === 'known' ? 'green' : 'gray'), themeStateLabel(stateOf(w))));
       row.addEventListener('click', () => openWordSheet(w));
       wrap.appendChild(row);
     });
     body.appendChild(wrap);
     openSheet('theme-sheet');
+  }
+
+  // ===================== 选词填空真题卷 =====================
+  let clozeFilter = 'all';
+  let clozeSetId = '';
+  function setLabel(s) { return s.year + '·' + s.month + ' 第' + Number(s.paper) + '套'; }
+  function openClozeSheet(setId) {
+    clozeSetId = setId || '';
+    renderClozeSheet();
+  }
+  function renderClozeSheet() {
+    const m = Library.clozeMeta();
+    if (!m) return;
+    const body = $('cloze-body');
+    body.innerHTML = '';
+    const foot = $('cloze-foot');
+    if (clozeSetId) { renderClozeSet(body, foot, m); openSheet('cloze-sheet'); return; }
+    foot.hidden = true;
+    $('cloze-title').textContent = '六级选词填空真题';
+    $('cloze-meta').textContent = m.shape + ' · ' + m.range + ' · ' + m.setCount + ' 套 · ' + m.wordCount + ' 词';
+    const stats = el('div', 'stat-row');
+    [[m.setCount, '真题卷'], [m.slotCount, '选项位'], [m.wordCount, '选项词'], [m.recentSetCount, '近五年卷']].forEach(([v, k]) => {
+      const t = el('div', 'stat-tile');
+      t.appendChild(el('div', 'stat-num', String(v)));
+      t.appendChild(el('div', 'stat-key', k));
+      stats.appendChild(t);
+    });
+    body.appendChild(stats);
+    const chips = el('div', 'chip-row');
+    const sets = Library.clozeSets();
+    [['all', '全部 ' + sets.length], ['recent', '近五年 ' + sets.filter(s => s.recent).length], ['older', '2016–2020 ' + sets.filter(s => !s.recent).length]].forEach(([id, label]) => {
+      const c = el('button', 'chip' + (clozeFilter === id ? ' active' : ''), label); c.type = 'button';
+      c.addEventListener('click', () => { clozeFilter = id; renderClozeSheet(); });
+      chips.appendChild(c);
+    });
+    body.appendChild(chips);
+    const shown = sets.filter(s => clozeFilter === 'all' || (clozeFilter === 'recent' ? s.recent : !s.recent));
+    const head = el('div', 'block-head');
+    head.appendChild(el('span', null, '真题卷'));
+    head.appendChild(el('span', 'count-pill', shown.length + ' 套'));
+    body.appendChild(head);
+    const wrap = el('div', 'list-gap');
+    shown.forEach(s => {
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(el('span', 'set-tile' + (s.recent ? ' recent' : ''), s.year + '.' + s.month));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', '第' + Number(s.paper) + '套 · 15 选 10'));
+      main.appendChild(el('div', 'row-sub', s.lead || s.file));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge gray', '选项 →'));
+      row.addEventListener('click', () => openClozeSheet(s.id));
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+    if (m.missing.length) {
+      const mh = el('div', 'block-head');
+      mh.appendChild(el('span', null, '仅有记录·仓库缺原文'));
+      mh.appendChild(el('span', 'count-pill', m.missing.length + ' 套'));
+      body.appendChild(mh);
+      const mw = el('div', 'list-gap');
+      m.missing.forEach(x => {
+        const row = el('div', 'row static');
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', x.exam));
+        main.appendChild(el('div', 'row-sub', x.file || '无来源文件'));
+        row.appendChild(main);
+        row.appendChild(el('span', 'row-badge gray', '缺失'));
+        mw.appendChild(row);
+      });
+      body.appendChild(mw);
+    }
+    if (m.notes.length) {
+      const nh = el('div', 'block-head');
+      nh.appendChild(el('span', null, '数据清洗记录'));
+      nh.appendChild(el('span', 'count-pill', m.notes.length + ' 条'));
+      body.appendChild(nh);
+      const nw = el('div', 'cloze-notes');
+      m.notes.forEach(t => nw.appendChild(el('div', 'cloze-note', t)));
+      body.appendChild(nw);
+    }
+    body.appendChild(el('div', 'field-hint', '数据来源：' + m.sourceFile + ' · 构建于 ' + m.built));
+    openSheet('cloze-sheet');
+  }
+  function renderClozeSet(body, foot, m) {
+    const s = Library.clozeSet(clozeSetId);
+    if (!s) { clozeSetId = ''; renderClozeSheet(); return; }
+    $('cloze-title').textContent = s.exam;
+    $('cloze-meta').textContent = m.shape + ' · 题号 ' + m.range + ' · 15 个选项';
+    const back = el('button', 'btn-ghost cloze-back', '← 全部真题卷'); back.type = 'button';
+    back.addEventListener('click', () => openClozeSheet());
+    body.appendChild(back);
+    if (s.lead) {
+      const lead = el('div', 'cloze-lead');
+      lead.appendChild(el('div', 'cloze-lead-key', '篇目开头 · 原文摘录'));
+      lead.appendChild(el('div', 'cloze-lead-text', /[.!?…]$/.test(s.lead) ? s.lead : s.lead + ' …'));
+      body.appendChild(lead);
+    }
+    const counts = {};
+    s.options.forEach(([, w]) => { const c = Library.clozeOf(w); if (c) (c.posAll || []).forEach(p => { counts[p] = (counts[p] || 0) + 1; }); });
+    const legend = el('div', 'pos-chips legend');
+    legend.appendChild(el('span', 'legend-key', '可填词性 · 一词可多类'));
+    POS_ORDER.filter(p => counts[p]).forEach(p => legend.appendChild(el('span', 'pos-chip ' + p, Library.clozePosName(p) + ' ' + counts[p])));
+    body.appendChild(legend);
+    const wrap = el('div', 'list-gap');
+    s.options.forEach(([letter, word]) => {
+      const c = Library.clozeOf(word);
+      const e = Library.lookup(word);
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(el('span', 'letter-tile', letter));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', word));
+      main.appendChild(el('div', 'row-sub', (e && e.zh) || ''));
+      row.appendChild(main);
+      const tail = el('div', 'row-tail');
+      const pos = el('div', 'pos-chips');
+      if (c) (c.posAll || []).forEach(p => pos.appendChild(el('span', 'pos-chip ' + p, Library.clozePosName(p))));
+      tail.appendChild(pos);
+      if (c && c.n >= 2) tail.appendChild(el('span', 'hit-chip hot', '×' + c.n + ' 套'));
+      row.appendChild(tail);
+      row.addEventListener('click', () => openWordSheet(word));
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+    body.appendChild(el('div', 'field-hint', '来源文件：' + (s.file || '—') + ' · 词性按选项自身形态判定，一个词可属于多个词性组'));
+    foot.hidden = false;
+    $('cloze-study-btn').textContent = '学习本卷 15 个选项';
+  }
+
+  // ===================== 真题词频 / 真题出处 =====================
+  function freqSection(e) {
+    const f = e && e.examFreq;
+    const m = Library.freqMeta();
+    if (!f || !m) return null;
+    const box = el('section', 'data-block');
+    const head = el('div', 'data-block-head');
+    head.appendChild(el('span', 'data-block-title', '六级真题词频'));
+    head.appendChild(el('span', 'data-block-meta', '语料第 ' + f.rank + ' / ' + m.headwords));
+    box.appendChild(head);
+    const stats = el('div', 'stat-row');
+    [[f.rank, '词频排名', 'rank'], [f.freq, '语料出现次数', ''], [f.forms, '归并词形数', '']].forEach(([v, k, cls]) => {
+      const t = el('div', 'stat-tile' + (cls ? ' ' + cls : ''));
+      t.appendChild(el('div', 'stat-num', cls === 'rank' ? '#' + v : String(v)));
+      t.appendChild(el('div', 'stat-key', k));
+      stats.appendChild(t);
+    });
+    box.appendChild(stats);
+    const pct = Math.max(1, Math.round(100 * (1 - (f.rank - 1) / m.headwords)));
+    const meter = el('div', 'freq-meter');
+    const mh = el('div', 'freq-meter-head');
+    mh.appendChild(el('span', 'stat-key', '词频分位'));
+    mh.appendChild(el('span', 'freq-meter-val', f.rank === 1 ? '语料最高频' : '高于 ' + pct + '% 的词'));
+    meter.appendChild(mh);
+    const bar = el('div', 'freq-bar');
+    const fill = el('div', 'freq-bar-fill');
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    meter.appendChild(bar);
+    box.appendChild(meter);
+    box.appendChild(el('div', 'field-hint', f.forms === 1
+      ? '全部 ' + f.freq + ' 次来自本词形自身（语料第 ' + f.exactRank + '）'
+      : (f.exactFreq
+        ? '本词形自身 ' + f.exactFreq + ' 次（语料第 ' + f.exactRank + '），其余来自 ' + (f.forms - 1) + ' 个屈折/派生词形归并'
+        : '该词头本身未单独出现，' + f.freq + ' 次全部来自 ' + f.forms + ' 个屈折/派生词形归并')));
+    return box;
+  }
+  function clozeSection(word) {
+    const c = Library.clozeOf(word);
+    if (!c) return null;
+    const box = el('section', 'data-block');
+    const head = el('div', 'data-block-head');
+    head.appendChild(el('span', 'data-block-title', '选词填空真题'));
+    head.appendChild(el('span', 'data-block-meta', '出现 ' + c.n + ' 套真题'));
+    box.appendChild(head);
+    const pos = el('div', 'pos-chips');
+    (c.posAll || []).forEach(p => pos.appendChild(el('span', 'pos-chip ' + p, Library.clozePosName(p))));
+    if (c.n >= 2) pos.appendChild(el('span', 'hit-chip hot', '重复考过'));
+    box.appendChild(pos);
+    const gloss = el('div', 'cloze-lead');
+    const globalZh = ((Library.lookup(c.lemma) || {}).zh) || '';
+    gloss.appendChild(el('div', 'cloze-lead-key', '全局释义'));
+    gloss.appendChild(el('div', 'cloze-lead-text', globalZh));
+    box.appendChild(gloss);
+    const chips = el('div', 'chip-row wrap');
+    c.letters.forEach((ref, i) => {
+      const [sid, letter] = ref.split(':');
+      const s = Library.clozeSet(sid);
+      const chip = el('button', 'chip', (s ? setLabel(s) : sid) + ' · ' + letter); chip.type = 'button';
+      chip.addEventListener('click', () => openClozeSheet(sid));
+      chips.appendChild(chip);
+    });
+    box.appendChild(chips);
+    if (c.lemma && c.lemma !== c.word.toLowerCase()) box.appendChild(el('div', 'field-hint', '词库词头：' + c.lemma + ' · 归并方式 ' + c.how));
+    return box;
   }
 
   function openAffixByChip(text, type) {
@@ -1414,7 +1601,11 @@
       $('word-sheet-sub').textContent = '';
       const body = $('word-sheet-body');
       body.innerHTML = '<div class="empty-hint">词库中暂无该词，可尝试外部词典查询。</div>';
-      if (window.Dictionary) body.appendChild(dictSection({ word }, { auto: true }));
+      if (window.Dictionary) {
+        const blocks = el('div', 'study-info word-blocks');
+        blocks.appendChild(dictSection({ word }));
+        body.appendChild(blocks);
+      }
       $('word-study-btn').disabled = true;
       openSheet('word-sheet');
       return;
@@ -1431,12 +1622,9 @@
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
-    if (window.Dictionary) body.appendChild(dictSection(e, { auto: true }));
-    body.appendChild(aiSection(e, { auto: true }));
-    const cardsWrap = el('section', 'cards'); cardsWrap.id = 'cards';
-    body.appendChild(cardsWrap);
-    cardsEntry = e;
-    renderCards(e);
+    const blocks = el('div', 'study-info word-blocks');
+    renderWordBlocks(e, blocks);
+    body.appendChild(blocks);
     updateFavToggle();
     openSheet('word-sheet');
   }
@@ -1487,8 +1675,7 @@
     actions.appendChild(go);
   }
 
-  function dictSection(e, opts) {
-    const auto = !opts || opts.auto !== false;
+  function dictSection(e) {
     const sec = el('section', 'ai-section dict-section');
     const head = el('div', 'ai-section-head');
     const titleWrap = el('div', 'ai-section-titlewrap');
@@ -1512,7 +1699,7 @@
     sec.appendChild(actions);
 
     let loading = false;
-    let viewRecord = null, viewCached = false, viewErrors = [], viewSource = '';
+    let viewRecord = null, viewCached = false, viewErrors = [], viewSource = '', viewStale = false;
     function providerName(id) { return Dictionary.getProvider(id, Store.data.dict).name; }
     function providerMark(id) { return dictMark(Dictionary.getProvider(id, Store.data.dict)); }
     function enabledSummary() {
@@ -1584,33 +1771,43 @@
       }
     }
 
-    function render(record, cached, errors) {
+    function render(record, cached, errors, stale) {
       viewRecord = record || null;
       viewCached = !!cached;
       viewErrors = errors || [];
+      viewStale = !!stale;
       const sources = (record && record.sources) || [];
       if (viewSource && !sources.some(s => s.provider === viewSource)) viewSource = '';
       content.innerHTML = ''; actions.innerHTML = '';
       syncTools(!!record);
       if (!record) {
         meta.textContent = enabledSummary();
-        content.appendChild(el('p', 'ai-placeholder', '暂无本地缓存，点击右上角刷新图标查询词典。'));
+        content.appendChild(el('p', 'ai-placeholder', '暂无本地缓存；点「查询词典」联网查询并缓存到本机，之后离线可看。'));
+        const query = el('button', 'btn-primary', '查询词典');
+        query.addEventListener('click', () => run(false));
+        actions.appendChild(query);
         return;
       }
       const multi = sources.length > 1;
       meta.textContent = (viewSource ? providerName(viewSource) + ' · 单源' : (multi ? sources.length + ' 个词典合并' : providerName(record.provider))) +
         (cached ? ' · 本地缓存' : '') +
+        (viewStale ? '（按旧词典配置生成）' : '') +
         (record.fallbackFrom ? ' · 已从' + providerName(record.fallbackFrom) + '回退' : '');
+      if (viewStale) {
+        const requpdate = el('button', 'btn-ghost', '按当前配置重查');
+        requpdate.addEventListener('click', () => run(true));
+        actions.appendChild(requpdate);
+      }
       if (multi) {
         const chips = el('div', 'dict-source-chips');
         const all = el('button', 'dict-source-chip' + (viewSource ? '' : ' active'), '全部');
         all.type = 'button';
-        all.addEventListener('click', () => { viewSource = ''; render(viewRecord, viewCached, viewErrors); });
+        all.addEventListener('click', () => { viewSource = ''; render(viewRecord, viewCached, viewErrors, viewStale); });
         chips.appendChild(all);
         sources.forEach(s => {
           const chip = el('button', 'dict-source-chip' + (viewSource === s.provider ? ' active' : ''), providerName(s.provider));
           chip.type = 'button';
-          chip.addEventListener('click', () => { viewSource = s.provider; render(viewRecord, viewCached, viewErrors); });
+          chip.addEventListener('click', () => { viewSource = s.provider; render(viewRecord, viewCached, viewErrors, viewStale); });
           chips.appendChild(chip);
         });
         content.appendChild(chips);
@@ -1655,13 +1852,11 @@
     const cachedRecord = Store.dictEntry(e.word);
     const fresh = cachedRecord && (cachedRecord.sig || '') === Dictionary.signature(Store.data.dict);
     if (fresh) render(cachedRecord, true);
-    else if (auto) run(false);
-    else render(cachedRecord || null, !!cachedRecord);
+    else render(cachedRecord || null, !!cachedRecord, [], !!cachedRecord);
     return sec;
   }
 
-  function aiSection(e, opts) {
-    const auto = !opts || opts.auto !== false;
+  function aiSection(e) {
     const sec = el('section', 'ai-section');
     const head = el('div', 'ai-section-head');
     head.appendChild(el('span', 'ai-section-title', 'AI 详解'));
@@ -1674,7 +1869,6 @@
     sec.appendChild(actions);
 
     let generating = false;
-    let autoStarted = false;
 
     function refresh() {
       const cached = Store.aiExplanation(e.word);
@@ -1690,12 +1884,6 @@
       } else {
         meta.textContent = '';
         content.appendChild(el('p', 'ai-placeholder', '让大模型生成详细讲解：释义、构词、例句、易混词等，结果保存在本地，可离线查看与导出。'));
-        const cfg = Store.data.ai;
-        if (auto && !autoStarted && cfg.autoExplain && cfg.enabled && AI.effectiveKey(cfg)) {
-          autoStarted = true;
-          generate();
-          return;
-        }
         const gen = el('button', 'btn-primary', '生成 AI 解释');
         gen.addEventListener('click', () => generate(gen));
         actions.appendChild(gen);
@@ -1858,7 +2046,7 @@
       row.appendChild(stateDot(w));
       const main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', w));
-      main.appendChild(el('div', 'row-sub', (e && (e.meaning || e.zh)) || ''));
+      main.appendChild(el('div', 'row-sub', (e && e.zh) || ''));
       row.appendChild(main);
       const rm = el('button', 'op', '✕'); rm.title = '移除';
       rm.addEventListener('click', ev => { ev.stopPropagation(); Store.removeFavorite(w); renderFavorites(); });
@@ -2235,7 +2423,7 @@
       const row = el('button', 'row book-row' + (bk.tag === Store.data.activeBook ? ' active' : '')); row.type = 'button';
       const main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', bk.name));
-      main.appendChild(el('div', 'row-sub', bk.n + ' 词 · 已掌握 ' + kn + (bk.official ? ' · 官方考纲' : '')));
+      main.appendChild(el('div', 'row-sub', bk.n + ' 词 · 已掌握 ' + kn + (bk.official ? ' · 官方考纲' : '') + (bk.frequency ? ' · 按真题出现次数排序' : '')));
       row.appendChild(main);
       row.appendChild(el('span', 'row-badge ' + (bk.tag === Store.data.activeBook ? 'green' : 'gray'), bk.tag === Store.data.activeBook ? '当前' : Math.round(bk.n ? (kn / bk.n) * 100 : 0) + '%'));
       row.addEventListener('click', () => switchBook(bk.tag));
@@ -2336,35 +2524,37 @@
   // ===================== settings =====================
   const SETTINGS_PANES = {
     learn: ['学习', '每日计划与学习面板'],
-    appearance: ['外观', '主题风格与学习卡片'],
+    appearance: ['外观', '主题风格与背景壁纸'],
     audio: ['发音', '朗读、语速与口音'],
     dict: ['词典', '多词典开关、合并与查询缓存'],
     ai: ['AI 解释', '模型、Key 与解释库'],
     data: ['数据', '导出、导入与重置'],
   };
   function renderPanelOrderUi() {
-    const order = panelOrder();
-    document.querySelectorAll('[data-panel-group]').forEach(box => {
-      const list = box.querySelector('.panel-order');
-      if (!list) return;
-      const rows = new Map(Array.from(list.querySelectorAll('[data-panel-row]')).map(r => [r.dataset.panelRow, r]));
-      order.forEach(id => { const row = rows.get(id); if (row) list.appendChild(row); });
-    });
+    const list = document.querySelector('.panel-order');
+    if (!list) return;
+    const rows = new Map(Array.from(list.querySelectorAll('[data-panel-row]')).map(r => [r.dataset.panelRow, r]));
+    panelOrder().forEach(id => { const row = rows.get(id); if (row) list.appendChild(row); });
+  }
+  function refreshPanelViews() {
+    if (currentView === 'study' && mode === 'study') renderStudy(); else panelDirty = true;
+    const sh = $('word-sheet');
+    if (sh && !sh.hidden && sheetWord) {
+      const se = findEntry(sheetWord);
+      if (se) renderWordBlocks(se, sh.querySelector('.word-blocks'));
+    }
   }
   function savePanelOrder(ids) {
     Store.data.studyPanelOrder = ids;
     Store.save();
     renderPanelOrderUi();
-    if (currentView === 'study' && mode === 'study') renderStudy();
+    refreshPanelViews();
   }
   function movePanelRow(id, dir) {
     const order = panelOrder();
-    const group = PANEL_HEAD_IDS.includes(id) ? PANEL_HEAD_IDS : PANEL_DETAIL_IDS;
-    const ids = order.filter(x => group.includes(x));
-    const i = ids.indexOf(id), j = i + dir;
-    if (i < 0 || j < 0 || j >= ids.length) return;
-    const a = order.indexOf(id), b = order.indexOf(ids[j]);
-    order[a] = ids[j]; order[b] = id;
+    const i = order.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
     savePanelOrder(order);
   }
   function wirePanelOrder() {
@@ -2385,7 +2575,6 @@
         ev.preventDefault();
         const target = row.dataset.panelRow;
         if (!dragId || dragId === target) return;
-        if (PANEL_HEAD_IDS.includes(dragId) !== PANEL_HEAD_IDS.includes(target)) return;
         const order = panelOrder();
         order.splice(order.indexOf(dragId), 1);
         order.splice(order.indexOf(target), 0, dragId);
@@ -2486,7 +2675,6 @@
     AI.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; sel.appendChild(o); });
     sel.value = ai.provider || 'devfree';
     $('set-ai-enabled').checked = !!ai.enabled;
-    $('set-ai-auto').checked = !!ai.autoExplain;
     $('set-ai-model').value = ai.model || '';
     $('set-ai-base').value = ai.base || '';
     $('set-ai-key').value = ai.key || '';
@@ -2742,7 +2930,6 @@
 
     $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
     $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
-    $('word-detail-btn').addEventListener('click', () => { const it = currentItem(); if (it) openWordSheet(it.entry.word); });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
     $('grade-fuzzy').addEventListener('click', () => grade(SRS.GRADE.FUZZY));
@@ -2797,7 +2984,15 @@
 
     $('theme-study-btn').addEventListener('click', () => {
       if (!sheetTheme) return;
-      const entries = Themes.wordsOf(sheetTheme).map(w => Library.lookup(w)).filter(Boolean);
+      const entries = themeShown.map(w => Library.lookup(w)).filter(Boolean);
+      closeSheet();
+      if (entries.length) studyWords(entries);
+    });
+
+    $('cloze-study-btn').addEventListener('click', () => {
+      const s = Library.clozeSet(clozeSetId);
+      if (!s) return;
+      const entries = s.options.map(([, w]) => Library.lookup(w)).filter(Boolean);
       closeSheet();
       if (entries.length) studyWords(entries);
     });
@@ -2852,11 +3047,10 @@
     document.querySelectorAll('[data-panel]').forEach(cb => cb.addEventListener('change', () => {
       Store.data.studyPanel[cb.dataset.panel] = cb.checked;
       Store.save();
-      if (currentView === 'study' && mode === 'study') renderStudy();
+      refreshPanelViews();
     }));
     $('books-back').addEventListener('click', backFromSub);
     $('set-ai-enabled').addEventListener('change', () => Store.setAiConfig({ enabled: $('set-ai-enabled').checked }));
-    $('set-ai-auto').addEventListener('change', () => Store.setAiConfig({ autoExplain: $('set-ai-auto').checked }));
     $('set-ai-provider').addEventListener('change', () => {
       Store.setAiConfig({ provider: $('set-ai-provider').value });
       syncAiProviderUi();
@@ -2947,8 +3141,7 @@
       if (!r.ok && r.error) { btn.textContent = r.error; setTimeout(() => { btn.textContent = '导出全部'; }, 2200); }
     });
     $('set-test-speak').addEventListener('click', () => speak('hello'));
-    $('set-card-reset').addEventListener('click', () => { Store.data.cardOrder = Store.defaultCardOrder(); Store.save(); if (cardsEntry) renderCards(cardsEntry); });
-    $('set-panel-reset').addEventListener('click', () => savePanelOrder(PANEL_IDS.slice()));
+    $('set-panel-reset').addEventListener('click', () => savePanelOrder(Store.defaultPanelOrder()));
     $('reset-progress').addEventListener('click', () => {
       if (!confirm('确定重置所有学习进度？此操作不可撤销。')) return;
       Store.data.srs = {}; Store.data.logs = {}; Store.data.errors = {}; Store.data.views = {};
@@ -3071,7 +3264,8 @@
     let ds = null;
     try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }
     Library.init(ds || {});
-    if (window.Themes && ds && ds.words) Themes.init(ds.words);
+    if (Library.migrateCustomBooks(Store.data.customBooks)) Store.save();
+    if (window.Themes && ds && ds.words) Themes.init(ds.words, ds.cloze);
     if (!Library.hasData()) {
       $('loading').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3)">词库加载失败。<br>请确认 app/data 数据文件存在。</div>';
       return;

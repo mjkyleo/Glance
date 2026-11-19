@@ -11,7 +11,9 @@
     "android:open": "cap open android",
     "android:run": "cap run android",
     "vendor:fsrs": "node scripts/vendor-ts-fsrs.mjs",
-    "contrast:fsrs": "node scripts/fsrs-contrast.mjs"
+    "contrast:fsrs": "node scripts/fsrs-contrast.mjs",
+    "data:frequency": "node scripts/build-frequency.js",
+    "data:cloze": "node scripts/build-cet6-cloze.js"
   },
   "build": {
     "appId": "com.glance.app",

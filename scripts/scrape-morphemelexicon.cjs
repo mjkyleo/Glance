@@ -83,20 +83,29 @@ function flattenRtree(nodes, acc = []) {
   if (!lite) throw new Error('index-lite failed');
 
   console.error('2/6 exam lists...');
+  // Books store word references only; words.json is the single explanation source.
+  // The site's per-book gloss is kept solely to fill global gaps (words the word
+  // shards lack, e.g. "a" / "i"), never written into the book files.
   const exams = {};
   const examWords = new Set();
   const examRoots = new Set();
+  const gapGloss = {};
+  const gapTags = {};
+  const noteGap = (w, tag) => {
+    (gapTags[w[0]] = gapTags[w[0]] || new Set()).add(tag);
+    if (!gapGloss[w[0]]) gapGloss[w[0]] = { zh: String(w[1] || '').replace(/[\r\n]+/g, '').trim(), cf: w[2] || '', ipa: w[3] || '' };
+  };
   for (const tag of EXAMS) {
     const j = await fetchCached(`exam/${encodeURIComponent(tag)}.json`);
     if (!j) { console.error('  skip exam', tag); continue; }
     const groups = (j.groups || []).map(g => {
       const [root, rootZh, rootEn, familySize, words] = g;
       examRoots.add(root);
-      const ws = (words || []).map(w => { examWords.add(w[0]); return [w[0], w[1], w[2] || '', w[3] || '']; });
+      const ws = (words || []).map(w => { examWords.add(w[0]); noteGap(w, tag); return w[0]; });
       return { root, rootZh, rootEn, familySize, words: ws };
     });
-    const loose = (j.loose || []).map(w => { const wd = Array.isArray(w) ? w[0] : w; examWords.add(wd); return Array.isArray(w) ? [w[0], w[1], w[2] || '', w[3] || ''] : [w, '', '', '']; });
-    exams[tag] = { n: j.n, groups, loose };
+    const loose = (j.loose || []).map(w => { const wd = Array.isArray(w) ? w[0] : w; examWords.add(wd); if (Array.isArray(w)) noteGap(w, tag); return wd; });
+    exams[tag] = { groups, loose };
     console.error(`  ${tag}: ${j.n} words, ${groups.length} groups`);
     await sleep(DELAY);
   }
@@ -154,6 +163,22 @@ function flattenRtree(nodes, acc = []) {
   const affixes = lite.affixes.map(a => ({ id: a[0], k: a[1], en: a[2], zh: a[4] || '', count: a[3], s: affixSense[a[0]] || [] }));
 
   console.error('6/6 write files...');
+  // Group meta lives in roots.json; only roots the index lacks keep inline meta.
+  for (const ex of Object.values(exams)) {
+    ex.groups = ex.groups.map(g => (roots[g.root] ? { root: g.root, words: g.words } : g));
+  }
+  // The global source must cover every referenced word; fill site gaps from the
+  // exam gloss and preserve locally merged entries (cloze-only options).
+  for (const w of examWords) {
+    if (words[w]) continue;
+    const f = gapGloss[w] || { zh: '', cf: '', ipa: '' };
+    words[w] = { zh: f.zh, ipa: f.ipa, cf: f.cf, fr: 0, def: [], der: [], inf: [], au: [], ety: '', tag: [...(gapTags[w] || [])], root: '' };
+  }
+  const wordsPath = path.join(OUT, 'words.json');
+  if (fs.existsSync(wordsPath)) {
+    const prev = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
+    for (const k of Object.keys(prev)) if (!(k in words)) words[k] = prev[k];
+  }
   const meta = {
     source: 'morphemelexicon.com', built: new Date().toISOString().slice(0, 10),
     exams: Object.keys(exams),

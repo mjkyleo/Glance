@@ -120,7 +120,7 @@
 
     async loadDataset() {
       if (isElectron) return ipc.invoke('get-dataset');
-      const names = ['meta', 'exams', 'roots', 'roottrees', 'words', 'affixes', 'official'];
+      const names = ['meta', 'exams', 'roots', 'roottrees', 'words', 'affixes', 'official', 'frequency', 'cloze'];
       const out = {};
       await Promise.all(names.map(async n => {
         try { const r = await fetch('data/' + n + '.json'); out[n] = r.ok ? await r.json() : null; }

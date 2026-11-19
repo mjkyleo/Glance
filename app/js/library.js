@@ -105,7 +105,7 @@
   }
   function primaryGloss(e) {
     const s = (e.senses && e.senses[0]) || null;
-    const raw = s ? s.gloss : (e.meaning || e.zh || '');
+    const raw = s ? s.gloss : (e.zh || '');
     return raw.split(/[,，;；]/).slice(0, 2).map(x => x.trim()).filter(Boolean).join('、');
   }
   // Offline mnemonic hook: chain the morpheme glosses into the core meaning so the
@@ -121,15 +121,16 @@
     return '';
   }
 
-  function enrich(word, meaning, cefr, phonetic, rootId, rootZh, rootEn, familySize) {
+  // Single explanation source: every gloss/POS/phonetic comes from words.json.
+  // Books supply only word references and root grouping, never explanation copies.
+  function enrich(word, rootId, rootZh, rootEn, familySize) {
     const d = (DS.words || {})[word] || {};
     const root = rootId || d.root || '';
     const e = {
       word,
-      meaning: meaning || d.zh || '',
-      zh: d.zh || meaning || '',
-      cefr: cefr || d.cf || '',
-      phonetic: String(phonetic || d.ipa || '').replace(/^\/+|\/+$/g, ''),
+      zh: d.zh || '',
+      cefr: d.cf || '',
+      phonetic: String(d.ipa || '').replace(/^\/+|\/+$/g, ''),
       fr: d.fr || 0,
       root,
       rootFamily: root ? { root, rootZh: rootZh || '', rootEn: rootEn || '', familySize: familySize || 0 } : null,
@@ -143,9 +144,81 @@
       examples: asList(d.examples),
       collocations: asList(d.collocations)
     };
+    e.examFreq = freqOf(word);
     e.morphemes = deriveMorphemes(e);
     e.senses = parseSenses(e.zh);
     e.mnemonic = buildMnemonic(e);
+    return e;
+  }
+
+  // ---- CET-6 real-paper corpus frequency (assets/words/cet6_full_vocabulary_frequency.csv) ----
+  // map[headword] = { r: aggregate rank, f: aggregate count, n: folded form count,
+  //                   er: rank of the headword's own row, ef: its own count }
+  function freqOf(word) {
+    const m = (DS.frequency || {}).map || {};
+    const hit = m[word] || m[String(word || '').toLowerCase()];
+    if (!hit) return null;
+    return { rank: hit.r, freq: hit.f, forms: hit.n, exactRank: hit.er || 0, exactFreq: hit.ef || 0 };
+  }
+  function freqMeta() {
+    const f = DS.frequency;
+    if (!f || !f.map) return null;
+    return { source: f.source || '', sourceFile: f.sourceFile || '', built: f.built || '', rows: f.rows || 0, headwords: f.headwords || 0, totalFreq: f.totalFreq || 0 };
+  }
+  const FREQ_TAG = '真题词频';
+  let freqBookCache = null;
+  // A frequency-ranked book: studying it teaches the highest-yield words first,
+  // because SRS.buildQueue takes new words in the order the book lists them.
+  function freqBook() {
+    if (freqBookCache) return freqBookCache;
+    const m = (DS.frequency || {}).map || {};
+    const keys = Object.keys(m).sort((a, b) => m[a].r - m[b].r);
+    const entries = keys.map(w => lookup(w)).filter(Boolean);
+    freqBookCache = { tag: FREQ_TAG, name: '六级真题词频', n: entries.length, entries, groups: [], frequency: true };
+    return freqBookCache;
+  }
+
+  // ---- CET-6 选词填空 (15 选 10) real-paper option bank ----
+  const CLOZE_POS_NAME = { n: '名词', v: '动词', adj: '形容词', adv: '副词' };
+  let clozeIndex = null;
+  function clozeMap() {
+    if (clozeIndex) return clozeIndex;
+    clozeIndex = new Map();
+    for (const e of (DS.cloze || {}).words || []) clozeIndex.set(e.word.toLowerCase(), e);
+    return clozeIndex;
+  }
+  function clozeMeta() {
+    const c = DS.cloze;
+    if (!c || !c.words) return null;
+    return {
+      source: c.source || '', sourceFile: c.sourceFile || '', built: c.built || '',
+      section: c.section || '', range: c.range || '', shape: c.shape || '',
+      setCount: c.setCount || 0, slotCount: c.slotCount || 0, wordCount: c.wordCount || 0,
+      recentSetCount: c.recentSetCount || 0, notes: c.notes || [], missing: c.missing || []
+    };
+  }
+  function clozeDecks() { return ((DS.cloze || {}).decks || []).map(d => ({ id: d.id, name: d.name, desc: d.desc || '', words: (d.words || []).slice() })); }
+  function clozeDeck(id) { return ((DS.cloze || {}).decks || []).find(d => d.id === id) || null; }
+  function clozeWords(id) { const d = clozeDeck(id); return d ? (d.words || []).slice() : []; }
+  function clozeOf(word) { return clozeMap().get(String(word || '').toLowerCase()) || null; }
+  function clozeSets() {
+    return ((DS.cloze || {}).sets || []).map(s => ({
+      id: s.id, year: s.year, month: s.month, paper: s.paper, exam: s.exam,
+      recent: !!s.recent, lead: s.lead || '', file: s.file || '', options: (s.options || []).map(o => [o[0], o[1]])
+    }));
+  }
+  function clozeSet(id) { return clozeSets().find(s => s.id === id) || null; }
+  function clozePosName(p) { return CLOZE_POS_NAME[p] || p || ''; }
+  // Printed option forms ("patterns") keep their surface form on the card, but the
+  // explanation is the global headword's — the corpus stores no gloss copies.
+  function clozeEntry(word) {
+    const c = clozeOf(word);
+    if (!c) return null;
+    const e = enrich(c.lemma, '', '', '', 0);
+    e.word = c.word;
+    e.morphemes = deriveMorphemes(e);
+    e.mnemonic = buildMnemonic(e);
+    e.clozeOnly = !c.inLibrary;
     return e;
   }
 
@@ -156,27 +229,36 @@
     for (const k of Object.keys(lowerCache)) delete lowerCache[k];
     for (const k of Object.keys(officialSetCache)) delete officialSetCache[k];
     for (const k of Object.keys(officialBookCache)) delete officialBookCache[k];
+    freqBookCache = null;
+    clozeIndex = null;
   }
 
   function getBook(tag) {
     if (books[tag]) return books[tag];
+    if (tag === FREQ_TAG) { const b = freqBook(); books[tag] = b; return b; }
     const offLevel = OFFICIAL_BY_TAG[tag];
     if (offLevel) { const b = officialBook(offLevel); books[tag] = b; return b; }
     const ex = (DS.exams || {})[tag];
     if (!ex) return null;
     const entries = [], groups = [];
+    const wd = DS.words || {}, rd = DS.roots || {};
     for (const g of ex.groups || []) {
-      const ge = { root: g.root, rootZh: g.rootZh, rootEn: g.rootEn, familySize: g.familySize, words: [] };
+      // Inline meta wins for the few roots roots.json lacks; otherwise resolve it.
+      const r = rd[g.root];
+      const rootZh = g.rootZh || (r && r.zh) || '';
+      const rootEn = g.rootEn || (r && r.g) || '';
+      const famSize = g.familySize || (r && r.size) || 0;
+      const ge = { root: g.root, rootZh, rootEn, familySize: famSize, words: [] };
       for (const w of g.words || []) {
-        if (!passesQuality(w[2], tag)) continue;
-        const e = enrich(w[0], w[1], w[2], w[3], g.root, g.rootZh, g.rootEn, g.familySize);
+        if (!passesQuality((wd[w] || {}).cf, tag)) continue;
+        const e = enrich(w, g.root, rootZh, rootEn, famSize);
         entries.push(e); ge.words.push(e);
       }
       if (ge.words.length) groups.push(ge);
     }
     for (const w of ex.loose || []) {
-      if (!passesQuality(w[2], tag)) continue;
-      entries.push(enrich(w[0], w[1], w[2], w[3], '', '', '', 0));
+      if (!passesQuality((wd[w] || {}).cf, tag)) continue;
+      entries.push(enrich(w, '', '', '', 0));
     }
     const book = { tag, name: tag + '词库', n: entries.length, entries, groups };
     books[tag] = book;
@@ -185,15 +267,17 @@
 
   function listBooks() {
     const tags = (DS.meta && DS.meta.exams) || Object.keys(DS.exams || {});
+    const wd = DS.words || {};
     const examBooks = tags.map(t => {
       const ex = (DS.exams || {})[t] || {};
       let n = 0;
-      for (const g of ex.groups || []) for (const w of g.words || []) if (passesQuality(w[2], t)) n++;
-      for (const w of ex.loose || []) if (passesQuality(w[2], t)) n++;
+      for (const g of ex.groups || []) for (const w of g.words || []) if (passesQuality((wd[w] || {}).cf, t)) n++;
+      for (const w of ex.loose || []) if (passesQuality((wd[w] || {}).cf, t)) n++;
       return { tag: t, name: t + '词库', n };
     });
     const offBooks = officialLevels().map(o => ({ tag: o.tag, name: o.name, n: officialCount(o.level), official: true }));
-    return offBooks.concat(examBooks);
+    const fb = freqMeta() ? [{ tag: FREQ_TAG, name: '六级真题词频', n: Object.keys((DS.frequency || {}).map || {}).length, frequency: true }] : [];
+    return offBooks.concat(examBooks, fb);
   }
 
   // Exam ladder for the optional "skip lower-book duplicates" filter: a book's
@@ -291,7 +375,7 @@
       const word = officialForms(text)[0];
       if (!word || seen.has(word)) continue;
       seen.add(word);
-      const e = enrich(word, '', '', '', '', '', '', 0);
+      const e = enrich(word, '', '', '', 0);
       e.official = true;
       e.officialText = text;
       entries.push(e);
@@ -339,7 +423,9 @@
     if (!r) return null;
     return {
       root, g: r.g || '', zh: r.zh || '', tier: r.tier || '', size: r.size || (r.family || []).length,
-      family: (r.family || []).map(w => ({ word: w[0], meaning: w[1] || '' })),
+      // Headword members read the global gloss; roots.json glosses only survive for
+      // inflected forms the headword index does not carry.
+      family: (r.family || []).map(w => ({ word: w[0], zh: ((DS.words || {})[w[0]] || {}).zh || w[1] || '' })),
       tree: (DS.roottrees || {})[root] || null
     };
   }
@@ -366,6 +452,18 @@
         if (words.length >= limit) break;
       }
     }
+    // Inflected option forms ("patterns") are not headword keys; resolve their
+    // gloss through the lemma so search never shows a corpus copy.
+    if (words.length < limit) {
+      for (const c of clozeMap().values()) {
+        if (words.length >= limit) break;
+        const d = wd[c.word] || wd[c.lemma];
+        if (wd[c.word]) continue;
+        if (c.word.toLowerCase().includes(q) || ((d && d.zh) || '').includes(query.trim())) {
+          words.push({ word: c.word, zh: (d && d.zh) || '', root: (d && d.root) || '', cf: (d && d.cf) || '' });
+        }
+      }
+    }
     const rd = DS.roots || {};
     for (const r of Object.keys(rd)) {
       if (r.toLowerCase().includes(q) || (rd[r].zh || '').includes(query.trim())) {
@@ -384,37 +482,17 @@
 
   function lookup(word) {
     const d = (DS.words || {})[word];
-    if (!d) return null;
+    if (!d) {
+      // 选词填空 options are printed as inflected forms ("patterns", "correlated").
+      // Their card is built from the library headword but keeps the printed form,
+      // because the exam tests exactly that form's part of speech.
+      const c = clozeMap().get(String(word || '').toLowerCase());
+      return c ? clozeEntry(c.word) : null;
+    }
     let rootId = d.root || '', rootZh = '', rootEn = '', famSize = 0;
     const r = (DS.roots || {})[rootId];
     if (r) { rootZh = r.zh || ''; rootEn = r.g || ''; famSize = r.size || 0; }
-    return enrich(word, d.zh, d.cf, d.ipa, rootId, rootZh, rootEn, famSize);
-  }
-
-  function buildCards(entry) {
-    const cards = [];
-    if (entry.mnemonic) cards.push({ id: 'mnemonic', title: '助记', kind: 'mnemonic', text: entry.mnemonic });
-    if (entry.morphemes && entry.morphemes.length) {
-      const label = { prefix: '前缀', root: '词根', suffix: '后缀' };
-      cards.push({ id: 'morphemes', title: '构词解析', kind: 'list', items: entry.morphemes.map(m => m.text + '（' + (label[m.type] || '词素') + '）' + (m.gloss ? '：' + m.gloss : '')) });
-    }
-    if (entry.rootFamily && entry.rootFamily.root) {
-      const f = entry.rootFamily;
-      cards.push({
-        id: 'family', title: '词根与词源', kind: 'family', root: f.root,
-        text: `${f.root} · ${f.rootZh || ''}`,
-        etymology: entry.etymology || ''
-      });
-    } else if (entry.etymology) {
-      cards.push({ id: 'etymology', title: '词源', kind: 'text', text: entry.etymology });
-    }
-    if (entry.synonyms && entry.synonyms.length) cards.push({ id: 'synonyms', title: '近义词', kind: 'list', items: entry.synonyms });
-    if (entry.derivatives && entry.derivatives.length) cards.push({ id: 'derivatives', title: '派生词', kind: 'list', items: entry.derivatives.map(d => `${d[0]}${d[1] ? ' (' + d[1] + ')' : ''}`) });
-    if (entry.inflections && entry.inflections.length) cards.push({ id: 'inflections', title: '词形变化', kind: 'list', items: entry.inflections });
-    if (entry.examples && entry.examples.length) cards.push({ id: 'examples', title: '例句', kind: 'list', items: entry.examples });
-    if (entry.collocations && entry.collocations.length) cards.push({ id: 'collocations', title: '搭配', kind: 'list', items: entry.collocations });
-    if (entry.definitions && entry.definitions.length) cards.push({ id: 'definitions', title: '英文释义', kind: 'list', items: entry.definitions.map(d => { const p = posInfo(d[0]); return (p ? p.zh + ' ' + d[0] + ' ' : (d[0] ? d[0] + '. ' : '')) + d[1]; }) });
-    return cards;
+    return enrich(word, rootId, rootZh, rootEn, famSize);
   }
 
   // ---- legacy file import (JSON / TSV) ----
@@ -423,7 +501,11 @@
     const entries = [];
     for (const g of json.groups || []) {
       const fam = { root: g.root, rootZh: g.rootZh, rootEn: g.rootEn, origin: g.origin, familySize: g.familySize };
-      for (const w of g.words || []) entries.push({ word: w.word, meaning: w.meaning, cefr: w.cefr || '', phonetic: w.phonetic || '', example: w.example || '', rootFamily: fam });
+      for (const w of g.words || []) {
+        // Reference-only books carry plain strings; legacy imports carry objects.
+        const o = typeof w === 'string' ? { word: w } : w;
+        entries.push({ word: o.word, meaning: o.meaning || '', cefr: o.cefr || '', phonetic: o.phonetic || '', example: o.example || '', rootFamily: fam });
+      }
     }
     return { entries, affixes: am };
   }
@@ -481,13 +563,54 @@
     } else base = fromDelimited(t);
     const savedAffix = affixMap;
     affixMap = base.affixes;
+    const entries = [];
     for (const e of base.entries) {
+      // Known words become pure references: imported gloss copies are dropped at
+      // the door. Words the global index lacks keep the user's own explanation.
+      if ((DS.words || {})[e.word]) { entries.push({ word: e.word, rootFamily: e.rootFamily || null }); continue; }
       e.morphemes = deriveMorphemes(e);
       e.synonyms = asList(e.synonyms); e.examples = asList(e.examples || e.example); e.collocations = asList(e.collocations);
+      entries.push(e);
     }
     affixMap = savedAffix;
-    return { name: name || 'library', entries: base.entries, custom: true };
+    return { name: name || 'library', entries, custom: true };
   }
 
-  window.Library = { init, getBook, listBooks, lowerTags, lowerWordSet, basicWordSet, excludeWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, buildCards, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial };
+  // Custom books persist references; explanations resolve from the global source
+  // at read time so a gloss edit reaches every book immediately.
+  function customBook(tag, stored) {
+    const entries = (stored.entries || []).map(e => {
+      const fam = e.rootFamily;
+      if ((DS.words || {})[e.word]) return enrich(e.word, fam && fam.root, fam && fam.rootZh, fam && fam.rootEn, fam && fam.familySize);
+      const out = Object.assign({}, e);
+      out.zh = e.meaning || e.zh || '';
+      out.phonetic = String(e.phonetic || '').replace(/^\/+|\/+$/g, '');
+      out.senses = parseSenses(out.zh);
+      out.morphemes = deriveMorphemes(out);
+      out.mnemonic = buildMnemonic(out);
+      out.synonyms = asList(out.synonyms); out.examples = asList(out.examples || out.example); out.collocations = asList(out.collocations);
+      out.definitions = out.definitions || []; out.derivatives = out.derivatives || []; out.inflections = out.inflections || [];
+      out.etymology = out.etymology || ''; out.audio = out.audio || []; out.tags = out.tags || [];
+      out.examFreq = freqOf(out.word);
+      return out;
+    });
+    return { tag, name: tag, n: entries.length, entries, custom: true };
+  }
+  // One-time read fallback for books saved before the reference-only layout: drop
+  // explanation copies for words the global source carries, keep user-only glosses.
+  function migrateCustomBooks(books) {
+    let changed = false;
+    const COPY_KEYS = ['meaning', 'cefr', 'phonetic', 'example', 'examples', 'synonyms', 'collocations', 'morphemes', 'senses', 'zh'];
+    for (const b of Object.values(books || {})) {
+      b.entries = (b.entries || []).map(e => {
+        if (!(DS.words || {})[e.word]) return e;
+        if (!COPY_KEYS.some(k => k in e)) return e;
+        changed = true;
+        return { word: e.word, rootFamily: e.rootFamily || null };
+      });
+    }
+    return changed;
+  }
+
+  window.Library = { init, getBook, listBooks, customBook, migrateCustomBooks, lowerTags, lowerWordSet, basicWordSet, excludeWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial, freqOf, freqMeta, clozeMeta, clozeDecks, clozeDeck, clozeWords, clozeOf, clozeSets, clozeSet, clozeEntry, clozePosName };
 })();

@@ -52,7 +52,7 @@
   function currentBook() {
     const tag = Store.data.activeBook;
     const custom = Store.data.customBooks[tag];
-    if (custom) return { entries: custom.entries || [] };
+    if (custom) return Library.customBook(tag, custom);
     return Library.getBook(tag) || Library.getBook('六级') || { entries: [] };
   }
   function activeWord() {
@@ -63,7 +63,7 @@
   // ---------- entry helpers ----------
   function primaryGloss(e) {
     const s = (e.senses && e.senses[0]) || null;
-    const raw = s ? s.gloss : (e.meaning || e.zh || '');
+    const raw = s ? s.gloss : (e.zh || '');
     return String(raw).split(/[,，;；]/).slice(0, 2).map(x => x.trim()).filter(Boolean).join('、');
   }
   function posGroup(e) {

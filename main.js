@@ -352,7 +352,9 @@ ipcMain.handle('get-dataset', () => {
     roottrees: read('roottrees.json'),
     words: read('words.json'),
     affixes: read('affixes.json'),
-    official: read('official.json')
+    official: read('official.json'),
+    frequency: read('frequency.json'),
+    cloze: read('cloze.json')
   };
 });
 
