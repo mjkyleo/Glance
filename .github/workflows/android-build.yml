@@ -7,6 +7,11 @@ on:
       - '**/*.md'
       - 'docs/**'
       - '.github/workflows/release-order.yml'
+      # Repository cognition layer: versioned knowledge, never packaged into the APK.
+      - 'aoci.txt'
+      - 'aoci.meta.txt'
+      - 'aoci.code.txt'
+      - '.aoci/**'
   workflow_dispatch:
 
 jobs:
