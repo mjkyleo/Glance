@@ -146,8 +146,8 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`5608b68`（`main`，UI/UX 无障碍与规范达标审计 P0，§8.36）;其前 `cd2f07a`（CI `paths-ignore` 纳入 AOCI 认知层 + 认知维护）、`d649888`（单一解释源 + 统一学习面板，§8.34/§8.35）、`d6c7fee`（真题词频与选词填空数据管线，§8.33）、`de09715`（AOCI 认知层 + `.gitattributes` 强制 LF）。均已推送;`5608b68` 触发 run 44467606665（`android-47`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
-- 最新交付：**`android-47`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-47/Glance-android.apk`（**10,385,001 字节**，versionCode 47 / versionName `1.0.6+47`，CI run **44467606665** 全 12 步成功，第 10 步断言包名/版本/证书 `CN=Glance Debug`，第 8 步 Strip 已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ **UI/UX 无障碍与规范达标 P0（§8.36：对比度 AA、44px 触控、≥11px 字号、200% 缩放、焦点环、弹层焦点管理、aria-live、undefined 历史修复）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
+- 最新提交：`bb702f8`（`main`，真题刷题 §8.37）;其前 `5608b68`（UI/UX 无障碍 P0 §8.36）、`14b25b5`（工具目录 gitignore）、`cd2f07a`（CI `paths-ignore` 纳入 AOCI 认知层）、`d649888`（单一解释源 + 统一学习面板 §8.34/§8.35）。均已推送;`bb702f8` 触发 run 44484330418（`android-49`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新交付：**`android-49`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-49/Glance-android.apk`（**10,842,384 字节**，versionCode 49 / versionName `1.0.6+49`，CI run **44484330418** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ **真题刷题（§8.37：62 套分片懒加载、阅读/匹配/写译刷题、三级判分、进度持久化）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
 - 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -1036,10 +1036,35 @@
 
 **交付**：随 `5608b68` 提交并推送（noreply 身份 + SSH 专用密钥），CI run **44467606665**（build #47）全 12 步成功 → `android-47`（versionCode 47 / versionName `1.0.6+47`，APK **10,385,001 字节**，第 8 步 Strip 已移除 dev-only FSRS 旁路、第 10 步断言包名 `com.glance.app` / 版本 / 证书 `CN=Glance Debug`）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-47/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25/§8.31），非正式发布包**;发布前整块删除并作废 Key（§9）。
 
+### 8.37 真题刷题（62 套六级真题 · 阅读/匹配/写译）✅
+
+**来源**：用户提供《真题txt转JSON方案.md》，源语料为 Gitee `Mjs_00987/cet6_exam_questions_txt_collection`（`cet6_zhenti_cleaned/` 62 个 txt，2016–2026）。用户裁决：判分走 **AI 分析 → 有答案自动判 → 无答案自评** 三级降级（语料现无答案，`answers:null` 留位待补）；第一版开放 **仔细阅读 + 信息匹配 + 写作/翻译**（听力无音频无原文暂不开刷、数据入库；选词填空复用现有专项牌组）；清理只动临时文件。
+
+**数据管线**（[scripts/build-exams.js](scripts/build-exams.js)，`npm run data:exams`）：
+- 按方案 7 步解析：归一化 → 噪声词典去噪（计数入 quality）→ 章节识别（Part 缺失用题型关键词 + 题号区间兜底）→ 切组（`Questions X to Y` / `Passage N` / `[A]`–`[O]` 段落）→ 题号锚点（行首、1–55、不回退、跳号记 gaps 不补空题）→ 选项三排版（一行一个 / 题号同行内联 / 四选项挤一行乱序，`A.` 与 `A)` 两式）→ 写作翻译挂载 → quality 自检。
+- 产物 `app/data/exams/`：`manifest.json`（索引 + 每套 sha256/size/题量/题型）+ `report.json`（覆盖率报表）+ 62 个分片（共 **979,896 字节**）。**版本号由源内容 sha256 派生**（`data-df05259c6981`），全量幂等：连续两次构建 0 文件变化；严格校验 7 项断言 **0 结构错误**。
+- 实测覆盖率：听力 39 套 / 选词填空 17 套（老卷内联空格 + A)–O) 词库）/ 信息匹配 28 套 / 仔细阅读 62 套；平均 26.3 题；缺选项 134 处（OCR 真实残缺，`missingOptions` 如实标注）；60 套 `needsReview`；2026 新式卷 55 题完整。
+- 源 txt 缓存于 `.scratch/zhenti-src/`（gitignore，不入库）；重跑需先 `git clone --depth 1 https://gitee.com/Mjs_00987/cet6_exam_questions_txt_collection.git` 拷贝 txt（Gitee raw 接口有 451 反爬，克隆可靠）。
+
+**客户端**：
+- **懒加载**：启动只读 manifest（[platform.js:121-133](app/js/platform.js#L121-L133)、[main.js:342-368](main.js#L342-L368)）；打开某套才按 examId 取分片（[platform.js:134 loadExamShard](app/js/platform.js#L134)、[main.js:363 get-exam-shard](main.js#L363)，examId 正则白名单防路径穿越）；分片内存缓存。**不整卷塞满**：刷题按「一段材料 + 一组题」推进（[exams.js sessions](app/js/exams.js)）。
+- **引擎** [app/js/exams.js](app/js/exams.js)：`Exams.init/list/load/availableTypes/sessions/judge/analyzeQuestion/analyzeWriting/typeStats/wrongQuestions`；加载顺序 quiz→exams→app（[index.html:904](app/index.html#L904)）。三级判分：`answers[no]` 存在→自动判；否则 AI 可用（`ai.enabled` + effectiveKey）→「AI 分析/批改」按钮（复用 `Platform.llmChat`，结果标注「AI 推断，仅供参考」并缓存）；再否则自评「答对/答错」。AI 缓存键 `examId:no`（写译 `examId:w/t`）。
+- **UI**（[app.js:3309 起](app/js/app.js#L3309)、[index.html:176 view-exams](app/index.html#L176)）：专项视图顶部「真题刷题」入口 → 年份分组列表（题量/题型/残缺徽标/已练数）→ 套详情（残缺 banner 如实提示 + 题型卡 + 听力/选词暂不开刷说明 + 错题重练）→ 刷题会话（阅读 passage 滚动框 + 单题选项；匹配 15 段落 ↔ 字母芯片；写译写作区 + 字符计数）→ 结果页（正确率/答对/答错/未判 + 错题列表 + 重练）。返回栈：会话→详情→列表→专项（[app.js handleBack](app/js/app.js#L69)）。全部渲染走 `esc()`，样式全走主题 token（[app.css:1378 起](app/css/app.css#L1378)），触控 ≥44px、字号 ≥11.5px、aria-live 播报。
+- **持久化**（[store.js:45](app/js/store.js#L45)、[store.js:331 normalizeExams](app/js/store.js#L331)、[store.js:370 examAnswer](app/js/store.js#L370)）：`exams:{progress,wrong,aiCache}`；每套每题 `{p,ok,m,t}`（ok 1/0/-1，m auto/self/ai），错题本上限 300、AI 缓存上限 300（LRU 按时间）；写译用伪题号 56/57（Store 题号守卫扩至 57）。导出导入纳入 exams 块（replace 重置、merge 按 ts 取新、错题去重），密钥剔除规则不变。
+
+**验证**：
+- 解析器严格校验 0 错误 + 幂等 0 差异；`node --check` 全部通过；三门回归（single-source / panel-order / custom-compat）复跑全绿。
+- **浏览器实测（browser-use 真实渲染，blue 深色）**：62 套列表/年份分组；2023-06_01 阅读全流程（选 A → 自评答错入错题 → 下一组 passage 2841 字符 → Q52–55 答对 → 结果 80%、5 已答/4 对/1 错）；错题重练只含 Q50 且还原上次选择；返回栈四级正确；2016-06_01 匹配 15 段 A–O + 字母选择 + 自评；写作字符计数 + 自评存 no=56；翻译中文原文 + 自评「待改进」存 no=57 入错题；AI 无 Key 时正确降级为仅自评，浏览器 CORS 失败给出可操作提示，mock 传输层验证 prompt/缓存/复用/渲染全通；刷新后进度/错题/AI 缓存全持久；导出含 exams 无密钥、replace/merge 正确；触控全 ≥44px、最小字号 11.5px、0 横向溢出、深色 token 正确。
+- **残留（如实记录）**：AI 真实网络调用在纯浏览器预览受 CORS 限制（既有平台约束，Electron/Android 走原生通道不受影响），本轮以 mock 传输层验证 AI 逻辑；听力与选词填空刷题未开；语料无官方答案，正确率含自评成分（结果页已注明）。
+
+**交付**：随 `bb702f8` 提交并推送（noreply + SSH 专用密钥），CI run **44484330418**（build #49）全步成功 → `android-49`（versionCode 49 / versionName `1.0.6+49`，APK **10,842,384 字节**，Strip 已移除 dev-only FSRS 旁路、Verify 断言包名 `com.glance.app` / 版本 / 证书 `CN=Glance Debug`）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-49/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25/§8.31），非正式发布包**;发布前整块删除并作废 Key（§9）。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| `bb702f8` | 真题刷题（§8.37）：62 套六级真题 txt 按方案解析为 `app/data/exams/` 分片 + manifest + report（幂等、严格校验 0 错误，979,896 字节）;启动只读 manifest、按套懒加载分片;仔细阅读/信息匹配/写作/翻译按「一段材料 + 一组题」刷题，三级判分（官方答案自动 → AI 分析/批改 → 自评），answers:null 留位;Store `exams` 进度/错题/AI 缓存块纳入导出导入;听力入库暂不开刷、选词填空复用专项;清理旧真题草稿与 debug.log;三门回归全绿 + 浏览器实测;交付 `android-49` |
+| `14b25b5` | `.gitignore` 纳入 `.agents/`、`.claude/`、`skills-lock.json`（本地 designer-skills 工具，不入库不入认知索引） |
 | `5608b68` | UI/UX 无障碍与规范达标（审计 P0，§8.36）：8 主题浅/深 `--text-3` 重算使 muted 文本 ≥4.5:1（实测对比度失败 9+30+4→0）、深色 active 分段控件改实色 accent;孤立图标按钮扩 44px、`.btn-ghost` 防压缩修复朗读按钮 19.2px、开关命中区 44px（视觉 28px）、分段控件 44px;消除 10.5/10px 文本、底栏 11→12px、关键标签 11.5→12px;viewport 去 `user-scalable=no` 允许 200% 缩放;全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原）+ 280ms 改读 `--dur-slow`;`aria-live` 播报评分/测试/加载;`addHistory` 守卫 + 过滤遗留 `undefined` 历史 chip。三门回归全绿、浏览器实测验收;不触碰单一解释源与 16 块面板;交付 `android-47` |
 | `cd2f07a` | CI 卫生：把 AOCI 认知层四类路径（`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt`/`.aoci/**`）加入 `android-build.yml` 的 `paths-ignore`，认知与文档提交不再发布内容相同的重复 APK;同时入库本轮认知维护结果（81 条 Entry 的 code 卷与 baseline）。改 workflow 自身仍触发一次构建（`android-46`，应用内容与 `android-45` 相同） |
 | `d649888` | 单一解释源 + 统一学习面板（§8.34/§8.35）：词书/词表降为纯引用 + 词根分组，`enrich` 的 zh/ipa/cefr/def 一律取全局 `words.json`，exams.json 7.6MB→1.45MB、legacy cet6 与 cloze 去释义副本，构建器同步改造防复发，旧导入与旧落盘自定义书保留一次性读时迁移（已知词去副本、用户自造词留释义）;学习页与词卡共用 `renderWordBlocks` 的 16 块单一列表（一份顺序 + 一份开关），删除详细讲解按钮、`Library.buildCards`、`cardOrder` 与两套卡片拖动代码，词典/AI 块缓存优先 + 块内手动按钮，旧配置缓存标注并可手动重查，旧 `cardOrder` 迁移保序、`ai.autoExplain` 全链路删除;新增三门 `verify-single-source` / `verify-custom-compat` / `verify-panel-order`（57,402 首行同源 0 例外、跨书字节一致、面板顺序与导出导入契约）;DATA/FEATURES/README/DEVELOPMENT 同步并复核受影响行号;交付 `android-45` |
