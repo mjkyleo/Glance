@@ -146,8 +146,8 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`bb702f8`（`main`，真题刷题 §8.37）;其前 `5608b68`（UI/UX 无障碍 P0 §8.36）、`14b25b5`（工具目录 gitignore）、`cd2f07a`（CI `paths-ignore` 纳入 AOCI 认知层）、`d649888`（单一解释源 + 统一学习面板 §8.34/§8.35）。均已推送;`bb702f8` 触发 run 44484330418（`android-49`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
-- 最新交付：**`android-49`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-49/Glance-android.apk`（**10,842,384 字节**，versionCode 49 / versionName `1.0.6+49`，CI run **44484330418** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ **真题刷题（§8.37：62 套分片懒加载、阅读/匹配/写译刷题、三级判分、进度持久化）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
+- 最新提交：`19be43a`（`main`，空间利用率与自定义分组 §8.38）;其前 `bb702f8`（真题刷题 §8.37）、`5608b68`（UI/UX 无障碍 P0 §8.36）、`14b25b5`（工具目录 gitignore）。均已推送;`19be43a` 触发 run 44498442504（`android-50`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新交付：**`android-50`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-50/Glance-android.apk`（**10,846,443 字节**，versionCode 50 / versionName `1.0.6+50`，CI run **44498442504** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ 真题刷题（§8.37）+ **空间利用率与自定义分组（§8.38：词根/词缀紧凑单行、设置四入口、考试专项子分组与卡面进度、自定义专项词组）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
 - 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -1059,10 +1059,27 @@
 
 **交付**：随 `bb702f8` 提交并推送（noreply + SSH 专用密钥），CI run **44484330418**（build #49）全步成功 → `android-49`（versionCode 49 / versionName `1.0.6+49`，APK **10,842,384 字节**，Strip 已移除 dev-only FSRS 旁路、Verify 断言包名 `com.glance.app` / 版本 / 证书 `CN=Glance Debug`）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-49/Glance-android.apk`。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25/§8.31），非正式发布包**;发布前整块删除并作废 Key（§9）。
 
+### 8.38 空间利用率与自定义分组（词根栏 / 设置 / 考试专项）✅
+
+**需求**：① 词根栏词根与词缀的排列和大小优化，提高空间利用率;② 「我的」下设置功能的分组和排列优化;③ 专项→考试专项卡片的分组和排列优化，支持用户自建分组（卡面与组内词）。
+
+**实现**
+
+- **词根/词缀紧凑单行**（[app.js:1203 renderRoots](app/js/app.js#L1203)、[app.js:1234 renderAffixes](app/js/app.js#L1234)、[app.css .row.compact](app/css/app.css)）：词根/词缀名 + 释义同行（释义省略号）+ 词数徽标 + 箭头，行高 44px（触控达标），间距 6px;学习进度改绝对定位行底 3px 细线（[app.js:1189 attachRowProgress](app/js/app.js#L1189) compact 分支），不额外占高。实测一屏 8→14 条，200 条列表滚动长度减半以上;词缀前缀/后缀徽标内联名后。
+- **设置四入口**（[index.html view-me](app/index.html)、[app.js:2716 SETTINGS_PANES](app/js/app.js#L2716)）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储。发音组并入 `pane-appearance`、AI 模型组并入 `pane-dict`（控件 id 全部不变，监听零改动）;「AI 解释库」改名「AI 解释缓存」移入设置簇作为内容浏览入口;「关于」从 `pane-data` 移至「我的」页脚 `#about-info`。`openSettings('ai')` 旧调用改指 `dict`。
+- **考试专项子分组 + 卡面进度**（[app.js:1303 themeCard](app/js/app.js#L1303)、[app.js:1342 renderThemes](app/js/app.js#L1342)）：考试专项拆「选词填空真题牌组」（hero + 7 牌组）与「翻译与作文话题」（3 主题）;每张主题卡 = 名称 + 词数徽标 + 进度条与「已掌握 x/y」同行 + 两行截断描述 + 词性/真题徽标行，半宽卡不再换行挤压。
+- **自定义专项词组**：数据 `Store.customThemes`（[store.js:320-365](app/js/store.js#L320-L365)：normalize 校验 id/name≤20/词去重、创建同名拒绝、改名、删除、批量收词去重、逐词移除）;`Themes.setCustom` 注册为 `group:'custom'` 主题（[themes.js:150-153](app/js/themes.js#L150-L153)），复用主题详情/专项学习/测试「当前专项」全链路;专项页「我的分组」区 + 创建按钮;词卡「＋ 分组」与主题详情「全部收入分组」打开**嵌套**选择器弹层（`openNestedSheet`，关闭返回底层弹层，可新建并立即收入）;分组详情支持管理删词（点击移除）/重命名/删除分组;导出 `data.customThemes` 纳入，merge 按 id 并集（words 去重、name 取 ts 新者）、replace 先清空再还原。
+- **文档**：FEATURES §3.1–3.4/§9.2/§10.6 与矩阵、DATA §5 schema/§6 备份样例与 merge 表、README 特性条目同步。
+
+**验证（headless Chrome CDP 真跑）**：`.scratch/ui-opt-e2e.cjs` **40/40**——紧凑行高/同行/每屏条数/进度细线、四入口与合并面板控件、子分组与卡面进度、自定义组全生命周期（创建→词卡收词→嵌套弹层不关底层→批量收词→管理删词→重命名→专项学习→导出→replace 导入→reload 持久化→删除）、360×640 三视图无溢出、零未捕获错误;全应用回归 `.scratch/dict-regress.cjs` **50/50**（设置断言更新为四入口 + 合并控件检查）;`verify-panel-order` / `verify-single-source` / `verify-custom-compat` 三门全绿。截图目检：紧凑列表、专项子分组卡面、我的菜单、自定义分组弹层均无换行挤压。
+
+**交付**：随 `19be43a` 提交并推送（noreply + SSH 专用密钥），CI run **44498442504**（build #50）全步成功 → `android-50`（versionCode 50 / versionName `1.0.6+50`，APK **10,846,443 字节**，Strip/Verify 同前）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-50/Glance-android.apk`。**仍含 DEV-ONLY 预设，非正式发布包**（§9）。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| `19be43a` | 空间利用率与自定义分组（§8.38）：词根/词缀紧凑单行 44px（一屏 8→14 条、进度细线行底）;设置合并四入口（外观+发音、词典+AI、AI 解释缓存改名、关于移页脚）;考试专项拆选词填空牌组/翻译作文话题两子组、全卡面掌握进度;自定义专项词组（创建/逐词与批量收词/管理删词/重命名/删除/专项学习，嵌套选择器弹层，备份导出导入纳入）;e2e 40/40 + 回归 50/50 + 三门全绿;交付 `android-50` |
 | `bb702f8` | 真题刷题（§8.37）：62 套六级真题 txt 按方案解析为 `app/data/exams/` 分片 + manifest + report（幂等、严格校验 0 错误，979,896 字节）;启动只读 manifest、按套懒加载分片;仔细阅读/信息匹配/写作/翻译按「一段材料 + 一组题」刷题，三级判分（官方答案自动 → AI 分析/批改 → 自评），answers:null 留位;Store `exams` 进度/错题/AI 缓存块纳入导出导入;听力入库暂不开刷、选词填空复用专项;清理旧真题草稿与 debug.log;三门回归全绿 + 浏览器实测;交付 `android-49` |
 | `14b25b5` | `.gitignore` 纳入 `.agents/`、`.claude/`、`skills-lock.json`（本地 designer-skills 工具，不入库不入认知索引） |
 | `5608b68` | UI/UX 无障碍与规范达标（审计 P0，§8.36）：8 主题浅/深 `--text-3` 重算使 muted 文本 ≥4.5:1（实测对比度失败 9+30+4→0）、深色 active 分段控件改实色 accent;孤立图标按钮扩 44px、`.btn-ghost` 防压缩修复朗读按钮 19.2px、开关命中区 44px（视觉 28px）、分段控件 44px;消除 10.5/10px 文本、底栏 11→12px、关键标签 11.5→12px;viewport 去 `user-scalable=no` 允许 200% 缩放;全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原）+ 280ms 改读 `--dur-slow`;`aria-live` 播报评分/测试/加载;`addHistory` 守卫 + 过滤遗留 `undefined` 历史 chip。三门回归全绿、浏览器实测验收;不触碰单一解释源与 16 块面板;交付 `android-47` |

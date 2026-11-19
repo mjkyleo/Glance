@@ -308,6 +308,7 @@
 | `history` | `[{word, ts}]` | 查词历史，上限 100 |
 | `fsrs` | `{w, seqs: {word: [{t, g}]}, count, lastOpt}` | 个性化权重与复习序列 |
 | `customBooks` | `{name: {entries[]}}` | 自定义词书（§4） |
+| `customThemes` | `[{id, name≤20, words[], ts}]` | 自定义专项词组；id 为 `ct_` 前缀，词去重保序 |
 | `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史 |
 | `quizExamples` | `{word: {examples[≤6], provider, ts}}` | 例句填空缓存 |
 | `aiCache` / `dictCache` | `{word: record}` | AI 解释 / 外部词典按词缓存 |
@@ -429,7 +430,7 @@
                "favorite": true, "favoriteGroup": "默认", "errors": 0 } ],
   "data": { "srs": {}, "logs": {}, "views": {}, "favorites": {}, "favGroups": [],
             "history": [], "errors": {}, "fsrs": {}, "aiCache": {}, "dictCache": {},
-            "customBooks": {}, "quiz": {}, "quizExamples": {},
+            "customBooks": {}, "customThemes": [], "quiz": {}, "quizExamples": {},
             "settings": { "plan": {}, "activeBook": "六级",
                           "studyPanel": {}, "studyPanelOrder": [], "theme": "blue",
                           "autoSpeak": false, "preferAudio": true, "ttsRate": 1, "ttsLang": "",
@@ -454,6 +455,7 @@
 | `views` | n 相加、first 取早、last 取晚 | 先清空再还原 |
 | `errors` | count 取大、last 取晚 | 先清空再还原 |
 | `favorites` / `favGroups` | 按词覆盖 / 组名并集 | 先清空再还原 |
+| `customThemes` | 按 id 并集：words 合并去重，name 取 ts 较新者 | 先清空再还原 |
 | `history` | 合并去重、按 ts 降序截 100 | 先清空再合并 |
 | `quiz` | 能力按答题数加权、计数相加、历史累加 | 配置校验后重置、历史清空再累加 |
 | `fsrs` | 仅本地 count 为空时接收 | 接收 |

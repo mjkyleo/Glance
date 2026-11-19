@@ -14,13 +14,13 @@
 
 | 模块文件 | 行数 | 职责 |
 |---|---|---|
-| [app.js](../app/js/app.js) | 3379 | UI 渲染、交互、会话编排、设置、导航返回栈 |
+| [app.js](../app/js/app.js) | 3909 | UI 渲染、交互、会话编排、设置、导航返回栈 |
 | [quiz.js](../app/js/quiz.js) | 797 | 测试引擎：组卷、难度、干扰项、约束 |
 | [store.js](../app/js/store.js) | 694 | 持久化 + 学习域逻辑（SRS 状态、计划、日志、收藏） |
 | [library.js](../app/js/library.js) | 586 | 词书组织、词条富化、官方考纲、对比、真题词频与选词填空、过滤词集 |
 | [dictionary.js](../app/js/dictionary.js) | 632 | 外部词典：4 内置源 + 自定义端点、逐源开关、并行合并去重、按词缓存与全网失败兜底 |
 | [platform.js](../app/js/platform.js) | 308 | 平台适配（存储/网络/发音/文件/镜像/震动） |
-| [themes.js](../app/js/themes.js) | 257 | 专项主题分类器（29 静态主题 + 7 真题选词填空牌组） |
+| [themes.js](../app/js/themes.js) | 264 | 专项主题分类器（29 静态主题 + 7 真题选词填空牌组 + 自定义词组注册） |
 | [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
 | [ai.js](../app/js/ai.js) | 142 | 大模型按词讲解（13 商用服务商 + 2 个 DEV-ONLY 免费预设） |
 
@@ -111,20 +111,24 @@
 
 ### 3.1 词根家族导航 ✅
 
-- 词根列表 [app.js:1228 renderRoots](../app/js/app.js#L1228)，家族详情 [app.js:1293 openFamily](../app/js/app.js#L1293)，数据 `getFamily`（[library.js:416](../app/js/library.js#L416)），源 `roots.json` / `roottrees.json`。
+- 词根列表 [app.js:1203 renderRoots](../app/js/app.js#L1203)，家族详情 [app.js:1268 openFamily](../app/js/app.js#L1268)，数据 `getFamily`（[library.js:416](../app/js/library.js#L416)），源 `roots.json` / `roottrees.json`。
+- **紧凑单行排列（2026-11-19）**：词根 + 释义同行 + 词数徽标，行高 44px（触控达标），一屏约 14 条（改造前 8 条）;学习进度改为行底 3px 细线，不额外占高（[app.css .row.compact](../app/css/app.css)）。
 
 ### 3.2 词缀浏览 ✅
 
-- 词缀列表 [app.js:1259 renderAffixes](../app/js/app.js#L1259)，词缀详情 [app.js:1668 openAffixSheet](../app/js/app.js#L1668)，点击词素跳转 [app.js:1663 openAffixByChip](../app/js/app.js#L1663)，源 `affixes.json`（3,100 条）。
+- 词缀列表 [app.js:1234 renderAffixes](../app/js/app.js#L1234)，词缀详情 [app.js:1766 openAffixSheet](../app/js/app.js#L1766)，点击词素跳转 [app.js:1761 openAffixByChip](../app/js/app.js#L1761)，源 `affixes.json`（3,100 条）。同样采用紧凑单行排列，前缀/后缀徽标内联在词缀名后。
 
 ### 3.3 词根/词缀学习进度条 ✅
 
-- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1209 learnProgress](../app/js/app.js#L1209)、[app.js:1215 attachRowProgress](../app/js/app.js#L1215)）。
+- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1183 learnProgress](../app/js/app.js#L1183)、[app.js:1189 attachRowProgress](../app/js/app.js#L1189)）;紧凑行下进度条绝对定位于行底。
 
 ### 3.4 专项主题分类 ✅
 
-- 离线分类器 [themes.js](../app/js/themes.js)：29 个静态主题（动物/家居/动作/经济/科技/自然/中国文化等），按中英释义命中归类（[themes.js:195-244 init](../app/js/themes.js#L195-L244)）。
-- 主题浏览 [app.js:1328-1358 renderThemes](../app/js/app.js#L1328-L1358)，主题详情 + 专项学习 [app.js:1414-1421 openThemeSheet](../app/js/app.js#L1414-L1421)。
+- 离线分类器 [themes.js](../app/js/themes.js)：29 个静态主题（动物/家居/动作/经济/科技/自然/中国文化等），按中英释义命中归类（[themes.js:201-250 init](../app/js/themes.js#L201-L250)）。
+- 主题浏览 [app.js:1342 renderThemes](../app/js/app.js#L1342)，主题详情 + 专项学习 [app.js:1430 openThemeSheet](../app/js/app.js#L1430)。
+- **考试专项子分组（2026-11-19）**：拆为「选词填空真题牌组」（7 牌组 + hero 入口）与「翻译与作文话题」（3 主题）两个子组，不再 10 卡平铺。
+- **卡面掌握进度**：每张主题卡显示进度条 + 「已掌握 x/y」，与词书行同一 SRS 口径（[app.js:1303 themeCard](../app/js/app.js#L1303)）。
+- **自定义专项词组**：专项页「我的分组」区可创建分组（≤20 字、同名拒绝）;词卡「＋ 分组」逐词收词、主题详情「全部收入分组」批量收词（嵌套选择器弹层，可新建并立即收入）;分组详情支持管理删词 / 重命名 / 删除分组 / 专项学习，复用主题详情与学习会话（[app.js:1507-1560](../app/js/app.js#L1507-L1560)、[store.js:320-365](../app/js/store.js#L320-L365)、[themes.js:150-153 setCustom](../app/js/themes.js#L150-L153)）。数据 `Store.customThemes` 随备份导出导入（§6）。
 
 ### 3.5 六级选词填空真题选项库（考试专项）✅
 
@@ -264,7 +268,7 @@
 
 ### 9.2 设置中心 ✅
 
-- 设置并入「我的」，六项平铺紧凑列表，点哪开哪（[app.js:2205-2221 renderMe](../app/js/app.js#L2205-L2221)、[app.js:2743-2751 showSettingsPane](../app/js/app.js#L2743-L2751)、[app.js:2752-2785 openSettings](../app/js/app.js#L2752-L2785)）：学习与测试、外观与主题、发音、词典、AI 解释、数据备份。
+- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2716 SETTINGS_PANES](../app/js/app.js#L2716)、[app.js:2837 showSettingsPane](../app/js/app.js#L2837)、[app.js:2846 openSettings](../app/js/app.js#L2846)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
 
 ---
 
@@ -297,6 +301,14 @@
 - **三级判分**：`answers` 有官方答案→自动判分（字段留位待补）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[app.js:3309 起](../app/js/app.js#L3309)）。
 - **持久化**：Store `exams` 块（每题作答/判定/模式/时间、完成记录、错题 ≤300、AI 缓存 ≤300），导出导入纳入且剔除密钥规则不变（[store.js:331](../app/js/store.js#L331)）。
 - 入口：专项视图顶部「真题刷题」;详见 DEVELOPMENT §8.37。
+
+### 10.6 空间利用率与自定义分组（2026-11-19）✅
+
+- **词根/词缀紧凑单行**：44px 行高、释义同行省略、进度细线行底，一屏 8→14 条;360px 窄屏无溢出（实测）。
+- **设置四入口**：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;AI 解释缓存独立浏览入口;关于移页脚（§9.2）。
+- **考试专项子分组 + 卡面进度**：选词填空真题牌组 / 翻译与作文话题两子组;全部主题卡显示掌握进度（§3.4）。
+- **自定义专项词组**：创建/收词（逐词+批量）/管理删词/重命名/删除/专项学习，备份导出导入纳入（§3.4、DATA §5/§6）。
+- 验证：`.scratch/ui-opt-e2e.cjs` 40/40（含嵌套弹层、持久化、导出导入、360 溢出、零未捕获错误）+ 全应用回归 50/50 + 三道 verify 门。
 
 ---
 
@@ -430,7 +442,7 @@
 | AI | 13 商用服务商 + 2 免费预设（DEV-ONLY）+ 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:1733-1772 / app.js:1946-2039 / app.js:2785-2829 / app.js:3151-3156 |
 | 发音 | 真人音频优先 + 原生/Web TTS | ✅ | platform.js:53 |
 | 统计 | 日历/掌握/正确率/趋势/接触榜 | ✅ | app.js:2223-2402 |
-| 我的 | 头像昵称 + 设置中心 | ✅ | app.js:2157-2740 |
+| 我的 | 头像昵称 + 四入口设置中心 + AI 解释缓存 | ✅ | app.js:2253-2846 |
 | 外观 | 8 主题 + 壁纸 + 透明度 | ✅ | app.js:88-175 |
 | 数据 | 导出导入 + 存储位置 + 镜像 + Key 加密 | ✅ | store.js / main.js / platform.js |
 | 平台 | Electron/Android/浏览器 + CI/CD | ✅ | main.js / android-build.yml |
