@@ -37,3 +37,8 @@ kymy_vocabulary.scratchstorage-aes-test/
 # AOCI agent host integration (machine-bound; do not commit)
 .mcp.json
 .mcp.json.backup.*
+
+# Local agent tooling (reproducible via `npx skills add Owl-Listener/designer-skills`)
+.agents/
+.claude/
+skills-lock.json
