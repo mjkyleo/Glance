@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-19T04:24:29Z",
+  "updated_at": "2026-11-19T06:02:40Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     ".gitignore": {
       "role": "index",
-      "sha256": "c1a435851f29be1c3589ad9fa3b34b22aff1c341b2fa4eefd03eb39115dc30b7",
-      "size": 794,
-      "normalized_sha256": "133df6bda99621ddaf60dbee32371feb4f9b33ff368916dd170d9668628fb4da"
+      "sha256": "8eeea2c15792d4340f9134dc38c39da7af45526cab9a8a0a342f6033575c909c",
+      "size": 926,
+      "normalized_sha256": "6d2266c933213df24098f74e5020db1b058059737a1955604bf8ee881751c7d4"
     },
     "AGENTS.md": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     "DEVELOPMENT.md": {
       "role": "index",
-      "sha256": "37c693cf2ba64323e7db166a4ffe2795a3376029b00517990deb8cdc459f1ec3",
-      "size": 160878,
-      "normalized_sha256": "31f056434a24ad5b682188665851bcd929cdc2bc1d5b01c3f6582049b9a2ab8b"
+      "sha256": "1678f986601003e14b6e4964f03d23ef88c2aa44185ff96db4e5bb4f395876f4",
+      "size": 167127,
+      "normalized_sha256": "611562b33c2815b59b868a314add4a93e582b630d2cb43bd42496ac669ab4283"
     },
     "README.md": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "139e40bb4edc56519db7a1f7fc57076c63a32deb4cf89aad5734be56ecd36125",
-      "size": 38384,
-      "normalized_sha256": "139e40bb4edc56519db7a1f7fc57076c63a32deb4cf89aad5734be56ecd36125"
+      "sha256": "c8d709d7189699b12bb9fa24f0ed16f775e15e70a536608dc276e45b4eb745a9",
+      "size": 38766,
+      "normalized_sha256": "c8d709d7189699b12bb9fa24f0ed16f775e15e70a536608dc276e45b4eb745a9"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -374,9 +374,9 @@
     },
     "app/css/app.css": {
       "role": "index",
-      "sha256": "9a17301018e86c655f8d5a3bee68979467df964799265739e8898678f2ea6643",
-      "size": 99885,
-      "normalized_sha256": "9a17301018e86c655f8d5a3bee68979467df964799265739e8898678f2ea6643"
+      "sha256": "48375a45da3f9e3b208cc0f031d0867036bb92d308bc2bc69800aa82affc991e",
+      "size": 100609,
+      "normalized_sha256": "48375a45da3f9e3b208cc0f031d0867036bb92d308bc2bc69800aa82affc991e"
     },
     "app/data/affixes.json": {
       "role": "index",
@@ -450,9 +450,9 @@
     },
     "app/index.html": {
       "role": "index",
-      "sha256": "d5524c28038df6886c8c6db457229c954151cda1282e668abb03a614ec1f89b0",
-      "size": 60158,
-      "normalized_sha256": "32ed790c376986ec63dc9aba057c9906c5d199d63bca1618685eee6cf9cec2ef"
+      "sha256": "5c944ca48869dfa52e89352ddfb50703c3bc5d444c604e7039e086f1689ec9c8",
+      "size": 60254,
+      "normalized_sha256": "e2412c460a35ceb96dd2b70f52ddae8f9fcf0d215d1e0d263b45c66affdafa1b"
     },
     "app/js/ai.js": {
       "role": "index",
@@ -462,9 +462,9 @@
     },
     "app/js/app.js": {
       "role": "index",
-      "sha256": "509830ae79f6a15cdfe0d96dc0f59e121343e84f46c928a510ddc4b460f3f4df",
-      "size": 154144,
-      "normalized_sha256": "509830ae79f6a15cdfe0d96dc0f59e121343e84f46c928a510ddc4b460f3f4df"
+      "sha256": "3b0e15a37d3781b90dbabbc63172ca650066c79fd82cd4c2f3f50c5ffce6ec7e",
+      "size": 156967,
+      "normalized_sha256": "3b0e15a37d3781b90dbabbc63172ca650066c79fd82cd4c2f3f50c5ffce6ec7e"
     },
     "app/js/dictionary.js": {
       "role": "index",
@@ -498,9 +498,9 @@
     },
     "app/js/store.js": {
       "role": "index",
-      "sha256": "2fafdedddd6ad6ff3ee832d97627926415e9a08de9b5cb23c5132de74424560c",
-      "size": 35789,
-      "normalized_sha256": "95d60fc8dd4212d587db5b252e22dfea7a6e6010a2de8cea22d66e2c0a9e46c7"
+      "sha256": "d491949248ff20498b63e6e7b66325b04d897a6c3669b57e6819e7937ddf2b78",
+      "size": 35873,
+      "normalized_sha256": "0cef805226ff3008ada3f5398ccf1f31fe7573c3e09b3cea8a0a4aac0eb9c78e"
     },
     "app/js/themes.js": {
       "role": "index",
@@ -631,9 +631,9 @@
     },
     "docs/FEATURES.md": {
       "role": "index",
-      "sha256": "df1e2501deaee9eeb92f23f72f533ce140da2d17e09e04952d837820a293f127",
-      "size": 46992,
-      "normalized_sha256": "ff86f5b49a7254548791989378abf128070cd47bf088feebd5bff1c9e50d01fa"
+      "sha256": "927faae3c4a65a1de5bc52cf4993c8bf4badac8aad35ada1fa5be8f7c68a73c3",
+      "size": 48152,
+      "normalized_sha256": "10fdc6fd0b386d6023d8a0399b742ea43d8b24d9481e853f7f39a0b6df595859"
     },
     "docs/FSRS-CONTRAST.md": {
       "role": "index",
