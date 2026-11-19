@@ -145,7 +145,13 @@
   // Decks derived from the 六级选词填空真题 corpus (app/data/cloze.json). They lead the
   // 考试专项 group because they are the actual A–O options the exam printed.
   let clozeThemes = [];
-  function allThemes() { return clozeThemes.concat(THEMES); }
+  // User-created study groups live in Store.customThemes; registered here so the
+  // regular theme sheet / study flow works on them without a second code path.
+  let customRaw = [];
+  function customThemes() { return customRaw.map(t => ({ id: t.id, name: t.name, group: 'custom', desc: '', custom: true })); }
+  function registerCustom() { customRaw.forEach(t => { byTheme[t.id] = (t.words || []).slice(); }); }
+  function setCustom(list) { customRaw = Array.isArray(list) ? list : []; registerCustom(); }
+  function allThemes() { return clozeThemes.concat(THEMES, customThemes()); }
 
   // Gloss words too generic to prove a topic on their own: they show up in unrelated
   // definitions ("it is dark outside" for night, "very light element" for helium).
@@ -240,10 +246,11 @@
       byTheme[t.id] = arr;
       arr.forEach(w => { (wordThemes[w] = wordThemes[w] || []).push(t.id); });
     }
+    registerCustom();
     ready = true;
   }
 
-  function meta(t) { return { id: t.id, name: t.name, group: t.group, desc: t.desc || '', n: (byTheme[t.id] || []).length, cloze: t.cloze || '' }; }
+  function meta(t) { return { id: t.id, name: t.name, group: t.group, desc: t.desc || '', n: (byTheme[t.id] || []).length, cloze: t.cloze || '', custom: !!t.custom }; }
   function list() { return allThemes().map(meta); }
   function groups() {
     return GROUPS.map(g => ({ id: g.id, name: g.name, themes: allThemes().filter(t => t.group === g.id).map(meta) }));
@@ -253,5 +260,5 @@
   function themesOf(word) { return (wordThemes[word] || []).slice(); }
   function isReady() { return ready; }
 
-  window.Themes = { init, list, groups, get, wordsOf, themesOf, isReady, GROUPS };
+  window.Themes = { init, setCustom, list, groups, get, wordsOf, themesOf, isReady, GROUPS };
 })();

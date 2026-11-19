@@ -1442,3 +1442,33 @@ button:disabled { opacity: 0.45; cursor: default; }
 .exam-result-cell.ok b { color: var(--green-fg); }
 .exam-result-cell.bad b { color: var(--orange-fg); }
 .exam-wrong-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; margin-bottom: 6px; border-radius: var(--r-field); background: var(--fill); font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+
+/* ===== compact root/affix rows ===== */
+.row.compact { position: relative; padding: 12px 14px; min-height: 44px; }
+.row.compact .row-main { flex-direction: row; align-items: baseline; gap: 8px; }
+.row.compact .row-title { flex: 0 0 auto; }
+.row.compact .row-sub { flex: 1 1 auto; min-width: 0; }
+.row.compact .row-badge { padding: 3px 8px; }
+.row-progress-abs { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 3px; margin-top: 0; }
+.compact-gap { gap: 6px; }
+
+/* ===== theme groups & cards ===== */
+.theme-group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.theme-group-head .section-label { margin: 4px 2px; }
+.theme-group-head .link-btn { min-height: 32px; padding: 0 6px; }
+.section-sublabel { font-size: 11.5px; font-weight: var(--fw-label); color: var(--text-3); letter-spacing: var(--track-label); margin: 10px 2px 6px; }
+.theme-card-progress-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.theme-card-progress { flex: 1 1 auto; min-width: 32px; height: 4px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.theme-card-progress-fill { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width 0.35s var(--ease-ui); }
+.theme-card-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.theme-card-foot { justify-content: flex-start; width: 100%; }
+.theme-card-master { flex: 0 0 auto; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.theme-card-hits { white-space: nowrap; }
+.cloze-pill { white-space: nowrap; }
+.theme-card.custom { border-left: 3px solid var(--accent); }
+.theme-card.custom .theme-card-count { color: var(--accent-fg); background: var(--accent); }
+
+/* ===== sheets & me footer ===== */
+.sheet-foot-wrap { flex-wrap: wrap; }
+.sheet-foot-wrap .btn-primary { flex: 1 1 100%; }
+.me-about { padding-top: 0; font-size: 11.5px; }

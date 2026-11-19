@@ -9,6 +9,7 @@
     views: {},
     favorites: {},
     favGroups: ['默认'],
+    customThemes: [],
     history: [],
     errors: {},
     customBooks: {},
@@ -117,6 +118,7 @@
     d.profile.nickname = typeof d.profile.nickname === 'string' ? d.profile.nickname.trim().slice(0, 16) : '';
     d.profile.avatar = typeof d.profile.avatar === 'string' && /^data:image\/[a-z]+;base64,/i.test(d.profile.avatar) ? d.profile.avatar : '';
     if (!Array.isArray(d.favGroups) || !d.favGroups.length) d.favGroups = ['默认'];
+    d.customThemes = normalizeCustomThemes(d.customThemes);
     if (!Array.isArray(d.history)) d.history = [];
     if (!d.views || typeof d.views !== 'object') d.views = {};
     if (!d.studyPanel || typeof d.studyPanel !== 'object' || Array.isArray(d.studyPanel)) d.studyPanel = {};
@@ -312,6 +314,51 @@
   function addFavGroup(name) {
     name = String(name || '').trim();
     if (name && !data.favGroups.includes(name)) { data.favGroups.push(name); save(); }
+  }
+
+  // custom theme groups (自定义专项词组)
+  function normalizeCustomThemes(raw) {
+    if (!Array.isArray(raw)) return [];
+    const out = [], ids = new Set();
+    raw.forEach(t => {
+      if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !t.id || ids.has(t.id)) return;
+      const name = typeof t.name === 'string' ? t.name.trim().slice(0, 20) : '';
+      if (!name) return;
+      const words = [];
+      (Array.isArray(t.words) ? t.words : []).forEach(w => { if (typeof w === 'string' && w && !words.includes(w)) words.push(w); });
+      ids.add(t.id);
+      out.push({ id: t.id, name, words, ts: +t.ts || 0 });
+    });
+    return out;
+  }
+  function customThemes() { return data.customThemes; }
+  function createCustomTheme(name) {
+    name = String(name || '').trim().slice(0, 20);
+    if (!name) return { ok: false, error: '分组名不能为空' };
+    if (data.customThemes.some(t => t.name === name)) return { ok: false, error: '已有同名分组' };
+    const t = { id: 'ct_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, words: [], ts: Date.now() };
+    data.customThemes.push(t); save();
+    return { ok: true, theme: t };
+  }
+  function renameCustomTheme(id, name) {
+    name = String(name || '').trim().slice(0, 20);
+    const t = data.customThemes.find(x => x.id === id);
+    if (!t || !name || data.customThemes.some(x => x.id !== id && x.name === name)) return false;
+    t.name = name; t.ts = Date.now(); save(); return true;
+  }
+  function removeCustomTheme(id) { data.customThemes = data.customThemes.filter(t => t.id !== id); save(); }
+  function addWordsToCustomTheme(id, words) {
+    const t = data.customThemes.find(x => x.id === id);
+    if (!t) return 0;
+    let n = 0;
+    (Array.isArray(words) ? words : [words]).forEach(w => { if (typeof w === 'string' && w && !t.words.includes(w)) { t.words.push(w); n++; } });
+    if (n) { t.ts = Date.now(); save(); }
+    return n;
+  }
+  function removeWordFromCustomTheme(id, word) {
+    const t = data.customThemes.find(x => x.id === id);
+    if (!t) return;
+    t.words = t.words.filter(w => w !== word); t.ts = Date.now(); save();
   }
 
   // search history
@@ -600,6 +647,7 @@
         favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
         customBooks: clone(data.customBooks || {}),
+        customThemes: clone(data.customThemes || []),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
         exams: clone(data.exams || { progress: {}, wrong: [], aiCache: {} }),
         settings: {
@@ -674,7 +722,7 @@
 
     if (replace) {
       data.srs = {}; data.logs = {}; data.views = {}; data.favorites = {}; data.errors = {};
-      data.history = []; data.favGroups = ['默认']; data.aiCache = {}; data.dictCache = {};
+      data.history = []; data.favGroups = ['默认']; data.customThemes = []; data.aiCache = {}; data.dictCache = {};
       data.quizExamples = {};
       data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
       data.exams = { progress: {}, wrong: [], aiCache: {} };
@@ -699,6 +747,14 @@
       }
       if (Array.isArray(src.favGroups)) {
         src.favGroups.forEach(g => { if (typeof g === 'string' && g.trim() && !data.favGroups.includes(g)) data.favGroups.push(g); });
+      }
+      if (Array.isArray(src.customThemes)) {
+        normalizeCustomThemes(src.customThemes).forEach(t => {
+          const cur = data.customThemes.find(x => x.id === t.id);
+          if (!cur) { data.customThemes.push(t); return; }
+          t.words.forEach(w => { if (!cur.words.includes(w)) cur.words.push(w); });
+          if (t.ts > cur.ts) { cur.name = t.name; cur.ts = t.ts; }
+        });
       }
       if (Array.isArray(src.history)) data.history = mergeHistory(data.history, src.history);
       if (isObj(src.errors)) for (const w of Object.keys(src.errors)) {
@@ -798,6 +854,7 @@
     load, save, flush, setFlushHook, get data() { return data; },
     today, dateKey, getLog, recordGrade, planProgress, streak, mastery, trend,
     isFavorite, addFavorite, removeFavorite, favoriteWords, addFavGroup,
+    customThemes, createCustomTheme, renameCustomTheme, removeCustomTheme, addWordsToCustomTheme, removeWordFromCustomTheme,
     addHistory, clearHistory, addError, clearError, errorWords,
     recordView, viewInfo, viewCount, topViews, totalViews, viewedWordCount,
     exportData, importData,
