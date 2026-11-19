@@ -314,6 +314,8 @@
 
   // search history
   function addHistory(word) {
+    if (typeof word !== 'string' || !word.trim()) return;
+    word = word.trim();
     data.history = data.history.filter(h => h.word !== word);
     data.history.unshift({ word, ts: Date.now() });
     if (data.history.length > 100) data.history.length = 100;

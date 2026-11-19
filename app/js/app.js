@@ -225,15 +225,63 @@
   let nestedSheetEl = null;
   let nestedCloseTimer = 0;
   let profileDraft = null;
+  let sheetReturnFocus = null;
+  let nestedReturnFocus = null;
+  function sheetDurMs() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--dur-slow').trim();
+    const n = parseFloat(v);
+    if (!isNaN(n) && n > 0) return /ms\s*$/.test(v) ? n : n * 1000;
+    return 300;
+  }
+  function sheetFocusables(s) {
+    return Array.from(s.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+      .filter(el => !el.disabled && el.offsetParent !== null);
+  }
+  function focusSheet(s) {
+    s.setAttribute('role', 'dialog');
+    s.setAttribute('aria-modal', 'true');
+    if (!s.hasAttribute('tabindex')) s.setAttribute('tabindex', '-1');
+    setTimeout(() => { try { s.focus({ preventScroll: true }); } catch {} }, 0);
+  }
+  function releaseSheet(s) {
+    s.removeAttribute('aria-modal');
+    s.removeAttribute('role');
+  }
+  function setAppInert(on) {
+    const app = document.querySelector('.app');
+    if (app) app.inert = on;
+  }
+  function trapSheetFocus(e) {
+    if (e.key !== 'Tab') return;
+    const s = nestedSheetEl || openSheetEl;
+    if (!s) return;
+    const f = sheetFocusables(s);
+    if (!f.length) { e.preventDefault(); return; }
+    const first = f[0], last = f[f.length - 1];
+    const active = document.activeElement;
+    if (!s.contains(active)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+  }
+  document.addEventListener('keydown', trapSheetFocus);
+  function announce(msg) {
+    const n = $('sr-status');
+    if (!n) return;
+    n.textContent = '';
+    requestAnimationFrame(() => { n.textContent = msg; });
+  }
   function openSheet(id) {
     closeNestedSheet();
     closeSheet(true);
     const s = $(id);
+    sheetReturnFocus = document.activeElement;
     s.hidden = false;
     const bd = $('sheet-backdrop');
     bd.hidden = false;
+    setAppInert(true);
     requestAnimationFrame(() => { s.classList.add('show'); bd.classList.add('show'); });
     openSheetEl = s;
+    focusSheet(s);
   }
   function closeSheet(instant) {
     if (nestedSheetEl) closeNestedSheet();
@@ -243,17 +291,26 @@
       s.classList.remove('show');
       bd.classList.remove('show');
       openSheetEl = null;
-      if (instant) { s.hidden = true; bd.hidden = true; }
-      else setTimeout(() => { s.hidden = true; if (!openSheetEl) bd.hidden = true; }, 280);
-    } else { bd.hidden = true; }
+      releaseSheet(s);
+      setAppInert(false);
+      const restore = sheetReturnFocus; sheetReturnFocus = null;
+      const done = () => {
+        s.hidden = true; if (!openSheetEl) bd.hidden = true;
+        if (restore && document.contains(restore) && !openSheetEl) { try { restore.focus({ preventScroll: true }); } catch {} }
+      };
+      if (instant) done();
+      else setTimeout(done, sheetDurMs());
+    } else { bd.hidden = true; setAppInert(false); }
   }
   function openNestedSheet(id) {
     clearTimeout(nestedCloseTimer);
     const s = $(id), bd = $('sheet-backdrop-nested');
+    nestedReturnFocus = document.activeElement;
     s.hidden = false;
     bd.hidden = false;
     requestAnimationFrame(() => { s.classList.add('show'); bd.classList.add('show'); });
     nestedSheetEl = s;
+    focusSheet(s);
   }
   function closeNestedSheet() {
     clearTimeout(nestedCloseTimer);
@@ -262,7 +319,12 @@
     if (!s) { bd.hidden = true; return; }
     s.classList.remove('show');
     bd.classList.remove('show');
-    nestedCloseTimer = setTimeout(() => { s.hidden = true; bd.hidden = true; }, 280);
+    releaseSheet(s);
+    const restore = nestedReturnFocus; nestedReturnFocus = null;
+    nestedCloseTimer = setTimeout(() => {
+      s.hidden = true; bd.hidden = true;
+      if (restore && document.contains(restore)) { try { restore.focus({ preventScroll: true }); } catch {} }
+    }, sheetDurMs());
   }
 
   // ===================== active book =====================
@@ -555,6 +617,7 @@
     if (!item || mode !== 'study') return;
     const elapsed = Date.now() - renderTs;
     Store.recordGrade(item.entry.word, item.kind, g, elapsed);
+    announce((g === SRS.GRADE.KNOW ? '认识' : g === SRS.GRADE.FUZZY ? '模糊' : '忘记') + '：' + item.entry.word);
     Platform.haptic(g === SRS.GRADE.KNOW ? 'success' : g === SRS.GRADE.FUZZY ? 'warn' : 'error');
     const btn = g === SRS.GRADE.KNOW ? $('grade-know') : g === SRS.GRADE.FUZZY ? $('grade-fuzzy') : $('grade-forgot');
     btn.style.transform = 'scale(0.9)'; setTimeout(() => { btn.style.transform = ''; }, 130);
@@ -931,10 +994,12 @@
     if (isCorrect) {
       fb.className = 'quiz-feedback ok';
       fb.textContent = q.type === 'cloze' || q.type === 'audio2word' ? '回答正确 · ' + q.correct : '回答正确';
+      announce('回答正确' + (q.type === 'cloze' || q.type === 'audio2word' ? '：' + q.correct : ''));
       scheduleQuizAutoNext();
     } else {
       s.wrong.push({ word: e.word, correct: q.correct, type: q.type });
       fb.hidden = true;
+      announce('回答错误，正确答案：' + q.correct);
       Store.addError(e.word);
       if (!Store.isFavorite(e.word)) Store.addFavorite(e.word, '错题');
       if (!Store.data.favGroups.includes('错题')) { Store.data.favGroups.push('错题'); Store.save(); }
@@ -2017,7 +2082,7 @@
     list.innerHTML = '';
     const h = Store.data.history;
     if (!h.length) { list.appendChild(el('span', 'field-hint', '查过的词会出现在这里')); return; }
-    h.slice(0, 30).forEach(item => {
+    h.filter(item => item && typeof item.word === 'string' && item.word.trim() && item.word !== 'undefined' && item.word !== 'null').slice(0, 30).forEach(item => {
       const c = el('button', 'chip word-chip', item.word); c.type = 'button';
       c.addEventListener('click', () => openWordSheet(item.word, true));
       list.appendChild(c);
