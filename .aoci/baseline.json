@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-19T06:02:40Z",
+  "updated_at": "2026-11-19T08:23:39Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -35,15 +35,15 @@
     },
     "DEVELOPMENT.md": {
       "role": "index",
-      "sha256": "1678f986601003e14b6e4964f03d23ef88c2aa44185ff96db4e5bb4f395876f4",
-      "size": 167127,
-      "normalized_sha256": "611562b33c2815b59b868a314add4a93e582b630d2cb43bd42496ac669ab4283"
+      "sha256": "07516560c056d88eb0be8b18130bba39858b8378d387888bde5e6708d3af9329",
+      "size": 173934,
+      "normalized_sha256": "b195a67c04dfde88ced54b740ecc6fd68154255cecd8eb2bd20aeb372087ba1a"
     },
     "README.md": {
       "role": "index",
-      "sha256": "aaedbd54e7ed52dec132e17528273b5553a35dbeddd67aa1de9a1287fe5d8c05",
-      "size": 32331,
-      "normalized_sha256": "aaedbd54e7ed52dec132e17528273b5553a35dbeddd67aa1de9a1287fe5d8c05"
+      "sha256": "3697dadfba3ae6c1a5436003152bd9f6d9b401fc99577e89cc6a59d11057791a",
+      "size": 33227,
+      "normalized_sha256": "3697dadfba3ae6c1a5436003152bd9f6d9b401fc99577e89cc6a59d11057791a"
     },
     "android/.gitignore": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "c8d709d7189699b12bb9fa24f0ed16f775e15e70a536608dc276e45b4eb745a9",
-      "size": 38766,
-      "normalized_sha256": "c8d709d7189699b12bb9fa24f0ed16f775e15e70a536608dc276e45b4eb745a9"
+      "sha256": "0c53c118a7d6b34c60db2d171fce660756d3a70e55b41c4967d141635259b516",
+      "size": 60370,
+      "normalized_sha256": "0c53c118a7d6b34c60db2d171fce660756d3a70e55b41c4967d141635259b516"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -374,9 +374,9 @@
     },
     "app/css/app.css": {
       "role": "index",
-      "sha256": "48375a45da3f9e3b208cc0f031d0867036bb92d308bc2bc69800aa82affc991e",
-      "size": 100609,
-      "normalized_sha256": "48375a45da3f9e3b208cc0f031d0867036bb92d308bc2bc69800aa82affc991e"
+      "sha256": "cd3a712c610714dfdb205eb335841b9c35d8789fe4727df3a30302b9824f7e79",
+      "size": 108367,
+      "normalized_sha256": "cd3a712c610714dfdb205eb335841b9c35d8789fe4727df3a30302b9824f7e79"
     },
     "app/data/affixes.json": {
       "role": "index",
@@ -400,6 +400,390 @@
       "role": "index",
       "sha256": "7804c91aeb307ebd70eac914f79b23236eb6c2d82b2e67a79e8ce85d2155e099",
       "size": 7649162
+    },
+    "app/data/exams/2016-06_01.json": {
+      "role": "index",
+      "sha256": "dc9cb86373ff57c6e71593d231dc1ac126c7fa99c676ad9d272dc0b2a320055a",
+      "size": 27053,
+      "normalized_sha256": "dc9cb86373ff57c6e71593d231dc1ac126c7fa99c676ad9d272dc0b2a320055a"
+    },
+    "app/data/exams/2016-06_02.json": {
+      "role": "index",
+      "sha256": "d39683dd30b0773eaf8e393c7b894700632d77ba12436925d0184f0a95d6fcdb",
+      "size": 13056,
+      "normalized_sha256": "d39683dd30b0773eaf8e393c7b894700632d77ba12436925d0184f0a95d6fcdb"
+    },
+    "app/data/exams/2016-06_03.json": {
+      "role": "index",
+      "sha256": "28f9cc1ce71929c6df3bc85f03f5105145e3cc3a3b10f383f02052fffa108b47",
+      "size": 14904,
+      "normalized_sha256": "28f9cc1ce71929c6df3bc85f03f5105145e3cc3a3b10f383f02052fffa108b47"
+    },
+    "app/data/exams/2016-12_01.json": {
+      "role": "index",
+      "sha256": "f24f201989333d09400801a3ca09d31c77690dfb0936d3dbaa9c1d1598ec5103",
+      "size": 25578,
+      "normalized_sha256": "f24f201989333d09400801a3ca09d31c77690dfb0936d3dbaa9c1d1598ec5103"
+    },
+    "app/data/exams/2016-12_02.json": {
+      "role": "index",
+      "sha256": "70a318d67239341903b48aa07c8db0db57798c64563f36b89b85bf4d8cd256e0",
+      "size": 18830,
+      "normalized_sha256": "70a318d67239341903b48aa07c8db0db57798c64563f36b89b85bf4d8cd256e0"
+    },
+    "app/data/exams/2016-12_03.json": {
+      "role": "index",
+      "sha256": "c60219871f282b3f3f2cb9859fde8c7349a85e0bfc1e030beb4042bc1fd4e3af",
+      "size": 22564,
+      "normalized_sha256": "c60219871f282b3f3f2cb9859fde8c7349a85e0bfc1e030beb4042bc1fd4e3af"
+    },
+    "app/data/exams/2017-06_01.json": {
+      "role": "index",
+      "sha256": "c5dc766e022075e312937370f8fc0befdd3a8729c89ad92977809e174822d2d8",
+      "size": 18165,
+      "normalized_sha256": "c5dc766e022075e312937370f8fc0befdd3a8729c89ad92977809e174822d2d8"
+    },
+    "app/data/exams/2017-06_02.json": {
+      "role": "index",
+      "sha256": "d390cf6c6871543b80d965d55d03c74d980cf69a875c00a7de2848936f3db11c",
+      "size": 17548,
+      "normalized_sha256": "d390cf6c6871543b80d965d55d03c74d980cf69a875c00a7de2848936f3db11c"
+    },
+    "app/data/exams/2017-06_03.json": {
+      "role": "index",
+      "sha256": "5586d2cce8e1e3ed8dcef3e14d2d6b16c6fb3b593456c3f56890c313eecdc212",
+      "size": 14450,
+      "normalized_sha256": "5586d2cce8e1e3ed8dcef3e14d2d6b16c6fb3b593456c3f56890c313eecdc212"
+    },
+    "app/data/exams/2017-12_01.json": {
+      "role": "index",
+      "sha256": "78ae66dfd0a5bf3fdef1cc4a45e5802aecd54326617eb85192682b1d2588391b",
+      "size": 26103,
+      "normalized_sha256": "78ae66dfd0a5bf3fdef1cc4a45e5802aecd54326617eb85192682b1d2588391b"
+    },
+    "app/data/exams/2017-12_02.json": {
+      "role": "index",
+      "sha256": "001110d550a1a10886f819cb68d6cd080adf43e959606c124ad85c3dbbaaea0f",
+      "size": 25397,
+      "normalized_sha256": "001110d550a1a10886f819cb68d6cd080adf43e959606c124ad85c3dbbaaea0f"
+    },
+    "app/data/exams/2017-12_03.json": {
+      "role": "index",
+      "sha256": "f60bbc62a85fd471f9302fc8841c41f9376a6bc965b1c80ce7affc4c8634dc1f",
+      "size": 15039,
+      "normalized_sha256": "f60bbc62a85fd471f9302fc8841c41f9376a6bc965b1c80ce7affc4c8634dc1f"
+    },
+    "app/data/exams/2018-06_01.json": {
+      "role": "index",
+      "sha256": "34ffe7df3802902774f730d119a6738ff44d20bbcbfa5fa0ae2a463f277873e3",
+      "size": 22234,
+      "normalized_sha256": "34ffe7df3802902774f730d119a6738ff44d20bbcbfa5fa0ae2a463f277873e3"
+    },
+    "app/data/exams/2018-06_02.json": {
+      "role": "index",
+      "sha256": "d75a35a36dde60e4c2ace03d1973856ee8c14687baa32abf8fc0426735686cde",
+      "size": 17126,
+      "normalized_sha256": "d75a35a36dde60e4c2ace03d1973856ee8c14687baa32abf8fc0426735686cde"
+    },
+    "app/data/exams/2018-06_03.json": {
+      "role": "index",
+      "sha256": "86149d52f17333fec22bae84b604bbc01369c2393ef786f4970873a0a9ae427b",
+      "size": 21706,
+      "normalized_sha256": "86149d52f17333fec22bae84b604bbc01369c2393ef786f4970873a0a9ae427b"
+    },
+    "app/data/exams/2018-12_01.json": {
+      "role": "index",
+      "sha256": "1f63592ec112302f0f5ee101e986e97537cdf6c8eb9fbb7c36748f4a4e265fe3",
+      "size": 25950,
+      "normalized_sha256": "1f63592ec112302f0f5ee101e986e97537cdf6c8eb9fbb7c36748f4a4e265fe3"
+    },
+    "app/data/exams/2018-12_02.json": {
+      "role": "index",
+      "sha256": "ec32238430ca1a2bf5248d9c52cd6445b5a8e0c8b4c532357231cb697b91128a",
+      "size": 25355,
+      "normalized_sha256": "ec32238430ca1a2bf5248d9c52cd6445b5a8e0c8b4c532357231cb697b91128a"
+    },
+    "app/data/exams/2018-12_03.json": {
+      "role": "index",
+      "sha256": "8fa474739e2eb936bad5b0a2870e1764474db37b9efe87aedab15681fc65bbbb",
+      "size": 20555,
+      "normalized_sha256": "8fa474739e2eb936bad5b0a2870e1764474db37b9efe87aedab15681fc65bbbb"
+    },
+    "app/data/exams/2019-06_01.json": {
+      "role": "index",
+      "sha256": "c97ea5ae8c817fb02dafdb7d54ee10544c5f75d748de3b0ee706eef0f4894f13",
+      "size": 16111,
+      "normalized_sha256": "c97ea5ae8c817fb02dafdb7d54ee10544c5f75d748de3b0ee706eef0f4894f13"
+    },
+    "app/data/exams/2019-06_02.json": {
+      "role": "index",
+      "sha256": "26b82d1f7609c7dea35ec2555d2cd0571ea5b551d6f73ee0279528267f8cdf0a",
+      "size": 22277,
+      "normalized_sha256": "26b82d1f7609c7dea35ec2555d2cd0571ea5b551d6f73ee0279528267f8cdf0a"
+    },
+    "app/data/exams/2019-06_03.json": {
+      "role": "index",
+      "sha256": "7946ea9f08b67a535f172acfc187f97fd4316bb87a9355b48470e19aaec2f132",
+      "size": 13423,
+      "normalized_sha256": "7946ea9f08b67a535f172acfc187f97fd4316bb87a9355b48470e19aaec2f132"
+    },
+    "app/data/exams/2019-12_01.json": {
+      "role": "index",
+      "sha256": "099c9091ae9308f8316a399c850e49193c1114746c48145af8d3abcc536d9396",
+      "size": 10086,
+      "normalized_sha256": "099c9091ae9308f8316a399c850e49193c1114746c48145af8d3abcc536d9396"
+    },
+    "app/data/exams/2019-12_02.json": {
+      "role": "index",
+      "sha256": "2322f3ca1df89027272f3a41d5a9f8096b535ae92cb20f06d211afb1c96407bb",
+      "size": 10821,
+      "normalized_sha256": "2322f3ca1df89027272f3a41d5a9f8096b535ae92cb20f06d211afb1c96407bb"
+    },
+    "app/data/exams/2019-12_03.json": {
+      "role": "index",
+      "sha256": "c4d5bfcf4465b4290a024d90bbf0e5ef578c79bee74eeb747aab1c65ddf6b7ec",
+      "size": 1815,
+      "normalized_sha256": "c4d5bfcf4465b4290a024d90bbf0e5ef578c79bee74eeb747aab1c65ddf6b7ec"
+    },
+    "app/data/exams/2020-07_01.json": {
+      "role": "index",
+      "sha256": "99f023ab1e450c04a7a58e8b0a20c7bdaeb545fc0f0e365e5b5d92f98152db73",
+      "size": 10359,
+      "normalized_sha256": "99f023ab1e450c04a7a58e8b0a20c7bdaeb545fc0f0e365e5b5d92f98152db73"
+    },
+    "app/data/exams/2020-09_01.json": {
+      "role": "index",
+      "sha256": "829c4f6df6222604ba614ffdd9d6a39e39510e19f5bd779910bc9fc7508ba080",
+      "size": 8389,
+      "normalized_sha256": "829c4f6df6222604ba614ffdd9d6a39e39510e19f5bd779910bc9fc7508ba080"
+    },
+    "app/data/exams/2020-09_02.json": {
+      "role": "index",
+      "sha256": "65f4e20a6ad1af238260de635195fddbc9a48d14263e1cf55998a0934402dd0c",
+      "size": 3566,
+      "normalized_sha256": "65f4e20a6ad1af238260de635195fddbc9a48d14263e1cf55998a0934402dd0c"
+    },
+    "app/data/exams/2020-12_01.json": {
+      "role": "index",
+      "sha256": "7fdcf776c7846688bb594014d51141d6bfacff121dd8e290b3e85913582c5084",
+      "size": 8101,
+      "normalized_sha256": "7fdcf776c7846688bb594014d51141d6bfacff121dd8e290b3e85913582c5084"
+    },
+    "app/data/exams/2020-12_02.json": {
+      "role": "index",
+      "sha256": "eb730cc80d59476c996ed4e71d71b40ced9a8d773e203e01c212027cf67744d7",
+      "size": 21699,
+      "normalized_sha256": "eb730cc80d59476c996ed4e71d71b40ced9a8d773e203e01c212027cf67744d7"
+    },
+    "app/data/exams/2020-12_03.json": {
+      "role": "index",
+      "sha256": "4dd164a58f5ef2c3f7c91a5c0630b0f698450a82e37a1e0c7acd8a04834d2eec",
+      "size": 15656,
+      "normalized_sha256": "4dd164a58f5ef2c3f7c91a5c0630b0f698450a82e37a1e0c7acd8a04834d2eec"
+    },
+    "app/data/exams/2021-06_01.json": {
+      "role": "index",
+      "sha256": "712cfaf358281e8c0412e5cdde63e6979d370543f996b7be719547dbd2e4c197",
+      "size": 15239,
+      "normalized_sha256": "712cfaf358281e8c0412e5cdde63e6979d370543f996b7be719547dbd2e4c197"
+    },
+    "app/data/exams/2021-06_02.json": {
+      "role": "index",
+      "sha256": "d7662b4477879b368fb29dcf15d7974a07b189bc4d27f6d3e134dcfa934cb119",
+      "size": 14257,
+      "normalized_sha256": "d7662b4477879b368fb29dcf15d7974a07b189bc4d27f6d3e134dcfa934cb119"
+    },
+    "app/data/exams/2021-06_03.json": {
+      "role": "index",
+      "sha256": "68bc0fbb22cf81522b3c4b5b64e590c48146b257a02a38ebb58790ee6508cea9",
+      "size": 8995,
+      "normalized_sha256": "68bc0fbb22cf81522b3c4b5b64e590c48146b257a02a38ebb58790ee6508cea9"
+    },
+    "app/data/exams/2021-12_01.json": {
+      "role": "index",
+      "sha256": "7ab9292199996ac76a1936540caff26cd64b0b1b92534b572625dfd57598e391",
+      "size": 11445,
+      "normalized_sha256": "7ab9292199996ac76a1936540caff26cd64b0b1b92534b572625dfd57598e391"
+    },
+    "app/data/exams/2021-12_02.json": {
+      "role": "index",
+      "sha256": "d1bc2cb32691b9bb776a28bb7c6eb5a542e81ec097bf8a4dd6a877b158457638",
+      "size": 10373,
+      "normalized_sha256": "d1bc2cb32691b9bb776a28bb7c6eb5a542e81ec097bf8a4dd6a877b158457638"
+    },
+    "app/data/exams/2021-12_03.json": {
+      "role": "index",
+      "sha256": "653f1a0a5efc270e4e87850b1ce884919d79b599b2e02387d4a2ab72f1e61345",
+      "size": 4919,
+      "normalized_sha256": "653f1a0a5efc270e4e87850b1ce884919d79b599b2e02387d4a2ab72f1e61345"
+    },
+    "app/data/exams/2022-06_01.json": {
+      "role": "index",
+      "sha256": "3361e95fc305726965c36d95170d181d35de9d98840763050e922591ca28ffb9",
+      "size": 14845,
+      "normalized_sha256": "3361e95fc305726965c36d95170d181d35de9d98840763050e922591ca28ffb9"
+    },
+    "app/data/exams/2022-06_02.json": {
+      "role": "index",
+      "sha256": "eb5283e76aaa7c8456cc11452b6042e5826e7735ba449d190d16da1008d5159a",
+      "size": 6313,
+      "normalized_sha256": "eb5283e76aaa7c8456cc11452b6042e5826e7735ba449d190d16da1008d5159a"
+    },
+    "app/data/exams/2022-12_01.json": {
+      "role": "index",
+      "sha256": "336646b8619e13cdcb96118efdd8280cabdcf7643751cf5d57296036ac8712d1",
+      "size": 15343,
+      "normalized_sha256": "336646b8619e13cdcb96118efdd8280cabdcf7643751cf5d57296036ac8712d1"
+    },
+    "app/data/exams/2022-12_02.json": {
+      "role": "index",
+      "sha256": "331da84ba9617939a21e2cbf346d91b85ff3fb7c90b2b84ea9169b4ba36ca1fc",
+      "size": 15314,
+      "normalized_sha256": "331da84ba9617939a21e2cbf346d91b85ff3fb7c90b2b84ea9169b4ba36ca1fc"
+    },
+    "app/data/exams/2022-12_03.json": {
+      "role": "index",
+      "sha256": "6550db763cc339a4503b0d0ca3e2cc0cd8592f5309c31bc41b23e5387aaf0679",
+      "size": 5372,
+      "normalized_sha256": "6550db763cc339a4503b0d0ca3e2cc0cd8592f5309c31bc41b23e5387aaf0679"
+    },
+    "app/data/exams/2023-06_01.json": {
+      "role": "index",
+      "sha256": "841bded0277f4702913a9181221824553ba42470bd987ca72b1ea59bfe016a32",
+      "size": 15822,
+      "normalized_sha256": "841bded0277f4702913a9181221824553ba42470bd987ca72b1ea59bfe016a32"
+    },
+    "app/data/exams/2023-06_02.json": {
+      "role": "index",
+      "sha256": "949f1aabc8a21d904b948c49a6865ab17bfc9c78b7b5fbd375a67680f141630e",
+      "size": 15420,
+      "normalized_sha256": "949f1aabc8a21d904b948c49a6865ab17bfc9c78b7b5fbd375a67680f141630e"
+    },
+    "app/data/exams/2023-06_03.json": {
+      "role": "index",
+      "sha256": "df3235ef7785d679883d32cc75df38ef4c59345243f4ce82945dcd20ade98584",
+      "size": 10164,
+      "normalized_sha256": "df3235ef7785d679883d32cc75df38ef4c59345243f4ce82945dcd20ade98584"
+    },
+    "app/data/exams/2023-12_01.json": {
+      "role": "index",
+      "sha256": "b8f7283313a1a216587f0e14be95538e5eb4614f65aae471c57545dc9bb23f37",
+      "size": 16387,
+      "normalized_sha256": "b8f7283313a1a216587f0e14be95538e5eb4614f65aae471c57545dc9bb23f37"
+    },
+    "app/data/exams/2023-12_02.json": {
+      "role": "index",
+      "sha256": "005ace5a94d6a2cdaf48d696e4ee66e5de5bdfcf9adeafb8521be42ab051db89",
+      "size": 16800,
+      "normalized_sha256": "005ace5a94d6a2cdaf48d696e4ee66e5de5bdfcf9adeafb8521be42ab051db89"
+    },
+    "app/data/exams/2023-12_03.json": {
+      "role": "index",
+      "sha256": "f0aedaed21355ac8ec8b7c3059344d5e6a48d5c00133818b4f45b595916aa2cd",
+      "size": 9320,
+      "normalized_sha256": "f0aedaed21355ac8ec8b7c3059344d5e6a48d5c00133818b4f45b595916aa2cd"
+    },
+    "app/data/exams/2024-06_01.json": {
+      "role": "index",
+      "sha256": "a6aae561c8387cc8c09f35b0be01b5931c679610c80dda812d54f7f4eb83481d",
+      "size": 19132,
+      "normalized_sha256": "a6aae561c8387cc8c09f35b0be01b5931c679610c80dda812d54f7f4eb83481d"
+    },
+    "app/data/exams/2024-06_02.json": {
+      "role": "index",
+      "sha256": "458f7087582e082d68bb3677520064ee1d4c7e0378d25dc2a9a4e0385785c068",
+      "size": 19074,
+      "normalized_sha256": "458f7087582e082d68bb3677520064ee1d4c7e0378d25dc2a9a4e0385785c068"
+    },
+    "app/data/exams/2024-06_03.json": {
+      "role": "index",
+      "sha256": "70196e71024be9c579b7d83396411d81f2dc050ce74273a52872b904c9715c8c",
+      "size": 11076,
+      "normalized_sha256": "70196e71024be9c579b7d83396411d81f2dc050ce74273a52872b904c9715c8c"
+    },
+    "app/data/exams/2024-12_01.json": {
+      "role": "index",
+      "sha256": "ff03422dcc4b4bff82d90a92769ef9f12ece4b2014887361caf990fa6bc1a4b4",
+      "size": 19816,
+      "normalized_sha256": "ff03422dcc4b4bff82d90a92769ef9f12ece4b2014887361caf990fa6bc1a4b4"
+    },
+    "app/data/exams/2024-12_02.json": {
+      "role": "index",
+      "sha256": "9b708c32d00d7a3859f367c647b5623bfd170514479597d5e38edd132fdd8ebd",
+      "size": 17880,
+      "normalized_sha256": "9b708c32d00d7a3859f367c647b5623bfd170514479597d5e38edd132fdd8ebd"
+    },
+    "app/data/exams/2024-12_03.json": {
+      "role": "index",
+      "sha256": "d9d9bba9c0cab934382be5fec2f814e8e1cafa94731ba742244ffa2a29a23bfa",
+      "size": 11811,
+      "normalized_sha256": "d9d9bba9c0cab934382be5fec2f814e8e1cafa94731ba742244ffa2a29a23bfa"
+    },
+    "app/data/exams/2025-06_01.json": {
+      "role": "index",
+      "sha256": "d80683e9924d658b7fd5a18368f071669a06b76f54a38b88b094de66ddc599f3",
+      "size": 16408,
+      "normalized_sha256": "d80683e9924d658b7fd5a18368f071669a06b76f54a38b88b094de66ddc599f3"
+    },
+    "app/data/exams/2025-06_02.json": {
+      "role": "index",
+      "sha256": "1e0bc968716c6aaf9c9165583121b2725d5353238a05a0460ac863cbee114d04",
+      "size": 16725,
+      "normalized_sha256": "1e0bc968716c6aaf9c9165583121b2725d5353238a05a0460ac863cbee114d04"
+    },
+    "app/data/exams/2025-06_03.json": {
+      "role": "index",
+      "sha256": "d5bb6dc988432154881a08b69910cb6bdefaae49275cb223ab61eb426cacf571",
+      "size": 14064,
+      "normalized_sha256": "d5bb6dc988432154881a08b69910cb6bdefaae49275cb223ab61eb426cacf571"
+    },
+    "app/data/exams/2025-12_01.json": {
+      "role": "index",
+      "sha256": "26427483452df86b1ed47ec606a1a9c501ded5deb95aef0aed2a4f392538e281",
+      "size": 16104,
+      "normalized_sha256": "26427483452df86b1ed47ec606a1a9c501ded5deb95aef0aed2a4f392538e281"
+    },
+    "app/data/exams/2025-12_02.json": {
+      "role": "index",
+      "sha256": "2da54829784fe84af73722cf0a27dbdbc9ead8c2d462dd32ae0bda47f08275e0",
+      "size": 16212,
+      "normalized_sha256": "2da54829784fe84af73722cf0a27dbdbc9ead8c2d462dd32ae0bda47f08275e0"
+    },
+    "app/data/exams/2025-12_03.json": {
+      "role": "index",
+      "sha256": "da5e2760c999537fd74a3dd9bb556b4e310d1204f8bb944ece96e689dcff0b69",
+      "size": 12077,
+      "normalized_sha256": "da5e2760c999537fd74a3dd9bb556b4e310d1204f8bb944ece96e689dcff0b69"
+    },
+    "app/data/exams/2026-06-01.json": {
+      "role": "index",
+      "sha256": "5d4d7ea84d0b43d7e09fe8c7e7647834725ec2b7b1979e8f0ca3adf224b5704d",
+      "size": 25856,
+      "normalized_sha256": "5d4d7ea84d0b43d7e09fe8c7e7647834725ec2b7b1979e8f0ca3adf224b5704d"
+    },
+    "app/data/exams/2026-06-02.json": {
+      "role": "index",
+      "sha256": "3c32a35b4e7cc53a74c73ac5c552c9fa1b1b134edfa1d41ffd4cb30efc94cb4c",
+      "size": 25844,
+      "normalized_sha256": "3c32a35b4e7cc53a74c73ac5c552c9fa1b1b134edfa1d41ffd4cb30efc94cb4c"
+    },
+    "app/data/exams/2026-06-03.json": {
+      "role": "index",
+      "sha256": "68b0a7e097d9a31fa9db9a772c926f290c1a6d1288567f27654636bc29d8c3ae",
+      "size": 17573,
+      "normalized_sha256": "68b0a7e097d9a31fa9db9a772c926f290c1a6d1288567f27654636bc29d8c3ae"
+    },
+    "app/data/exams/manifest.json": {
+      "role": "index",
+      "sha256": "9bd8579935c6e748081ba3e4752245ff62a8c09bf4123bfe5ae5f47f1261ca2f",
+      "size": 17216,
+      "normalized_sha256": "9bd8579935c6e748081ba3e4752245ff62a8c09bf4123bfe5ae5f47f1261ca2f"
+    },
+    "app/data/exams/report.json": {
+      "role": "index",
+      "sha256": "630c85fdd102dbf0e019c37eea91d78ebf6ebe7920efc8d53426c6889cf5bb3e",
+      "size": 267,
+      "normalized_sha256": "630c85fdd102dbf0e019c37eea91d78ebf6ebe7920efc8d53426c6889cf5bb3e"
     },
     "app/data/frequency.json": {
       "role": "index",
@@ -450,9 +834,9 @@
     },
     "app/index.html": {
       "role": "index",
-      "sha256": "5c944ca48869dfa52e89352ddfb50703c3bc5d444c604e7039e086f1689ec9c8",
-      "size": 60254,
-      "normalized_sha256": "e2412c460a35ceb96dd2b70f52ddae8f9fcf0d215d1e0d263b45c66affdafa1b"
+      "sha256": "61d7c338bc359c3b887dca64c6cb78aa1fc0c93ee02debad686efc887d432cad",
+      "size": 61824,
+      "normalized_sha256": "d6d0d28148dc99506835772a3ce1886998e463299949f45aba1e74b6fdf54170"
     },
     "app/js/ai.js": {
       "role": "index",
@@ -462,15 +846,21 @@
     },
     "app/js/app.js": {
       "role": "index",
-      "sha256": "3b0e15a37d3781b90dbabbc63172ca650066c79fd82cd4c2f3f50c5ffce6ec7e",
-      "size": 156967,
-      "normalized_sha256": "3b0e15a37d3781b90dbabbc63172ca650066c79fd82cd4c2f3f50c5ffce6ec7e"
+      "sha256": "7a8d12ecf8cb6ac8360829911c0d5ca8a192b04c4cfe5fd889692db995eef664",
+      "size": 179575,
+      "normalized_sha256": "7a8d12ecf8cb6ac8360829911c0d5ca8a192b04c4cfe5fd889692db995eef664"
     },
     "app/js/dictionary.js": {
       "role": "index",
       "sha256": "a2ac0004c2fe804ac5ce9b400953729eb5731fcdb9d3b55a0c9b09e0e312ca50",
       "size": 28915,
       "normalized_sha256": "ff22aeec785cc56294734d56d7f92e8f49353a1981b9a0cd6a98b6533d0fc1e9"
+    },
+    "app/js/exams.js": {
+      "role": "index",
+      "sha256": "8771b7ab1c38c355626cf0dac55ee257ad6e527db04d3c421e224db4420c086b",
+      "size": 8064,
+      "normalized_sha256": "8771b7ab1c38c355626cf0dac55ee257ad6e527db04d3c421e224db4420c086b"
     },
     "app/js/library.js": {
       "role": "index",
@@ -480,9 +870,9 @@
     },
     "app/js/platform.js": {
       "role": "index",
-      "sha256": "4383bae6ae34a6b23e39483b3157ab5c6a2c6c8333f1d890fa8cda3e54ef2026",
-      "size": 14188,
-      "normalized_sha256": "4383bae6ae34a6b23e39483b3157ab5c6a2c6c8333f1d890fa8cda3e54ef2026"
+      "sha256": "231d42c15c0a052c76cace16c98973063e4868ea990a9cd0ef728cd1cf4e03b7",
+      "size": 14666,
+      "normalized_sha256": "231d42c15c0a052c76cace16c98973063e4868ea990a9cd0ef728cd1cf4e03b7"
     },
     "app/js/quiz.js": {
       "role": "index",
@@ -498,9 +888,9 @@
     },
     "app/js/store.js": {
       "role": "index",
-      "sha256": "d491949248ff20498b63e6e7b66325b04d897a6c3669b57e6819e7937ddf2b78",
-      "size": 35873,
-      "normalized_sha256": "0cef805226ff3008ada3f5398ccf1f31fe7573c3e09b3cea8a0a4aac0eb9c78e"
+      "sha256": "d836fe4cce0ee305c0b63db63925b85c0a865fc9b14f46a4223271f2802c4fc6",
+      "size": 40869,
+      "normalized_sha256": "d836fe4cce0ee305c0b63db63925b85c0a865fc9b14f46a4223271f2802c4fc6"
     },
     "app/js/themes.js": {
       "role": "index",
@@ -625,15 +1015,15 @@
     },
     "docs/DATA.md": {
       "role": "index",
-      "sha256": "0429cfbe9be702860fad2e229617117fba09fdec7049302ff0006dc07f4983e7",
-      "size": 50075,
-      "normalized_sha256": "1c6dd28dbc9d32fd1114400ce43276a21ecebfc7340446d43115dc37d66d73fb"
+      "sha256": "11edd6c0695f101ee4d553913758b65188e4d775b93f51310842e42072074846",
+      "size": 52451,
+      "normalized_sha256": "f613aeb9ab27fae9dc12ee0b9c43ec2cc6553295343904a20ffe9b8bcc3fe1d8"
     },
     "docs/FEATURES.md": {
       "role": "index",
-      "sha256": "927faae3c4a65a1de5bc52cf4993c8bf4badac8aad35ada1fa5be8f7c68a73c3",
-      "size": 48152,
-      "normalized_sha256": "10fdc6fd0b386d6023d8a0399b742ea43d8b24d9481e853f7f39a0b6df595859"
+      "sha256": "86b1aa6215d40f99b930af20ec39a6b3f1a81c0d61e80c403e98bae347342285",
+      "size": 49619,
+      "normalized_sha256": "fc831fced913013386618b16a115650e4f74818553803a13d93e9cf742ac8b58"
     },
     "docs/FSRS-CONTRAST.md": {
       "role": "index",
@@ -794,9 +1184,9 @@
     },
     "main.js": {
       "role": "index",
-      "sha256": "ca2e1a4dc6af6d345e3cf0c65f51f508f5e559da9b27b64f6f712ea6c6410fe8",
-      "size": 16923,
-      "normalized_sha256": "971df8ecb8f1ca39a0d717de055a48abbfddce8193dcf92d3b6e222001f8d7e1"
+      "sha256": "b910058e38143fe35e144529cfda4750aa384629ce35ca0a45a539151627d384",
+      "size": 17326,
+      "normalized_sha256": "8b71541106ffe2bd7167ca341f9a8abcbf2424dbed6a15928cd13dff70cfbe05"
     },
     "package-lock.json": {
       "role": "observe",
@@ -806,9 +1196,9 @@
     },
     "package.json": {
       "role": "index",
-      "sha256": "6f5a5f9153496809f1064e156aeba7d7466e83c33b49c5a3e64282c244a26649",
-      "size": 2073,
-      "normalized_sha256": "ba2792bc9606dfa133cdb87d79e030b91b9fa1f5c001286116889c5a850678c0"
+      "sha256": "87339a5fd6ea32cd5fdef85e277db69047361cd51f049265804425693a9f2059",
+      "size": 2123,
+      "normalized_sha256": "9537d7ba3cab3b2788c2a02c2a17307775b673d041524f9ca0f9a5989fddce3c"
     },
     "scripts/build-cet6-cloze.js": {
       "role": "index",
@@ -821,6 +1211,12 @@
       "sha256": "c1f4bf1f8cf2fd75839af2f6ac462ca9375e6803b154858632c86d008e94683d",
       "size": 2124,
       "normalized_sha256": "c1f4bf1f8cf2fd75839af2f6ac462ca9375e6803b154858632c86d008e94683d"
+    },
+    "scripts/build-exams.js": {
+      "role": "index",
+      "sha256": "89b3532e16ffc052e8a148822757db0bcea6b6d08ae37a1055b2d6979c40cad4",
+      "size": 19590,
+      "normalized_sha256": "89b3532e16ffc052e8a148822757db0bcea6b6d08ae37a1055b2d6979c40cad4"
     },
     "scripts/build-frequency.js": {
       "role": "index",
