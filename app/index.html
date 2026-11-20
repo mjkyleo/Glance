@@ -26,7 +26,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1Z"/><path d="M8 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="m9 13 2 2 4-4"/></svg>
               <span class="mode-text">测试</span>
             </button>
-            <button class="mode-btn" id="mode-ai" type="button" role="tab" aria-selected="false" aria-label="AI 学习空间" title="AI 学习空间">
+            <button class="mode-btn" id="mode-ai" type="button" aria-haspopup="dialog" aria-label="AI 学习空间" title="AI 学习空间">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9Z"/></svg>
               <span class="mode-text">AI</span>
             </button>
@@ -143,26 +143,6 @@
           <button class="btn-ghost" id="quiz-adjust" type="button">调整设置</button>
           <button class="btn-primary" id="quiz-again" type="button">再测一次</button>
         </div>
-      </div>
-
-      <div class="scroll" id="ai-space" hidden>
-        <div class="ai-head">
-          <div class="ai-head-main">
-            <h2 class="quiz-hero-title">AI 学习空间</h2>
-            <p class="field-hint" id="ai-space-sub">报告 · 错题门诊 · 问答室</p>
-          </div>
-          <button class="icon-btn" id="ai-settings-btn" type="button" title="AI 设置" aria-label="AI 设置">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
-          </button>
-        </div>
-        <div class="chip-row ai-tabs" id="ai-tabs" role="tablist" aria-label="AI 空间模块">
-          <button class="chip active" type="button" role="tab" aria-selected="true" data-ai-tab="report">每日报告</button>
-          <button class="chip" type="button" role="tab" aria-selected="false" data-ai-tab="clinic">错题门诊</button>
-          <button class="chip" type="button" role="tab" aria-selected="false" data-ai-tab="qa">问答室</button>
-        </div>
-        <div id="ai-pane-report" class="ai-pane"></div>
-        <div id="ai-pane-clinic" class="ai-pane" hidden></div>
-        <div id="ai-pane-qa" class="ai-pane" hidden></div>
       </div>
 
       <footer class="grade-footer" id="grade-footer">
@@ -526,6 +506,23 @@
     </div>
     <div class="sheet-body" id="cloze-body"></div>
     <div class="sheet-foot" id="cloze-foot" hidden><button class="btn-primary" id="cloze-study-btn" type="button">学习本卷选项</button></div>
+  </div>
+
+  <div class="sheet" id="study-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title" id="study-title">翻译与写作</h2><p class="sheet-sub" id="study-meta"></p></div>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="sheet-body" id="study-body"></div>
+  </div>
+
+  <div class="sheet" id="ai-space-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-wrap"><h2 class="sheet-title">AI 学习空间</h2><p class="sheet-sub" id="ai-space-sub">确认计划 → 逐步导学 → 完成后生成日报</p></div>
+      <button class="icon-btn" id="ai-settings-btn" type="button" title="AI 设置" aria-label="AI 设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="sheet-body" id="ai-space-body"></div>
   </div>
 
   <div class="sheet" id="word-sheet" hidden role="dialog" aria-modal="true">
@@ -957,8 +954,18 @@
   </div>
 
   <div class="loading" id="loading" role="status" aria-live="polite">
-    <div class="spinner"></div>
-    <p>正在加载词库…</p>
+    <div class="load-aurora" aria-hidden="true"><i class="la1"></i><i class="la2"></i><i class="la3"></i></div>
+    <div class="load-grain" aria-hidden="true"></div>
+    <div class="load-core" id="load-core">
+      <div class="load-abc" aria-hidden="true"><span class="ab1">a</span><span class="ab2">b</span><span class="ab3">c</span></div>
+      <p class="load-phase" id="load-phase">正在连接词库…</p>
+      <div class="load-bar" aria-hidden="true"><i id="load-bar-fill"></i></div>
+      <div class="load-pct" id="load-pct">0%</div>
+    </div>
+    <div class="load-fail" id="load-fail" hidden>
+      <p>词库加载失败。请确认 app/data 数据文件存在，或重试。</p>
+      <button class="btn-primary" id="load-retry" type="button">重试</button>
+    </div>
   </div>
 
   <div id="sr-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>

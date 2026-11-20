@@ -31,9 +31,9 @@
     ttsRate: 1,
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
-    ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false },
+    ai: { provider: 'qwenmaas', key: '', model: '', base: '', enabled: true },
     aiCache: {},
-    space: { report: {}, clinic: {}, qa: {} },
+    space: { report: {}, clinic: {}, qa: {}, tutor: {} },
     dict: { provider: 'freezh', enabled: ['freezh'], merge: true, custom: [], keys: {} },
     dictCache: {},
     quiz: {
@@ -384,11 +384,37 @@
 
   // ===================== exam practice（真题刷题） =====================
   const EXAM_ID_RE = /^\d{4}-\d{2}[-_]\d{2}$/;
-  const SPACE_KINDS = ['report', 'clinic', 'qa'];
-  const SPACE_CAPS = { report: 14, clinic: 300, qa: 100 };
+  const SPACE_KINDS = ['report', 'clinic', 'qa', 'tutor'];
+  const SPACE_CAPS = { report: 14, clinic: 300, qa: 100, tutor: 60 };
+  const TUTOR_MINUTES = [10, 15, 20, 30];
+  const TUTOR_FOCUS = ['auto', 'due', 'errors', 'study'];
+  const TUTOR_STRATEGY = ['teach', 'guide', 'recite'];
+  function normalizeTutorSession(v) {
+    if (!v || typeof v.date !== 'string' || !Array.isArray(v.steps)) return null;
+    const steps = v.steps.slice(0, 12).map(s => {
+      if (!s || !['review', 'clinic', 'study'].includes(s.kind)) return null;
+      const words = Array.isArray(s.words) ? s.words.filter(w => typeof w === 'string' && w).slice(0, 12) : [];
+      if (s.kind !== 'study' && !words.length) return null;
+      if (s.kind === 'study' && typeof s.studyId !== 'string') return null;
+      return { kind: s.kind, words, studyId: String(s.studyId || ''), title: String(s.title || '').slice(0, 80) };
+    }).filter(Boolean);
+    if (!steps.length) return null;
+    const picks = {};
+    if (v.picks && typeof v.picks === 'object') Object.keys(v.picks).slice(0, 200).forEach(k => { if (typeof v.picks[k] === 'string') picks[k] = v.picks[k].slice(0, 200); });
+    const revealed = {};
+    if (v.revealed && typeof v.revealed === 'object') Object.keys(v.revealed).slice(0, 20).forEach(k => { revealed[k] = !!v.revealed[k]; });
+    const qa = Array.isArray(v.qa) ? v.qa.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-8) : [];
+    return {
+      date: v.date.slice(0, 10), steps, idx: Math.min(Math.max(+v.idx || 0, 0), steps.length),
+      picks, revealed, qa,
+      wrong: Array.isArray(v.wrong) ? v.wrong.filter(w => typeof w === 'string').slice(0, 60) : [],
+      correct: +v.correct || 0, total: +v.total || 0,
+      startedAt: +v.startedAt || 0, done: !!v.done, t: +v.t || 0
+    };
+  }
   function normalizeSpace(raw) {
     const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-    const out = { report: {}, clinic: {}, qa: {} };
+    const out = { report: {}, clinic: {}, qa: {}, tutor: {} };
     SPACE_KINDS.forEach(kind => {
       const bag = src[kind] && typeof src[kind] === 'object' ? src[kind] : {};
       Object.keys(bag).forEach(k => {
@@ -398,6 +424,16 @@
           const turns = Array.isArray(v.turns) ? v.turns.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-8) : [];
           if (!turns.length) return;
           out.qa[k] = { turns, t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
+        } else if (kind === 'tutor' && k === 'plan') {
+          out.tutor[k] = {
+            minutes: TUTOR_MINUTES.includes(+v.minutes) ? +v.minutes : 15,
+            focus: TUTOR_FOCUS.includes(v.focus) ? v.focus : 'auto',
+            strategy: TUTOR_STRATEGY.includes(v.strategy) ? v.strategy : 'teach',
+            t: +v.t || 0
+          };
+        } else if (kind === 'tutor' && k === 'session') {
+          const s = normalizeTutorSession(v);
+          if (s) out.tutor[k] = s;
         } else {
           if (typeof v.text !== 'string' || !v.text.trim()) return;
           out[kind][k] = { text: v.text.slice(0, 4000), t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
@@ -705,7 +741,7 @@
         srs: clone(srs), logs: clone(data.logs || {}), views: clone(views), favorites: clone(fav),
         favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
-        space: clone(data.space || { report: {}, clinic: {}, qa: {} }),
+        space: clone(data.space || { report: {}, clinic: {}, qa: {}, tutor: {} }),
         customBooks: clone(data.customBooks || {}),
         customThemes: clone(data.customThemes || []),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
@@ -795,7 +831,7 @@
       data.quizExamples = {};
       data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
       data.exams = { progress: {}, wrong: [], aiCache: {} };
-      data.space = { report: {}, clinic: {}, qa: {} };
+      data.space = { report: {}, clinic: {}, qa: {}, tutor: {} };
     }
 
     if (src) {

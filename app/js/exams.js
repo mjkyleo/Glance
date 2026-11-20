@@ -92,7 +92,7 @@
   async function chat(system, user) {
     const rc = aiConfig();
     if (!rc.key || !rc.base || !rc.model) return { ok: false, error: 'AI 未配置（服务商 / Key / 模型）' };
-    const args = { base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.3, jsonMode: false, anthropic: rc.anthropic };
+    const args = { base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.3, jsonMode: false, anthropic: rc.anthropic, noThink: rc.noThink };
     const res = await Platform.llmChat(args);
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true, text: String(res.content || '').trim(), provider: rc.provider && rc.provider.id, model: rc.model };

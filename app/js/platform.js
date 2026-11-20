@@ -118,16 +118,24 @@
       return res.text();
     },
 
-    async loadDataset() {
-      if (isElectron) return ipc.invoke('get-dataset');
+    async loadDataset(onProgress) {
+      const report = n => { if (onProgress) { try { onProgress(n); } catch {} } };
+      if (isElectron) {
+        const listener = (_e, name) => report(name);
+        ipc.on('dataset-progress', listener);
+        try { return await ipc.invoke('get-dataset'); }
+        finally { ipc.removeListener('dataset-progress', listener); }
+      }
       const names = ['meta', 'exams', 'roots', 'roottrees', 'words', 'affixes', 'official', 'frequency', 'cloze'];
       const out = {};
       await Promise.all(names.map(async n => {
         try { const r = await fetch('data/' + n + '.json'); out[n] = r.ok ? await r.json() : null; }
         catch { out[n] = null; }
+        report(n);
       }));
       try { const r = await fetch('data/exams/manifest.json'); out.examManifest = r.ok ? await r.json() : null; }
       catch { out.examManifest = null; }
+      report('examManifest');
       return out;
     },
 
@@ -135,6 +143,12 @@
       if (!/^\d{4}-\d{2}[-_]\d{2}$/.test(String(examId || ''))) return null;
       if (isElectron) return ipc.invoke('get-exam-shard', examId);
       try { const r = await fetch('data/exams/' + examId + '.json'); return r.ok ? await r.json() : null; }
+      catch { return null; }
+    },
+
+    async loadStudy() {
+      if (isElectron) return ipc.invoke('get-study');
+      try { const r = await fetch('data/study.json'); return r.ok ? await r.json() : null; }
       catch { return null; }
     },
 
@@ -225,6 +239,7 @@
       if (anthropic) headers['anthropic-dangerous-direct-browser-access'] = 'true';
       const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
       if (jsonMode) body.response_format = { type: 'json_object' };
+      if (args.noThink) body.enable_thinking = false;
       const http = isNative && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
       const timeout = 120000;
       try {

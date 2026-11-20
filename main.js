@@ -339,30 +339,30 @@ ipcMain.handle('get-bundled-library', () =>
   fs.readFileSync(path.join(__dirname, 'app', 'data', 'cet6.json'), 'utf-8'));
 
 // 学习主窗口：索引化数据集（考纲/词根家族/词条详情/词缀）
-ipcMain.handle('get-dataset', () => {
+ipcMain.handle('get-dataset', event => {
   const dir = path.join(__dirname, 'app', 'data');
   const read = name => {
     try { return JSON.parse(fs.readFileSync(path.join(dir, name), 'utf-8')); }
     catch { return null; }
   };
-  return {
-    meta: read('meta.json'),
-    exams: read('exams.json'),
-    roots: read('roots.json'),
-    roottrees: read('roottrees.json'),
-    words: read('words.json'),
-    affixes: read('affixes.json'),
-    official: read('official.json'),
-    frequency: read('frequency.json'),
-    cloze: read('cloze.json'),
-    examManifest: read('exams/manifest.json')
-  };
+  const out = {};
+  [['meta', 'meta.json'], ['exams', 'exams.json'], ['roots', 'roots.json'], ['roottrees', 'roottrees.json'], ['words', 'words.json'], ['affixes', 'affixes.json'], ['official', 'official.json'], ['frequency', 'frequency.json'], ['cloze', 'cloze.json'], ['examManifest', 'exams/manifest.json']].forEach(([key, file]) => {
+    out[key] = read(file);
+    try { event.sender.send('dataset-progress', key); } catch {}
+  });
+  return out;
 });
 
 // 真题分片懒加载：只按 examId 取单套（启动不拉全量）
 ipcMain.handle('get-exam-shard', (_e, examId) => {
   if (!/^\d{4}-\d{2}[-_]\d{2}$/.test(String(examId || ''))) return null;
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'app', 'data', 'exams', examId + '.json'), 'utf-8')); }
+  catch { return null; }
+});
+
+// 翻译与写作学习材料懒加载：单源 study.json（启动不拉全量）
+ipcMain.handle('get-study', () => {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'app', 'data', 'study.json'), 'utf-8')); }
   catch { return null; }
 });
 
@@ -375,6 +375,7 @@ ipcMain.handle('llm-chat', async (_e, args) => {
   if (anthropic) headers['anthropic-dangerous-direct-browser-access'] = 'true';
   const body = { model, messages, temperature: temperature ?? 0.3, stream: false };
   if (jsonMode) body.response_format = { type: 'json_object' };
+  if (args.noThink) body.enable_thinking = false;
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), 120000);
   try {

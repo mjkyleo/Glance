@@ -222,6 +222,43 @@
     return e;
   }
 
+  let studyData = null, studyLoading = null, studyById = null, studyByExam = null;
+  async function studyInit() {
+    if (studyData) return studyData.counts || null;
+    if (!studyLoading) studyLoading = Platform.loadStudy().then(d => {
+      studyLoading = null;
+      if (!d || !Array.isArray(d.translations)) return null;
+      studyData = d;
+      studyById = new Map();
+      studyByExam = new Map();
+      for (const it of [...(d.translations || []), ...(d.writings || [])]) {
+        studyById.set(it.id, it);
+        if (it.examId) {
+          if (!studyByExam.has(it.examId)) studyByExam.set(it.examId, []);
+          studyByExam.get(it.examId).push(it);
+        }
+      }
+      return d.counts || null;
+    }).catch(() => { studyLoading = null; return null; });
+    return studyLoading;
+  }
+  function studyReady() { return !!studyData; }
+  function studyCounts() { return studyData ? studyData.counts || null : null; }
+  function studyItem(id) { return studyById ? studyById.get(id) || null : null; }
+  function studyList(kind, level) {
+    if (!studyData) return [];
+    const pool = kind === 'translation' ? studyData.translations || [] : studyData.writings || [];
+    return level ? pool.filter(it => it.level === level) : pool.slice();
+  }
+  function studyForExam(examId) {
+    if (!studyData) return [];
+    const items = studyByExam ? studyByExam.get(examId) || [] : [];
+    const matchOf = {};
+    for (const l of studyData.links || []) if (l.examId === examId) matchOf[l.studyId] = l.match;
+    return items.map(it => ({ item: it, match: matchOf[it.id] || (it.link && it.link.match) || '' }));
+  }
+  function studyMisc() { return studyData ? (studyData.misc || []).slice() : []; }
+
   function init(dataset) {
     DS = dataset || {};
     affixMap = new Map((DS.affixes || []).map(a => [a.id, a]));
@@ -231,6 +268,7 @@
     for (const k of Object.keys(officialBookCache)) delete officialBookCache[k];
     freqBookCache = null;
     clozeIndex = null;
+    studyData = null; studyById = null; studyByExam = null;
   }
 
   function getBook(tag) {
@@ -612,5 +650,5 @@
     return changed;
   }
 
-  window.Library = { init, getBook, listBooks, customBook, migrateCustomBooks, lowerTags, lowerWordSet, basicWordSet, excludeWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial, freqOf, freqMeta, clozeMeta, clozeDecks, clozeDeck, clozeWords, clozeOf, clozeSets, clozeSet, clozeEntry, clozePosName };
+  window.Library = { init, getBook, listBooks, customBook, migrateCustomBooks, lowerTags, lowerWordSet, basicWordSet, excludeWordSet, getFamily, listRoots, getAffixes, getMeta, hasData, search, lookup, deriveMorphemes, posInfo, parse, officialLevels, officialForms, officialWordSet, officialCount, officialBook, compareToOfficial, freqOf, freqMeta, clozeMeta, clozeDecks, clozeDeck, clozeWords, clozeOf, clozeSets, clozeSet, clozeEntry, clozePosName, studyInit, studyReady, studyCounts, studyItem, studyList, studyForExam, studyMisc };
 })();

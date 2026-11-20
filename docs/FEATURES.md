@@ -51,19 +51,19 @@
 ### 1.3 每日计划与会话 ✅
 
 - 每日新词数 / 复习上限 `plan.newPerDay/reviewCap`;`buildQueue` 取到期复习 + 新词并截断，`session` 按 1 复习 : 1 新词交错（[srs.js:160-181](../app/js/srs.js#L160-L181)）。
-- 计划条实时显示进度（[app.js:353 updatePlanBar](../app/js/app.js#L353)）;会话构建 [app.js:302 buildSession](../app/js/app.js#L302)。
+- 计划条实时显示进度（[app.js:460 updatePlanBar](../app/js/app.js#L460)）;会话构建 [app.js:409 buildSession](../app/js/app.js#L409)。
 
 ### 1.4 学习页：16 个信息块内联 ✅
 
-- 学习页渲染 [app.js:371 renderStudy](../app/js/app.js#L371);全部信息由唯一渲染器 [app.js:414 renderWordBlocks](../app/js/app.js#L414) 内联生成，**不再有「详细讲解」按钮与二级详情页**。
-- **内容自由组合（16 块单一列表）**：音标 / 构词解析 / 助记 / 释义 / 英文释义 / 词根家族 / 近义词 / 派生词 / 词形变化 / 词源 / 例句 / 搭配 / 真题词频 / 选词填空 / 词典 / AI，逐项开关 + 拖动 / 箭头排序，学习页与词卡弹层同步生效（[app.js:398 BLOCK_IDS](../app/js/app.js#L398)、[app.js:400 panelOrder](../app/js/app.js#L400)、[app.js:2553 movePanelRow](../app/js/app.js#L2553)、[app.js:2560 wirePanelOrder](../app/js/app.js#L2560)、[index.html:591-737](../app/index.html#L591-L737)）。
-- 词素单行自适应（[app.js:576 buildMorphemes](../app/js/app.js#L576)、[app.js:597 fitMorphemes](../app/js/app.js#L597)）;离线助记钩子，AI 缓存的 `memoryTip` 优先（[app.js:406 mnemonicText](../app/js/app.js#L406)）。
+- 学习页渲染 [app.js:478 renderStudy](../app/js/app.js#L478);全部信息由唯一渲染器 [app.js:521 renderWordBlocks](../app/js/app.js#L521) 内联生成，**不再有「详细讲解」按钮与二级详情页**。
+- **内容自由组合（16 块单一列表）**：音标 / 构词解析 / 助记 / 释义 / 英文释义 / 词根家族 / 近义词 / 派生词 / 词形变化 / 词源 / 例句 / 搭配 / 真题词频 / 选词填空 / 词典 / AI，逐项开关 + 拖动 / 箭头排序，学习页与词卡弹层同步生效（[app.js:505 BLOCK_IDS](../app/js/app.js#L505)、[app.js:507 panelOrder](../app/js/app.js#L507)、[app.js:3220 movePanelRow](../app/js/app.js#L3220)、[app.js:3227 wirePanelOrder](../app/js/app.js#L3227)、[index.html:585-731](../app/index.html#L585-L731)）。
+- 词素单行自适应（[app.js:684 buildMorphemes](../app/js/app.js#L684)、[app.js:705 fitMorphemes](../app/js/app.js#L705)）;离线助记钩子，AI 缓存的 `memoryTip` 优先（[app.js:513 mnemonicText](../app/js/app.js#L513)）。
 - 释义完整内联显示（不再 3 行截断）;整张词卡是一个干净表面，块之间用发丝线分隔，无嵌套卡片（[app.css:642-652](../app/css/app.css#L642-L652)）。
-- 三档评分 [app.js:553 grade](../app/js/app.js#L553);柔和进度条替代数字进度。
+- 三档评分 [app.js:660 grade](../app/js/app.js#L660);柔和进度条替代数字进度。
 
 ### 1.5 词书过滤可选开关 ✅
 
-- 四项过滤：**过滤基础词**（a/the/that 等 326 个小学/初中极基础词，**默认开启**、可关）、「跳过低阶重复词」（考试阶梯）、「跳过已掌握」、「按词书过滤」（多选其它词书、排除其已收录词，可多选）。**仅裁剪每日队列**，词书本身与测试范围不变（[app.js:282 studyEntries](../app/js/app.js#L282)、[library.js:302 basicWordSet](../app/js/library.js#L302)、[library.js:308 excludeWordSet](../app/js/library.js#L308)、[app.js:2555-2579 renderExcludeChips](../app/js/app.js#L2555-L2579)）。除基础词外默认关闭;过滤 hint 汇总四类裁剪数与剩余词数。
+- 四项过滤：**过滤基础词**（a/the/that 等 326 个小学/初中极基础词，**默认开启**、可关）、「跳过低阶重复词」（考试阶梯）、「跳过已掌握」、「按词书过滤」（多选其它词书、排除其已收录词，可多选）。**仅裁剪每日队列**，词书本身与测试范围不变（[app.js:389 studyEntries](../app/js/app.js#L389)、[library.js:345 basicWordSet](../app/js/library.js#L345)、[library.js:351 excludeWordSet](../app/js/library.js#L351)、[app.js:3128-3152 renderExcludeChips](../app/js/app.js#L3128-L3152)）。除基础词外默认关闭;过滤 hint 汇总四类裁剪数与剩余词数。
 
 ---
 
@@ -72,37 +72,37 @@
 ### 2.1 官方考纲词库为根 ✅
 
 - 内置《全国大学英语四、六级考试大纲（2016 年修订版）》词表 [official.json](../app/data/official.json)：A 组（无★，四级）6,632 条、B 组（带★，六级）1,264 条，保持 PDF 原始顺序与印刷形态。
-- 两本官方书「考纲四级（官方）/ 考纲六级（官方）」**置顶**词书列表（[library.js:264-276 listBooks](../app/js/library.js#L264-L276)），可直接学习、绕过 CEFR 质量过滤与 skipLower（[library.js:365-380 officialBook](../app/js/library.js#L365-L380)）。
+- 两本官方书「考纲四级（官方）/ 考纲六级（官方）」**置顶**词书列表（[library.js:306-318 listBooks](../app/js/library.js#L306-L318)），可直接学习、绕过 CEFR 质量过滤与 skipLower（[library.js:408-423 officialBook](../app/js/library.js#L408-L423)）。
 - 源 PDF 与 A/B 纯文本列表存 `assets/words/`（PDF 体积大不入 Git，见 `.gitignore`）。
 
 ### 2.2 考试词书 ✅
 
-- 10 本考试书（中考/高考/四级/六级/考研/专四/专八/托福/雅思/GRE），`exams.json` **只存词引用与词根分组**，经 `enrich` 从全局 `words.json` 富化（[library.js:236-266 getBook](../app/js/library.js#L236-L266)），CEFR 质量过滤去简单词。改一处释义全书生效（§8.34 单一解释源）。
+- 10 本考试书（中考/高考/四级/六级/考研/专四/专八/托福/雅思/GRE），`exams.json` **只存词引用与词根分组**，经 `enrich` 从全局 `words.json` 富化（[library.js:274-304 getBook](../app/js/library.js#L274-L304)），CEFR 质量过滤去简单词。改一处释义全书生效（§8.34 单一解释源）。
 
 ### 2.3 自定义词书导入 ✅
 
-- 底部常驻入口，接受 JSON / TSV / CSV / TXT;统一解析器 [library.js:569-584 parse](../app/js/library.js#L569-L584)，自动跳表头、忽略大小写去重、按文件名命名（[app.js:2588-2591 bookNameFromFile](../app/js/app.js#L2588-L2591)、[app.js:2592-2599 uniqueBookName](../app/js/app.js#L2592-L2599)）。
-- 文件选择跨平台适配（[platform.js:132 pickLibrary](../app/js/platform.js#L132)）。
+- 底部常驻入口，接受 JSON / TSV / CSV / TXT;统一解析器 [library.js:595-610 parse](../app/js/library.js#L595-L610)，自动跳表头、忽略大小写去重、按文件名命名（[app.js:3161-3164 bookNameFromFile](../app/js/app.js#L3161-L3164)、[app.js:3165-3172 uniqueBookName](../app/js/app.js#L3165-L3172)）。
+- 文件选择跨平台适配（[platform.js:155 pickLibrary](../app/js/platform.js#L155)）。
 
 ### 2.4 考纲对比 ✅
 
-- 任选词书（含自定义）对比四级 / 六级考纲：`compareToOfficial` 返回考纲内 / 超纲 / 考纲缺失 + 双向覆盖率（[library.js:384-413](../app/js/library.js#L384-L413)）。
-- 归一化 `officialForms` 处理变体对、上标、可选字母、短语（[library.js:332-344](../app/js/library.js#L332-L344)）。
-- UI 面板（2026-11-20 compact 化）：源书 + 级别选择，摘要 + 覆盖率条常显;三个词表段**默认收缩且零预渲染**，展开才懒加载 120 词/批、「加载更多」逐批追加（取代旧 300 预渲染 + 一次展开全部）;整卡可「收起/展开」只留标题行（[app.js:2782 cmpSection](../app/js/app.js#L2782)、[app.js:2811 renderCompare](../app/js/app.js#L2811)、[index.html:400 cmp-toggle](../app/index.html#L400)）。
+- 任选词书（含自定义）对比四级 / 六级考纲：`compareToOfficial` 返回考纲内 / 超纲 / 考纲缺失 + 双向覆盖率（[library.js:460-489](../app/js/library.js#L460-L489)）。
+- 归一化 `officialForms` 处理变体对、上标、可选字母、短语（[library.js:408-420](../app/js/library.js#L408-L420)）。
+- UI 面板（2026-11-20 compact 化）：源书 + 级别选择，摘要 + 覆盖率条常显;三个词表段**默认收缩且零预渲染**，展开才懒加载 120 词/批、「加载更多」逐批追加（取代旧 300 预渲染 + 一次展开全部）;整卡可「收起/展开」只留标题行（[app.js:2982 cmpSection](../app/js/app.js#L2982)、[app.js:3011 renderCompare](../app/js/app.js#L3011)、[index.html:388 cmp-toggle](../app/index.html#L388)）。
 
 ### 2.5 词条富字段与派生 ✅
 
-- `enrich` 生成完整词条（[library.js:126](../app/js/library.js#L126)）：词素拆分 `morphemes`、结构化义项 `senses`（词性全称 + 分组）、合成助记 `mnemonic`;显示层由 `renderWordBlocks` 统一消费这些字段（[app.js:414](../app/js/app.js#L414)），词库侧不再生成卡片。
+- `enrich` 生成完整词条（[library.js:126](../app/js/library.js#L126)）：词素拆分 `morphemes`、结构化义项 `senses`（词性全称 + 分组）、合成助记 `mnemonic`;显示层由 `renderWordBlocks` 统一消费这些字段（[app.js:412](../app/js/app.js#L412)），词库侧不再生成卡片。
 
 ### 2.6 词书选择停留原页 ✅
 
-- 「词书与计划」点选任一词书（含自定义）仅切换当前书并重建每日队列，**停留在词书页**，不再自动跳去学习页（[app.js:2580-2587 switchBook](../app/js/app.js#L2580-L2587)）;用户可自行切到学习页开始。
+- 「词书与计划」点选任一词书（含自定义）仅切换当前书并重建每日队列，**停留在词书页**，不再自动跳去学习页（[app.js:3153-3160 switchBook](../app/js/app.js#L3153-L3160)）;用户可自行切到学习页开始。
 
 ### 2.7 六级真题词频书 ✅
 
 - 内置 [frequency.json](../app/data/frequency.json)：六级真题语料 **11,970 行词形统计 → 5,772 个词头 / 72,380 次**，词形按「精确词头 → 词库 inf/der 索引 → 不规则表 → 英美拼写 → 带词性闸门的后缀规则」归并（[lemma.js:124-159 resolve](../scripts/lib/lemma.js#L124-L159)）。
-- 词书「**六级真题词频**」（tag `真题词频`）排在考试书之后，**按真题出现次数降序**组织;`SRS.buildQueue` 按词书顺序取新词，所以学这本书等于从真题最高频词开始（[library.js:171-178 freqBook](../app/js/library.js#L171-L178)、[library.js:264-276 listBooks](../app/js/library.js#L264-L276)）。词书行副标注「按真题出现次数排序」（[app.js:2522](../app/js/app.js#L2522)）。
-- 每个词条附 `examFreq`，词卡渲染「六级真题词频」数据块：语料排名 / 总次数 / 归并词形数三块统计 + 词频分位条，并说明总次数里有多少来自词形自身、多少来自屈折派生归并（[library.js:156-161 freqOf](../app/js/library.js#L156-L161)、[app.js:1597-1632 freqSection](../app/js/app.js#L1597-L1632)）。
+- 词书「**六级真题词频**」（tag `真题词频`）排在考试书之后，**按真题出现次数降序**组织;`SRS.buildQueue` 按词书顺序取新词，所以学这本书等于从真题最高频词开始（[library.js:172-179 freqBook](../app/js/library.js#L172-L179)、[library.js:306-318 listBooks](../app/js/library.js#L306-L318)）。词书行副标注「按真题出现次数排序」（[app.js:2906](../app/js/app.js#L2906)）。
+- 每个词条附 `examFreq`，词卡渲染「六级真题词频」数据块：语料排名 / 总次数 / 归并词形数三块统计 + 词频分位条，并说明总次数里有多少来自词形自身、多少来自屈折派生归并（[library.js:157-162 freqOf](../app/js/library.js#L157-L162)、[app.js:2101-2136 freqSection](../app/js/app.js#L2101-L2136)）。
 - 与源站通用词频 `fr` **并存不覆盖**;语料未收的词不显示该块，也不因词频而新建词条（词频只标注既有词库）。数据口径见 [DATA.md §2.8](DATA.md)。
 
 ---
@@ -111,33 +111,33 @@
 
 ### 3.1 词根家族导航 ✅
 
-- 词根列表 [app.js:1306 renderRoots](../app/js/app.js#L1306)，家族详情 [app.js:1447 openFamily](../app/js/app.js#L1447)，数据 `getFamily`（[library.js:421](../app/js/library.js#L421)），源 `roots.json` / `roottrees.json`。
+- 词根列表 [app.js:1330 renderRoots](../app/js/app.js#L1330)，家族详情 [app.js:1471 openFamily](../app/js/app.js#L1471)，数据 `getFamily`（[library.js:490](../app/js/library.js#L490)），源 `roots.json` / `roottrees.json`。
 - **紧凑单行排列（2026-11-19）**：词根 + 释义同行 + 词数徽标，行高 44px（触控达标），一屏约 14 条（改造前 8 条）;学习进度改为行底 3px 细线，不额外占高（[app.css .row.compact](../app/css/app.css)）。
-- **学习状态分类 + 字母分组（2026-11-20）**：搜索框下四类筛选芯片「全部 / 未学 / 学习中 / 接近学完」（按家族已学比例 0 / 0–85% / ≥85% 划分，芯片带实时计数，[app.js:18 ROOT_CATS](../app/js/app.js#L18)、[app.js:1435 catOf](../app/js/app.js#L1435)、[app.js:3342 芯片点击](../app/js/app.js#L3342)）;列表按首字母 A–Z 分组（非字母归 `#` 置末），组头 sticky 吸顶且每组独立容器保证吸顶不串组（[app.js:1353 loadRootsBatch](../app/js/app.js#L1353)、[app.css:1609 letter-head](../app/css/app.css#L1609)、[app.css:1610 letter-group](../app/css/app.css#L1610)）。
-- **按需批量加载（2026-11-20，取代「仅显示前 200」）**：首屏 80 行，列表底部 2px 哨兵 + IntersectionObserver（rootMargin 320px）滚动即追加下一批 80 行，直至 8,331 词根全量可达;词缀 3,100 条同机制（[app.js:1439 makeSentinel](../app/js/app.js#L1439)、[app.js:1405 loadAffixBatch](../app/js/app.js#L1405)、[app.css:1611 load-sentinel](../app/css/app.css#L1611)）。
-- **桌面字母跳转轨**：≥960px 列表右缘竖排 A–Z 圆角轨，点击先按需加载到目标组再滚动定位（[index.html:177 roots-rail](../app/index.html#L177)、[app.js:3347 跳转](../app/js/app.js#L3347)、[app.css:1614](../app/css/app.css#L1614)）;移动端隐藏。
+- **学习状态分类 + 字母分组（2026-11-20）**：搜索框下四类筛选芯片「全部 / 未学 / 学习中 / 接近学完」（按家族已学比例 0 / 0–85% / ≥85% 划分，芯片带实时计数，[app.js:18 ROOT_CATS](../app/js/app.js#L18)、[app.js:1459 catOf](../app/js/app.js#L1459)、[app.js:3534 芯片点击](../app/js/app.js#L3534)）;列表按首字母 A–Z 分组（非字母归 `#` 置末），组头 sticky 吸顶且每组独立容器保证吸顶不串组（[app.js:1377 loadRootsBatch](../app/js/app.js#L1377)、[app.css:1615 letter-head](../app/css/app.css#L1615)、[app.css:1616 letter-group](../app/css/app.css#L1616)）。
+- **按需批量加载（2026-11-20，取代「仅显示前 200」）**：首屏 80 行，列表底部 2px 哨兵 + IntersectionObserver（rootMargin 320px）滚动即追加下一批 80 行，直至 8,331 词根全量可达;词缀 3,100 条同机制（[app.js:1463 makeSentinel](../app/js/app.js#L1463)、[app.js:1429 loadAffixBatch](../app/js/app.js#L1429)、[app.css:1617 load-sentinel](../app/css/app.css#L1617)）。
+- **桌面字母跳转轨**：≥960px 列表右缘竖排 A–Z 圆角轨，点击先按需加载到目标组再滚动定位（[index.html:157 roots-rail](../app/index.html#L157)、[app.js:3539 跳转](../app/js/app.js#L3539)、[app.css:1620](../app/css/app.css#L1620)）;移动端隐藏。
 
 ### 3.2 词缀浏览 ✅
 
-- 词缀列表 [app.js:1388 renderAffixes](../app/js/app.js#L1388)，词缀详情 [app.js:1945 openAffixSheet](../app/js/app.js#L1945)，点击词素跳转 [app.js:1940 openAffixByChip](../app/js/app.js#L1940)，源 `affixes.json`（3,100 条）。同样采用紧凑单行排列，前缀/后缀徽标内联在词缀名后;与词根共用按需批量加载（首屏 80、滚动追加），无数量截断。
+- 词缀列表 [app.js:1412 renderAffixes](../app/js/app.js#L1412)，词缀详情 [app.js:2172 openAffixSheet](../app/js/app.js#L2172)，点击词素跳转 [app.js:2167 openAffixByChip](../app/js/app.js#L2167)，源 `affixes.json`（3,100 条）。同样采用紧凑单行排列，前缀/后缀徽标内联在词缀名后;与词根共用按需批量加载（首屏 80、滚动追加），无数量截断。
 
 ### 3.3 词根/词缀学习进度条 ✅
 
-- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1286 learnProgress](../app/js/app.js#L1286)、[app.js:1292 attachRowProgress](../app/js/app.js#L1292)）;紧凑行下进度条绝对定位于行底。
+- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1310 learnProgress](../app/js/app.js#L1310)、[app.js:1316 attachRowProgress](../app/js/app.js#L1316)）;紧凑行下进度条绝对定位于行底。
 
 ### 3.4 专项主题分类 ✅
 
 - 离线分类器 [themes.js](../app/js/themes.js)：29 个静态主题（动物/家居/动作/经济/科技/自然/中国文化等），按中英释义命中归类（[themes.js:201-250 init](../app/js/themes.js#L201-L250)）。
-- 主题浏览 [app.js:1342 renderThemes](../app/js/app.js#L1342)，主题详情 + 专项学习 [app.js:1430 openThemeSheet](../app/js/app.js#L1430)。
+- 主题浏览 [app.js:1549 renderThemes](../app/js/app.js#L1549)，主题详情 + 专项学习 [app.js:1662 openThemeSheet](../app/js/app.js#L1662)。
 - **考试专项子分组（2026-11-19）**：拆为「选词填空真题牌组」（7 牌组 + hero 入口）与「翻译与作文话题」（3 主题）两个子组，不再 10 卡平铺。
-- **卡面掌握进度**：每张主题卡显示进度条 + 「已掌握 x/y」，与词书行同一 SRS 口径（[app.js:1303 themeCard](../app/js/app.js#L1303)）。
-- **自定义专项词组**：专项页「我的分组」区可创建分组（≤20 字、同名拒绝）;词卡「＋ 分组」逐词收词、主题详情「全部收入分组」批量收词（嵌套选择器弹层，可新建并立即收入）;分组详情支持管理删词 / 重命名 / 删除分组 / 专项学习，复用主题详情与学习会话（[app.js:1507-1560](../app/js/app.js#L1507-L1560)、[store.js:320-365](../app/js/store.js#L320-L365)、[themes.js:150-153 setCustom](../app/js/themes.js#L150-L153)）。数据 `Store.customThemes` 随备份导出导入（§6）。
+- **卡面掌握进度**：每张主题卡显示进度条 + 「已掌握 x/y」，与词书行同一 SRS 口径（[app.js:1510 themeCard](../app/js/app.js#L1510)）。
+- **自定义专项词组**：专项页「我的分组」区可创建分组（≤20 字、同名拒绝）;词卡「＋ 分组」逐词收词、主题详情「全部收入分组」批量收词（嵌套选择器弹层，可新建并立即收入）;分组详情支持管理删词 / 重命名 / 删除分组 / 专项学习，复用主题详情与学习会话（[app.js:1493-1546](../app/js/app.js#L1493-L1546)、[store.js:320-365](../app/js/store.js#L320-L365)、[themes.js:153-156 setCustom](../app/js/themes.js#L153-L156)）。数据 `Store.customThemes` 随备份导出导入（§6）。
 
 ### 3.5 六级选词填空真题选项库（考试专项）✅
 
 对应六级 **Part III Reading Comprehension · Section A**（题号 26–35，**15 选 10**）。把 **26 套真题的 390 个选项位、369 个去重选项词**按考试真正考的方式分好类，直接放进「专项 → 考试专项」，可整组学、可测试。数据口径见 [DATA.md §2.9](DATA.md)。
 
-- **顶部真题库入口**：考试专项组首位一张 hero 卡，标明卷别 / 题号 / 规模，右侧「浏览真题卷」直达真题浏览器（[app.js:1359-1372 clozeHero](../app/js/app.js#L1359-L1372)）。
+- **顶部真题库入口**：考试专项组首位一张 hero 卡，标明卷别 / 题号 / 规模，右侧「浏览真题卷」直达真题浏览器（[app.js:1585-1598 clozeHero](../app/js/app.js#L1585-L1598)）。
 - **7 个牌组**（[build-cet6-cloze.js:148-165](../scripts/build-cet6-cloze.js#L148-L165)）：
 
   | 牌组 | 词数 | 用途 |
@@ -152,18 +152,18 @@
 
 - **词性按印刷词形判定**，不照抄词头：`purchasable` 归形容词而非 `purchase` 的名/动，`-ing`/`-ed` 同时进动词与形容词组，`friendly`/`likely` 等 `-ly` 形容词不进副词组（[build-cet6-cloze.js:63-79 formPos](../scripts/build-cet6-cloze.js#L63-L79)）。150 个词形属多词性，一个词可同时在多个牌组里——这正是真题选项的真实情况。
 - **四个词性牌组各有颜色身份**：名词蓝 / 动词琥珀 / 形容词紫 / 副词绿，取自构词解析已有的词素配色，落在卡片左边框、词性徽章与词数徽章上;同一套配色在牌组词行、真题选项列表与词卡上复用，扫一眼就知道这个词能填什么空（[app.css:831-841](../app/css/app.css#L831-L841)、[app.css:801-807](../app/css/app.css#L801-L807)）。深色下把色罩降到 25% 以保住三级文字对比度（[app.css:513-515](../app/css/app.css#L513-L515)），浅色下用 `color-mix` 加深徽章文字（[app.css:845-856](../app/css/app.css#L845-L856)）。
-- **牌组内实时筛选与排序**：词性筛选片（多词性牌组才出现）+ 三种排序「真题次数 / 语料词频 / 字母」，每行显示词性徽章与「×N 套」（≥2 套标红）;**「专项学习」学的就是当前筛选排序后的列表**，不是原始全量（[app.js:1380-1389 themeDeckWords](../app/js/app.js#L1380-L1389)、[app.js:1390-1413](../app/js/app.js#L1390-L1413)、[app.js:1422-1468 renderThemeSheet](../app/js/app.js#L1422-L1468)、[app.js:3082-3087](../app/js/app.js#L3082-L3087)）。
+- **牌组内实时筛选与排序**：词性筛选片（多词性牌组才出现）+ 三种排序「真题次数 / 语料词频 / 字母」，每行显示词性徽章与「×N 套」（≥2 套标红）;**「专项学习」学的就是当前筛选排序后的列表**，不是原始全量（[app.js:1628-1637 themeDeckWords](../app/js/app.js#L1628-L1637)、[app.js:1376-1399](../app/js/app.js#L1376-L1399)、[app.js:1671-1717 renderThemeSheet](../app/js/app.js#L1671-L1717)、[app.js:3466-3471](../app/js/app.js#L3466-L3471)）。
 - **默认顺序 = 教学顺序**：真题重复次数降序 → 语料次数降序 → 字母序，运行时不再用词库通用 `fr` 重排（[themes.js:234-242](../app/js/themes.js#L234-L242)）。
-- 牌组注册为动态主题 `cloze_<id>`，因此**自动进入测试中心「当前专项」范围**，四种题型与组卷约束全部可用，测试引擎零改动（[themes.js:195-244 init](../app/js/themes.js#L195-L244)）。
+- 牌组注册为动态主题 `cloze_<id>`，因此**自动进入测试中心「当前专项」范围**，四种题型与组卷约束全部可用，测试引擎零改动（[themes.js:201-250 init](../app/js/themes.js#L201-L250)）。
 - **8 个源站未收录选项词**（`demographics`、`behavioural`、`prioritize` 等）的释义在构建期**合并进全局 `words.json`**（唯一解释源），cloze 只留引用;可学可搜可测，离线有义可看（[build-cet6-cloze.js:32-47](../scripts/build-cet6-cloze.js#L32-L47)、[library.js:214-223 clozeEntry](../app/js/library.js#L214-L223)）。`replanting` 并入后按全局词性判动词，形容词牌组 162→161。
 
 ### 3.6 真题卷浏览与词卡真题数据 ✅
 
-- **真题浏览器**（单弹层，列表 ↔ 详情两态，详情内自带返回按钮）：顶部 26 / 390 / 369 / 18 四块统计，「全部 / 近五年 / 2016–2020」筛选片，26 张真题卷行（年份·月份·第 N 套 + 首句摘录）;**14 套上游缺失的真题列为不可点说明行**，末尾原样列出上游 4 条 OCR 清洗记录与数据来源（[app.js:1478-1550 renderClozeSheet](../app/js/app.js#L1478-L1550)、[index.html:445-452](../app/index.html#L445-L452)）。
-- **单卷详情**：篇目开头摘录（明确标注「篇目开头 · 原文摘录」，非句末补省略号）+ 词性图例 + **A–O 十五个选项行**（字母 tile + 词 + 释义 + 词性徽章），底部「学习本卷 15 个选项」一键成会话（[app.js:1551-1594 renderClozeSet](../app/js/app.js#L1551-L1594)、[app.js:3089-3095](../app/js/app.js#L3089-L3095)）。
-- **词卡「选词填空真题」块**：出现套数 + 词性徽章 + 「重复考过」标记 + 全局释义（离线也有义可看）+ 可点的真题卷徽章（`2025·12 第1套 · J`，点击直达该卷）+ 词形与词头不同时的归并说明（[app.js:1633-1661 clozeSection](../app/js/app.js#L1633-L1661)）。
-- **词卡「六级真题词频」块**：见 §2.7。两块都插在朗读按钮之后、外部词典与 AI 之前，离线优先呈现本地真题事实（[app.js:1594 openWordSheet](../app/js/app.js#L1594)）。
-- **印刷词形优先**：选项常以屈折形出现（`patterns`、`correlated`），词卡以词头富化（释义/音标/词根/派生齐全，全部来自全局）但标题与词性保留印刷词形，因为考试考的正是该词形（[library.js:483-491 lookup](../app/js/library.js#L483-L491)）。
+- **真题浏览器**（单弹层，列表 ↔ 详情两态，详情内自带返回按钮）：顶部 26 / 390 / 369 / 18 四块统计，「全部 / 近五年 / 2016–2020」筛选片，26 张真题卷行（年份·月份·第 N 套 + 首句摘录）;**14 套上游缺失的真题列为不可点说明行**，末尾原样列出上游 4 条 OCR 清洗记录与数据来源（[app.js:1808-1880 renderClozeSheet](../app/js/app.js#L1808-L1880)、[index.html:405-412](../app/index.html#L405-L412)）。
+- **单卷详情**：篇目开头摘录（明确标注「篇目开头 · 原文摘录」，非句末补省略号）+ 词性图例 + **A–O 十五个选项行**（字母 tile + 词 + 释义 + 词性徽章），底部「学习本卷 15 个选项」一键成会话（[app.js:1881-1924 renderClozeSet](../app/js/app.js#L1881-L1924)、[app.js:3473-3479](../app/js/app.js#L3473-L3479)）。
+- **词卡「选词填空真题」块**：出现套数 + 词性徽章 + 「重复考过」标记 + 全局释义（离线也有义可看）+ 可点的真题卷徽章（`2025·12 第1套 · J`，点击直达该卷）+ 词形与词头不同时的归并说明（[app.js:2137-2165 clozeSection](../app/js/app.js#L2137-L2165)）。
+- **词卡「六级真题词频」块**：见 §2.7。两块都插在朗读按钮之后、外部词典与 AI 之前，离线优先呈现本地真题事实（[app.js:2191 openWordSheet](../app/js/app.js#L2191)）。
+- **印刷词形优先**：选项常以屈折形出现（`patterns`、`correlated`），词卡以词头富化（释义/音标/词根/派生齐全，全部来自全局）但标题与词性保留印刷词形，因为考试考的正是该词形（[library.js:521-529 lookup](../app/js/library.js#L521-L529)）。
 
 ---
 
@@ -172,27 +172,27 @@
 ### 4.1 六范围 × 四题型 ✅
 
 - 范围：当前词书 / 当前专项 / 生词本 / 错题本 / 到期复习 / 全部混合（[quiz.js:131 scopeWords](../app/js/quiz.js#L131)）。
-- 题型：英选中 / 中选英 / 例句填空 / 听音选词（[quiz.js:495 availableTypes](../app/js/quiz.js#L495)、[quiz.js:516 buildQuestion](../app/js/quiz.js#L516)）。
+- 题型：英选中 / 中选英 / 例句填空 / 听音选词（[quiz.js:690 availableTypes](../app/js/quiz.js#L690)、[quiz.js:711 buildQuestion](../app/js/quiz.js#L711)）。
 
 ### 4.2 自动难度与组卷约束 ✅
 
 - 能力值自适应 `ability` / 目标难度 `targetDifficulty`（[quiz.js:187-192](../app/js/quiz.js#L187-L192)）。
-- **抽题不重复**（`used` 去重）、**同根词不连续**（[quiz.js:797 rootAllowed](../app/js/quiz.js#L797)）、**同题型不连出三题**（[quiz.js:793-795 typeAllowed](../app/js/quiz.js#L793-L795)）;近期接触降权 `recentPenalty`（[quiz.js:223](../app/js/quiz.js#L223)，记录词衰减到 35%）、新词加成 `noveltyBonus`（[quiz.js:218](../app/js/quiz.js#L218)）。组卷采样 [quiz.js:838 sample](../app/js/quiz.js#L838)。
+- **抽题不重复**（`used` 去重）、**同根词不连续**（[quiz.js:798 rootAllowed](../app/js/quiz.js#L798)）、**同题型不连出三题**（[quiz.js:794-796 typeAllowed](../app/js/quiz.js#L794-L796)）;近期接触降权 `recentPenalty`（[quiz.js:26](../app/js/quiz.js#L26)，记录词衰减到 35%）、新词加成 `noveltyBonus`（[quiz.js:26](../app/js/quiz.js#L26)）。组卷采样 [quiz.js:839 sample](../app/js/quiz.js#L839)。
 - **探索配额**：`explore`（0–40%，默认 20）保证每轮都有未学新词;采样把探索桶总权重归一到固定份额，避免海量新词淹没少量高需求记录词（[quiz.js:879-890](../app/js/quiz.js#L879-L890)）。
 
 ### 4.3 干扰项生成 ✅
 
-- 同词性 / 同根易混干扰（[quiz.js:636 buildDistractors](../app/js/quiz.js#L636)）；小词书自动借标准书凑干扰项（[quiz.js:93](../app/js/quiz.js#L93)）。
-- **记录优先干扰项**（[quiz.js:605 recordCandidates](../app/js/quiz.js#L605)）：按证据强度排序 = 答错误选对（`quiz.history[w].mix`，双向）→ 近 14 天同日共学 → 收藏/自定义词组 → 查词/AI/浏览接触;每題最多 2/3 个来自记录、至少留 1 个词库相似项，记录不足时全词库回退。
-- 听音选词用**音标音近**干扰（[quiz.js:530 buildAudioDistractors](../app/js/quiz.js#L530)、[quiz.js:519 phoneticSim](../app/js/quiz.js#L519)）;记录词只有同样音近才入选，且 ≤2/3。
-- 例句填空把目标词形镜像到干扰项，选项读起来自然（[quiz.js:442 buildCloze](../app/js/quiz.js#L442)、[quiz.js:425 inflectLike](../app/js/quiz.js#L425)）。
+- 同词性 / 同根易混干扰（[quiz.js:637 buildDistractors](../app/js/quiz.js#L637)）；小词书自动借标准书凑干扰项（[quiz.js:93](../app/js/quiz.js#L93)）。
+- **记录优先干扰项**（[quiz.js:606 recordCandidates](../app/js/quiz.js#L606)）：按证据强度排序 = 答错误选对（`quiz.history[w].mix`，双向）→ 近 14 天同日共学 → 收藏/自定义词组 → 查词/AI/浏览接触;每題最多 2/3 个来自记录、至少留 1 个词库相似项，记录不足时全词库回退。
+- 听音选词用**音标音近**干扰（[quiz.js:531 buildAudioDistractors](../app/js/quiz.js#L531)、[quiz.js:520 phoneticSim](../app/js/quiz.js#L520)）;记录词只有同样音近才入选，且 ≤2/3。
+- 例句填空把目标词形镜像到干扰项，选项读起来自然（[quiz.js:443 buildCloze](../app/js/quiz.js#L443)、[quiz.js:426 inflectLike](../app/js/quiz.js#L426)）。
 
 ### 4.4 判分、错题本与流程 ✅
 
-- 答对自动跳题（约 1s）、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1013 answerQuiz](../app/js/app.js#L1013)、[app.js:1086 renderQuizReveal](../app/js/app.js#L1086)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1138 finishQuiz](../app/js/app.js#L1138)、[app.js:1147 renderQuizDone](../app/js/app.js#L1147)）。
-- **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:586 recordQuizResult](../app/js/store.js#L586)，每词上限 8 个伙伴，[store.js:574 cleanMix](../app/js/store.js#L574)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:733-745](../app/js/quiz.js#L733-L745)）。
+- 答对自动跳题（约 1s）、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1057 answerQuiz](../app/js/app.js#L1057)、[app.js:1130 renderQuizReveal](../app/js/app.js#L1130)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1182 finishQuiz](../app/js/app.js#L1182)、[app.js:1191 renderQuizDone](../app/js/app.js#L1191)）。
+- **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:655 recordQuizResult](../app/js/store.js#L655)，每词上限 8 个伙伴，[store.js:643 cleanMix](../app/js/store.js#L643)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:733-745](../app/js/quiz.js#L733-L745)）。
 - 键盘：`1–4` 选选项、`Enter` 开始/答错后继续、`S` 朗读。
-- 设置面板（范围/题型/难度/组卷依据）[app.js:761 renderQuizSettings](../app/js/app.js#L761);考前预估含本轮复习/探索计划 [app.js:702 renderQuizEstimate](../app/js/app.js#L702)。
+- 设置面板（范围/题型/难度/组卷依据）[app.js:804 renderQuizSettings](../app/js/app.js#L804);考前预估含本轮复习/探索计划 [app.js:745 renderQuizEstimate](../app/js/app.js#L745)。
 
 | 设置项 | 可选值 |
 | --- | --- |
@@ -214,10 +214,10 @@
 ### 4.5 行为驱动组卷（记录为依据、但不全是）✅
 
 - **行为画像** `behaviorProfile`（[quiz.js:236](../app/js/quiz.js#L236)）汇总 app/网页全部行为记录：FSRS 状态与到期/薄弱、每日学习日志（同日共学邻词、今日已学降权）、浏览计数、错题本、生词本与自定义词组、查词历史、AI/词典缓存、测试历史与误选对;输出每词信号与统计（有记录词/易混/到期/收藏/活跃天数）。
-- **需求评分** `needScore`（[quiz.js:330](../app/js/quiz.js#L330)）叠加到候选权重;强记录词有难度 fit 下限，保证刚答错/到期词不被难度模型压掉（[quiz.js:822-826](../app/js/quiz.js#L822-L826)）。
-- **来源标签**：每题带 `source`（到期复习/薄弱词/易混词/收藏分组/已学复习/浏览关注/新词探索，[quiz.js:334 sourceFor](../app/js/quiz.js#L334)），会话内显示徽标（[app.js:697 QUIZ_SOURCE_LABEL](../app/js/app.js#L697)、[index.html:85](../app/index.html#L85)）。
-- **结果构成**：结束页「本轮构成」堆叠条 + 图例 + 「依据 N 个词的学习记录组卷 · M 个干扰项来自你的记录」（[app.js:1160-1190](../app/js/app.js#L1160-L1190)、[index.html:120](../app/index.html#L120)）。
-- **组卷依据面板**：探索比例滑杆、易混词优先开关、收藏/自定义加权开关、画像统计行（[index.html:554-566](../app/index.html#L554-L566)）；入口页显示组卷依据摘要（[index.html:66](../app/index.html#L66)）。配置 `explore/confusion/curated` 随备份导出导入（[store.js:163-172](../app/js/store.js#L163-L172)、[store.js:700 mergeQuiz](../app/js/store.js#L700)）。
+- **需求评分** `needScore`（[quiz.js:26](../app/js/quiz.js#L26)）叠加到候选权重;强记录词有难度 fit 下限，保证刚答错/到期词不被难度模型压掉（[quiz.js:822-826](../app/js/quiz.js#L822-L826)）。
+- **来源标签**：每题带 `source`（到期复习/薄弱词/易混词/收藏分组/已学复习/浏览关注/新词探索，[quiz.js:335 sourceFor](../app/js/quiz.js#L335)），会话内显示徽标（[app.js:740 QUIZ_SOURCE_LABEL](../app/js/app.js#L740)、[index.html:85](../app/index.html#L85)）。
+- **结果构成**：结束页「本轮构成」堆叠条 + 图例 + 「依据 N 个词的学习记录组卷 · M 个干扰项来自你的记录」（[app.js:1146-1176](../app/js/app.js#L1146-L1176)、[index.html:120](../app/index.html#L120)）。
+- **组卷依据面板**：探索比例滑杆、易混词优先开关、收藏/自定义加权开关、画像统计行（[index.html:551-563](../app/index.html#L551-L563)）；入口页显示组卷依据摘要（[index.html:66](../app/index.html#L66)）。配置 `explore/confusion/curated` 随备份导出导入（[store.js:163-172](../app/js/store.js#L163-L172)、[store.js:770 mergeQuiz](../app/js/store.js#L770)）。
 
 ---
 
@@ -225,30 +225,30 @@
 
 ### 5.1 查词 / 历史 / 生词本 ✅
 
-- 查词 [app.js:2344 runSearch](../app/js/app.js#L2344)，词详情页 [app.js:1991 openWordSheet](../app/js/app.js#L1991)，查词历史 [app.js:2414 renderHistory](../app/js/app.js#L2414)，生词本/收藏 [app.js:2459 renderFavorites](../app/js/app.js#L2459)。
+- 查词 [app.js:2544 runSearch](../app/js/app.js#L2544)，词详情页 [app.js:2191 openWordSheet](../app/js/app.js#L2191)，查词历史 [app.js:2614 renderHistory](../app/js/app.js#L2614)，生词本/收藏 [app.js:2659 renderFavorites](../app/js/app.js#L2659)。
 - **历史按日期分组（2026-11-20）**：今天 / 昨天 / M月D日（跨年带年份）分组，组头带词数与折叠箭头;**最近一组默认展开、其余收缩**，点组头切换;不再截断 30 条（历史上限 100 全展示）。
-- **在线查词入口** ✅：本地词库无精确匹配时，结果顶部置顶「在线查词：〈query〉」行，点击即开词卡并自动联网查询、按词缓存到本机（[app.js:2051-2060](../app/js/app.js#L2051-L2060)、[app.css:1137](../app/css/app.css#L1137)）。
+- **在线查词入口** ✅：本地词库无精确匹配时，结果顶部置顶「在线查词：〈query〉」行，点击即开词卡并自动联网查询、按词缓存到本机（[app.js:2435-2444](../app/js/app.js#L2435-L2444)、[app.css:1147](../app/css/app.css#L1147)）。
 
 ### 5.2 外部词典：多词典并行 ✅
 
 - [dictionary.js](../app/js/dictionary.js)：4 个内置源（中英词典/有道、UAPI 中英词典、免费英文词典 dictionaryapi.dev、Merriam-Webster）+ 任意数量**自定义端点**（[dictionary.js:3-20 PROVIDERS](../app/js/dictionary.js#L3-L20)、[dictionary.js:22-30 customProviders](../app/js/dictionary.js#L22-L30)）。每个源独立开关，**可同时开启多个**，结果合并去重后按词缓存、离线可看。
-- **添加自定义词典** ✅：「我的 → 词典 → ＋ 添加词典」填名称、API 地址（`{word}` 占位，可选 `{key}`）、返回格式、鉴权方式与 Key;保存前可「连通性测试」实打实验证端点（[app.js:2908-2933 openDictEdit](../app/js/app.js#L2908-L2933)、[dictionary.js:483-492 testProvider](../app/js/dictionary.js#L483-L492)）。新增即自动启用并排在末位（[store.js:390-403 addDictSource](../app/js/store.js#L390-L403)）。
+- **添加自定义词典** ✅：「我的 → 词典 → ＋ 添加词典」填名称、API 地址（`{word}` 占位，可选 `{key}`）、返回格式、鉴权方式与 Key;保存前可「连通性测试」实打实验证端点（[app.js:3480-3505 openDictEdit](../app/js/app.js#L3480-L3505)、[dictionary.js:483-492 testProvider](../app/js/dictionary.js#L483-L492)）。新增即自动启用并排在末位（[store.js:601-614 addDictSource](../app/js/store.js#L601-L614)）。
 - **返回格式**：`自动识别` 嗅探有道 `ec/ee/ce`、UAPI `entry`、MW `shortdef`、free `meanings/phonetics`，都不匹配时按通用 JSON 兜底;也可手动指定有道 / UAPI / free / MW 格式（[dictionary.js:393-404 normalizeAuto](../app/js/dictionary.js#L393-L404)、[dictionary.js:406-413 normalizeFor](../app/js/dictionary.js#L406-L413)）。
 - **鉴权方式**：不发送 / `Bearer` 头 / 自定义头（默认 `X-API-Key`，头名可改）/ URL `key=` 查询参数;Key 统一存 `dict.keys[id]`，Windows 上逐个 AES-256-GCM 加密落盘（[dictionary.js:433-453 headersFor](../app/js/dictionary.js#L433-L453)、[dictionary.js:415-431 buildUrl](../app/js/dictionary.js#L415-L431)）。
-- **开关与优先级** ✅：每行一个开关 + ↑/↓ 调序，徽章显示「优先级 N」;顶部摘要列出开启顺序，配置不完整的源标注「未填 Key」并说明将被跳过;另有「全部开启 / 全部关闭」批量操作（[app.js:2831-2904 renderDictSources](../app/js/app.js#L2831-L2904)、[store.js:375-389 setDictEnabled/moveDictSource](../app/js/store.js#L375-L389)）。
-- **合并去重** ✅：默认并行查询全部已开启源，按词性归一（`vt./vi/verb → v`）分组、按释义文本去重，同一条释义合并中英双语、例句与近义并累积来源标记;每条释义尾部内联显示来源徽章（[dictionary.js:494-505 posKey/defKey](../app/js/dictionary.js#L494-L505)、[dictionary.js:508-560 mergeRecords](../app/js/dictionary.js#L508-L560)、[app.js:1715 renderBody](../app/js/app.js#L1715)）。关闭「合并」则按顺序串行、命中即停，更省配额（[dictionary.js:570-625 lookup](../app/js/dictionary.js#L570-L625)）。
-- **来源筛选与失败可见** ✅：多源合并时词卡顶部出现「全部 + 各来源」筛选片，可单看某一源;部分源失败不隐藏，逐条列出原因，健康源照常渲染（[app.js:1795-1806](../app/js/app.js#L1795-L1806)、[app.js:1811-1813](../app/js/app.js#L1811-L1813)）。
-- **缓存随配置失效（提示 + 手动重查）** ✅：缓存记录带启用集合签名 `sig`;开关或顺序一变，旧缓存不再当作新鲜结果，词卡标注「本地缓存（按旧词典配置生成）」并给出「按当前配置重查」按钮，点击才联网（[dictionary.js:38 signature](../app/js/dictionary.js#L38)、[app.js:1792-1800](../app/js/app.js#L1792-L1800)、[app.js:1852-1855](../app/js/app.js#L1852-L1855)）。「词典缓存」组显示已缓存词数并可一键清空。
-- **兜底回退**：仅当全部已开启源都因网络/跨域失败时，按 free → UAPI → 有道 兜底一次，来源记于 `record.fallbackFrom` 并显示「已从〈源〉回退」（[dictionary.js:562-567 RESCUE](../app/js/dictionary.js#L562-L567)、[app.js:1791-1793](../app/js/app.js#L1791-L1793)）。
+- **开关与优先级** ✅：每行一个开关 + ↑/↓ 调序，徽章显示「优先级 N」;顶部摘要列出开启顺序，配置不完整的源标注「未填 Key」并说明将被跳过;另有「全部开启 / 全部关闭」批量操作（[app.js:3403-3476 renderDictSources](../app/js/app.js#L3403-L3476)、[store.js:375-389 setDictEnabled/moveDictSource](../app/js/store.js#L375-L389)）。
+- **合并去重** ✅：默认并行查询全部已开启源，按词性归一（`vt./vi/verb → v`）分组、按释义文本去重，同一条释义合并中英双语、例句与近义并累积来源标记;每条释义尾部内联显示来源徽章（[dictionary.js:494-505 posKey/defKey](../app/js/dictionary.js#L494-L505)、[dictionary.js:508-560 mergeRecords](../app/js/dictionary.js#L508-L560)、[app.js:2313 renderBody](../app/js/app.js#L2313)）。关闭「合并」则按顺序串行、命中即停，更省配额（[dictionary.js:570-625 lookup](../app/js/dictionary.js#L570-L625)）。
+- **来源筛选与失败可见** ✅：多源合并时词卡顶部出现「全部 + 各来源」筛选片，可单看某一源;部分源失败不隐藏，逐条列出原因，健康源照常渲染（[app.js:1831-1842](../app/js/app.js#L1831-L1842)、[app.js:1847-1849](../app/js/app.js#L1847-L1849)）。
+- **缓存随配置失效（提示 + 手动重查）** ✅：缓存记录带启用集合签名 `sig`;开关或顺序一变，旧缓存不再当作新鲜结果，词卡标注「本地缓存（按旧词典配置生成）」并给出「按当前配置重查」按钮，点击才联网（[dictionary.js:38 signature](../app/js/dictionary.js#L38)、[app.js:1828-1836](../app/js/app.js#L1828-L1836)、[app.js:1888-1891](../app/js/app.js#L1888-L1891)）。「词典缓存」组显示已缓存词数并可一键清空。
+- **兜底回退**：仅当全部已开启源都因网络/跨域失败时，按 free → UAPI → 有道 兜底一次，来源记于 `record.fallbackFrom` 并显示「已从〈源〉回退」（[dictionary.js:564-569 RESCUE](../app/js/dictionary.js#L564-L569)、[app.js:1827-1829](../app/js/app.js#L1827-L1829)）。
 - **UAPI 中英词典**：免 Key（访客积分，4 QPS 上限），中英双释义 + 英美音标音频 + 考试标签 + 词形变化 + 词组 + 近义 + 双语例句;`normalizeUapis` 解析内嵌词性、补全音频主机、映射考试标签（[dictionary.js:232-301](../app/js/dictionary.js#L232-L301)）。仅原生通道直连，浏览器跨域拦截时由其它源顶上。
 - 一个源都没开时，查词给出「请到『我的 → 词典』至少开启一个」并提供直达设置的按钮，而不是静默失败（[dictionary.js:570-625](../app/js/dictionary.js#L570-L625)）。
 
 ### 5.3 词卡弹层（与学习页同源）✅
 
-- 查词 / 词根家族 / 专项主题 / 生词本 / 真题选项等入口都打开同一个词卡弹层，弹层与学习页调用**同一渲染器、同一顺序与开关**（[app.js:1625-1627](../app/js/app.js#L1625-L1627)、[app.js:414 renderWordBlocks](../app/js/app.js#L414)）;旧的 `Library.buildCards`、`cardOrder` 与两套卡片拖动代码已删除。
-- **词典块缓存优先**：有缓存直接离线渲染 + 刷新/删除图标;无缓存显示「查询词典」按钮，点击才联网并缓存到本机（[app.js:1678 dictSection](../app/js/app.js#L1678)、[app.js:1786](../app/js/app.js#L1786)）。合并记录额外渲染词形变化与常见词组。
-- **AI 块缓存优先**：无缓存时块内「生成 AI 解释」手动触发;旧「打开详解时自动生成」开关（`ai.autoExplain`）已移除（[app.js:1859 aiSection](../app/js/app.js#L1859)、[app.js:1887](../app/js/app.js#L1887)）。
-- 词库未收录的词：弹层只给词典块与手动查询入口，渲染本身不联网（[app.js:1600-1611](../app/js/app.js#L1600-L1611)）。
+- 查词 / 词根家族 / 专项主题 / 生词本 / 真题选项等入口都打开同一个词卡弹层，弹层与学习页调用**同一渲染器、同一顺序与开关**（[app.js:1661-1663](../app/js/app.js#L1661-L1663)、[app.js:521 renderWordBlocks](../app/js/app.js#L521)）;旧的 `Library.buildCards`、`cardOrder` 与两套卡片拖动代码已删除。
+- **词典块缓存优先**：有缓存直接离线渲染 + 刷新/删除图标;无缓存显示「查询词典」按钮，点击才联网并缓存到本机（[app.js:2276 dictSection](../app/js/app.js#L2276)、[app.js:1822](../app/js/app.js#L1822)）。合并记录额外渲染词形变化与常见词组。
+- **AI 块缓存优先**：无缓存时块内「生成 AI 解释」手动触发;旧「打开详解时自动生成」开关（`ai.autoExplain`）已移除（[app.js:2457 aiSection](../app/js/app.js#L2457)、[app.js:1923](../app/js/app.js#L1923)）。
+- 词库未收录的词：弹层只给词典块与手动查询入口，渲染本身不联网（[app.js:1596-1607](../app/js/app.js#L1596-L1607)）。
 
 ---
 
@@ -259,14 +259,14 @@
 - [ai.js](../app/js/ai.js)：**13 个商用服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:4-18](../app/js/ai.js#L4-L18)），另加 2 个 DEV-ONLY 免费预设（下两条），共 15 项。
 - **开发期免费预设 🚧 DEV-ONLY**：开发期默认服务商「开发免费（发布前移除）」内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用；三个模型 `DeepSeek-V4-Flash`（默认）/ `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash` 以**下拉选择器**直接可选。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
 - **QNAI 免费端点 🚧 DEV-ONLY**：另置顶「QNAI Free（发布前移除）」`https://api.qnaigc.com/v1`，免 Key 直连（内置共享 Key），模型下拉二选一——`qiniu/conatus-free`（默认，实测可用、支持 JSON 模式;免费档有全局限流 `429 free_campaign_global_limit`，数十秒后可恢复）与 `nvidia/nemotron-3-ultra-550b-a55b0-free`（接入时上游持续 `service temporarily unavailable`，恢复即可切换）。**正式发布前与 devfree 一并移除并作废 Key**（[ai.js:42-50](../app/js/ai.js#L42-L50)）。
-- **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器（现为 devfree 三模型与 qnafree 二模型），其余服务商保留自由文本输入；切换服务商自动切换形态并持久化所选模型，清单内无该模型时回落到新服务商默认模型（[app.js:2786-2811 syncAiProviderUi](../app/js/app.js#L2786-L2811)、[app.js:3152-3158](../app/js/app.js#L3152-L3158)、[index.html:751](../app/index.html#L751)）。开发期默认服务商为 devfree（[store.js:32](../app/js/store.js#L32)）。
-- 按词生成结构化解释，解析失败重试一次（[ai.js:112](../app/js/ai.js#L112)）;平台网络通道绕 CORS（[platform.js:210 llmChat](../app/js/platform.js#L210)）。浏览器直连受 CORS 限制，Electron / Android 正常。
-- **连通性测试 + 可操作错误** ✅：「模型」栏下方「测试连通性」按钮发一条最小 ping 请求，显示 `✓ 连通正常 · 模型 · 耗时s` 或可操作错误，切换服务商自动清空（[index.html:756](../app/index.html#L756)、[app.js:3162-3175](../app/js/app.js#L3162-L3175)、[app.js:2809-2810](../app/js/app.js#L2809-L2810)）。网络错误分类为「超时（120 秒）」/「浏览器 CORS 拦截，请改用 Electron/Android」，取代裸 `Failed to fetch`（[platform.js:240-245](../app/js/platform.js#L240-L245)、[main.js:348-350](../main.js#L348-L350)）;三端 LLM 超时统一 120s 以适配慢端点（[platform.js:220](../app/js/platform.js#L220)、[main.js:337-340](../main.js#L337-L340)）。
-- 学习页与词卡的 AI 块 [app.js:1859-1916 aiSection](../app/js/app.js#L1859-L1916)，渲染 [app.js:1638 renderAiExplanation](../app/js/app.js#L1638);缓存优先，无缓存时块内手动生成。
+- **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器（现为 devfree 三模型与 qnafree 二模型），其余服务商保留自由文本输入；切换服务商自动切换形态并持久化所选模型，清单内无该模型时回落到新服务商默认模型（[app.js:3358-3383 syncAiProviderUi](../app/js/app.js#L3358-L3383)、[app.js:3152-3158](../app/js/app.js#L3152-L3158)、[index.html:18](../app/index.html#L18)）。开发期默认服务商为 devfree（[store.js:32](../app/js/store.js#L32)）。
+- 按词生成结构化解释，解析失败重试一次（[ai.js:135-138](../app/js/ai.js#L135-L138)）;平台网络通道绕 CORS（[platform.js:233 llmChat](../app/js/platform.js#L233)）。浏览器直连受 CORS 限制，Electron / Android 正常。
+- **连通性测试 + 可操作错误** ✅：「模型」栏下方「测试连通性」按钮发一条最小 ping 请求，显示 `✓ 连通正常 · 模型 · 耗时s` 或可操作错误，切换服务商自动清空（[index.html:750](../app/index.html#L750)、[app.js:3354-3367](../app/js/app.js#L3354-L3367)、[app.js:3193-3194](../app/js/app.js#L3193-L3194)）。网络错误分类为「超时（120 秒）」/「浏览器 CORS 拦截，请改用 Electron/Android」，取代裸 `Failed to fetch`（[platform.js:254-259](../app/js/platform.js#L254-L259)、[main.js:376-383](../main.js#L376-L383)）;三端 LLM 超时统一 120s 以适配慢端点（[platform.js:232](../app/js/platform.js#L232)、[main.js:337-340](../main.js#L337-L340)）。
+- 学习页与词卡的 AI 块 [app.js:2457-2514 aiSection](../app/js/app.js#L2457-L2514)，渲染 [app.js:2236 renderAiExplanation](../app/js/app.js#L2236);缓存优先，无缓存时块内手动生成。
 
 ### 6.2 AI 解释库 ✅
 
-- 解释按词缓存、可导出（[app.js:1918-1943 renderAiLibrary](../app/js/app.js#L1918-L1943)），导出走平台文件保存（[platform.js:288 saveTextFile](../app/js/platform.js#L288)）。
+- 解释按词缓存、可导出（[app.js:2516-2541 renderAiLibrary](../app/js/app.js#L2516-L2541)），导出走平台文件保存（[platform.js:312 saveTextFile](../app/js/platform.js#L312)）。
 
 **说明**：当前是「按词静态生成一段解释」，无对话会话管理。交互式追问 / 发音评测属未来方向，见 §13.3。
 
@@ -285,12 +285,12 @@
 
 ### 8.1 学习统计 ✅
 
-- 统计总览 [app.js:2561 renderStats](../app/js/app.js#L2561)；高频接触词榜 [app.js:2590 renderTopViews](../app/js/app.js#L2590)；带月份与逐日数字的打卡日历 [app.js:2612 renderCalendar](../app/js/app.js#L2612)；掌握分布 [app.js:2653 renderMastery](../app/js/app.js#L2653)；正确率 [app.js:2672 renderRetention](../app/js/app.js#L2672)；趋势 [app.js:2691 renderTrend](../app/js/app.js#L2691)。
-- **学习记录时间轴（2026-11-20）**：逐日历史改垂直时间轴——左侧连线 + 日期节点（今日 accent 实心），每日卡片含星期、新学/复习/三档次数/时长，展开看认识/模糊/忘记 pills 与新学/复习词芯片;**最近一天默认展开**，30 天/批「再往前」追加（[app.js:2710 renderDayHistory](../app/js/app.js#L2710)）。
+- 统计总览 [app.js:2761 renderStats](../app/js/app.js#L2761)；高频接触词榜 [app.js:2790 renderTopViews](../app/js/app.js#L2790)；带月份与逐日数字的打卡日历 [app.js:2812 renderCalendar](../app/js/app.js#L2812)；掌握分布 [app.js:2853 renderMastery](../app/js/app.js#L2853)；正确率 [app.js:2872 renderRetention](../app/js/app.js#L2872)；趋势 [app.js:2891 renderTrend](../app/js/app.js#L2891)。
+- **学习记录时间轴（2026-11-20）**：逐日历史改垂直时间轴——左侧连线 + 日期节点（今日 accent 实心），每日卡片含星期、新学/复习/三档次数/时长，展开看认识/模糊/忘记 pills 与新学/复习词芯片;**最近一天默认展开**，30 天/批「再往前」追加（[app.js:2910 renderDayHistory](../app/js/app.js#L2910)）。
 
 ### 8.2 单词接触次数 ✅
 
-- 每词自动记录查看次数，统计页可看高频接触词与掌握状态（接触计数 + 状态点 [app.js:1183 stateOf](../app/js/app.js#L1183)）。
+- 每词自动记录查看次数，统计页可看高频接触词与掌握状态（接触计数 + 状态点 [app.js:1284 stateOf](../app/js/app.js#L1284)）。
 
 ---
 
@@ -298,22 +298,22 @@
 
 ### 9.1 个人资料 ✅
 
-- 头像（256px 方形裁剪 + WebP 压缩，仅存本机）与昵称（[app.js:190 readAvatarImage](../app/js/app.js#L190)、[app.js:2158-2169 renderMeProfile](../app/js/app.js#L2158-L2169)、[app.js:2199-2204 saveProfile](../app/js/app.js#L2199-L2204)），随备份导出/导入迁移。
+- 头像（256px 方形裁剪 + WebP 压缩，仅存本机）与昵称（[app.js:223 readAvatarImage](../app/js/app.js#L223)、[app.js:2695-2706 renderMeProfile](../app/js/app.js#L2695-L2706)、[app.js:2736-2741 saveProfile](../app/js/app.js#L2736-L2741)），随备份导出/导入迁移。
 
 ### 9.2 设置中心 ✅
 
-- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2895 SETTINGS_PANES](../app/js/app.js#L2895)、[app.js:3016 showSettingsPane](../app/js/app.js#L3016)、[app.js:3025 openSettings](../app/js/app.js#L3025)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
+- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:3194 SETTINGS_PANES](../app/js/app.js#L3194)、[app.js:3315 showSettingsPane](../app/js/app.js#L3315)、[app.js:3325 openSettings](../app/js/app.js#L3325)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
 
 ### 9.3 桌面 Web 自适应布局 ✅
 
-- ≥960px：底栏变左侧栏（品牌标记 + **图标+文字竖排菜单**，2026-11-20 起桌面显示导航名称、移动端底栏保持纯图标;[index.html:430 side-brand](../app/index.html#L430)），内容列最宽 1120 居中;功能页铺满侧栏以右内容区;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果与设置页正文居中 780 列;滚动条加宽并带 hover（[app.css:1507](../app/css/app.css#L1507)）。
-- ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1570](../app/css/app.css#L1570)、[index.html:35 word-head](../app/index.html#L35)）;移动端 `.word-head{display:contents}` 保持原单列不变。
+- ≥960px：底栏变左侧栏（品牌标记 + **图标+文字竖排菜单**，2026-11-20 起桌面显示导航名称、移动端底栏保持纯图标;[index.html:410 side-brand](../app/index.html#L410)），内容列最宽 1120 居中;功能页铺满侧栏以右内容区;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果与设置页正文居中 780 列;滚动条加宽并带 hover（[app.css:1519](../app/css/app.css#L1519)）。
+- ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1582](../app/css/app.css#L1582)、[index.html:35 word-head](../app/index.html#L35)）;移动端 `.word-head{display:contents}` 保持原单列不变。
 
 ### 9.4 全页面化 · 图标极简 · 导航反馈 ✅（2026-11-20）
 
-- **功能入口全页面化**：词卡 / 词根家族 / 词缀 / 主题 / 分组选择 / 选词填空 / 个人资料 / 测试设置 / 词典编辑 / 设置共 11 个原底部抽屉改为整页——`position:fixed; inset:0`、无圆角无阴影、自右向左滑入（`translateX(100%)→0`），头部为返回箭头 + 标题（[app.css:1111-1112](../app/css/app.css#L1111-L1112)、[index.html 各 sheet-close 返回图标](../app/index.html#L462)）。原有 openSheet/closeSheet/嵌套/焦点/返回栈逻辑不变（[app.js:295 openSheet](../app/js/app.js#L295)）;移动端页面打开时主界面 inert，桌面 ≥960px 侧栏保持可点（遮罩左移 216px 且透明），点侧栏即关页切换（[app.js:260 pagesDesktop](../app/js/app.js#L260)、[app.js:41 switchView 关页](../app/js/app.js#L41)、[app.css:1552](../app/css/app.css#L1552)）。
-- **图标极简**：底栏标签（移动端）、学习/测试切换文字、评分按钮文字、我的行副标题、设置行小字、测试退出文字均隐藏，仅留图标 + aria-label/title;**词根/词缀切换例外保留「词根」「词缀」文字**（2026-11-20 用户要求，[app.css:1606-1608](../app/css/app.css#L1606-L1608)、[index.html:23 mode-text](../app/index.html#L23)）。
-- **底栏互动反馈**：滑动指示胶囊（accent 13% 混色，弹性曲线跟随_active  tab，横竖两向，ResizeObserver + resize 重算）、按压涟漪（pointerdown 落点扩散、animationend 自清理）、图标弹跳 pop（[index.html:429 tab-indicator](../app/index.html#L429)、[app.js:265 placeTabIndicator](../app/js/app.js#L265)、[app.js:3650 涟漪](../app/js/app.js#L3650)、[app.css:1591-1597](../app/css/app.css#L1591-L1597)）。
+- **功能入口全页面化**：词卡 / 词根家族 / 词缀 / 主题 / 分组选择 / 选词填空 / 个人资料 / 测试设置 / 词典编辑 / 设置共 11 个原底部抽屉改为整页——`position:fixed; inset:0`、无圆角无阴影、自右向左滑入（`translateX(100%)→0`），头部为返回箭头 + 标题（[app.css:1121-1122](../app/css/app.css#L1121-L1122)、[index.html 各 sheet-close 返回图标](../app/index.html#L442)）。原有 openSheet/closeSheet/嵌套/焦点/返回栈逻辑不变（[app.js:318 openSheet](../app/js/app.js#L318)）;移动端页面打开时主界面 inert，桌面 ≥960px 侧栏保持可点（遮罩左移 216px 且透明），点侧栏即关页切换（[app.js:283 pagesDesktop](../app/js/app.js#L283)、[app.js:41 switchView 关页](../app/js/app.js#L41)、[app.css:1552](../app/css/app.css#L1552)）。
+- **图标极简**：底栏标签（移动端）、学习/测试切换文字、评分按钮文字、我的行副标题、设置行小字、测试退出文字均隐藏，仅留图标 + aria-label/title;**词根/词缀切换例外保留「词根」「词缀」文字**（2026-11-20 用户要求，[app.css:1718-1719](../app/css/app.css#L1718-L1719)、[index.html:23 mode-text](../app/index.html#L23)）。
+- **底栏互动反馈**：滑动指示胶囊（accent 13% 混色，弹性曲线跟随_active  tab，横竖两向，ResizeObserver + resize 重算）、按压涟漪（pointerdown 落点扩散、animationend 自清理）、图标弹跳 pop（[index.html:409 tab-indicator](../app/index.html#L409)、[app.js:288 placeTabIndicator](../app/js/app.js#L288)、[app.js:3842 涟漪](../app/js/app.js#L3842)、[app.css:1603-1609](../app/css/app.css#L1603-L1609)）。
 
 ### 9.5 多级面包屑 ✅（2026-11-20）
 
@@ -326,11 +326,11 @@
 
 ### 10.1 八套主题 ✅
 
-- 8 套主题不只是换色：逐主题重排字体/字重/行距/圆角/描边阴影/留白密度/控件高度/底栏形态/动效，各自适配浅/深色（[app.js:90 applyTheme](../app/js/app.js#L90)、[app.js:102 setTheme](../app/js/app.js#L102)）。
+- 8 套主题不只是换色：逐主题重排字体/字重/行距/圆角/描边阴影/留白密度/控件高度/底栏形态/动效，各自适配浅/深色（[app.js:121 applyTheme](../app/js/app.js#L121)、[app.js:133 setTheme](../app/js/app.js#L133)）。
 
 ### 10.2 背景壁纸 ✅
 
-- 上传一张图片作应用底色，蒙版浓度 + 模糊调节，压缩后仅存本机（[app.js:108 applyBackground](../app/js/app.js#L108)、[app.js:133 readBackgroundImage](../app/js/app.js#L133)）。
+- 上传一张图片作应用底色，蒙版浓度 + 模糊调节，压缩后仅存本机（[app.js:141 applyBackground](../app/js/app.js#L141)、[app.js:166 readBackgroundImage](../app/js/app.js#L166)）。
 
 ### 10.3 透明度 / 纯文本隐藏 ✅
 
@@ -339,18 +339,18 @@
 ### 10.4 无障碍与规范达标（审计 P0）✅
 
 - **对比度**：8 主题浅/深 `--text-3` 重算，muted 标签在 card 与 fill 表面均 ≥4.5:1（WCAG AA）;深色 active 分段控件用实色 accent（[app.css:8](../app/css/app.css#L8)、[app.css:578](../app/css/app.css#L578)）。实测对比度失败 0。
-- **触控目标**：孤立图标按钮 44px、开关命中区 44px（视觉 28px）、分段控件 44px、朗读按钮防压缩;内联词 chip ≥24px+间距（WCAG 2.5.8）（[app.css:1150](../app/css/app.css#L1150)）。
+- **触控目标**：孤立图标按钮 44px、开关命中区 44px（视觉 28px）、分段控件 44px、朗读按钮防压缩;内联词 chip ≥24px+间距（WCAG 2.5.8）（[app.css:1160](../app/css/app.css#L1160)）。
 - **字号 / 缩放**：最小字号 ≥11px、底栏 12px;viewport 允许 200% 缩放（[index.html:5](../app/index.html#L5)）。
-- **键盘 / 屏幕阅读器**：全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原，[app.js:240](../app/js/app.js#L240)）;`aria-live` 播报评分/测试/加载（[app.js:267](../app/js/app.js#L267)）。
+- **键盘 / 屏幕阅读器**：全局 `:focus-visible` 焦点环;弹层焦点管理（聚焦/陷阱/inert/还原，[app.js:238](../app/js/app.js#L238)）;`aria-live` 播报评分/测试/加载（[app.js:265](../app/js/app.js#L265)）。
 - 详见 DEVELOPMENT §8.36;P1/P2（字阶/动效 token 统一、设置面板内切换、搜索防抖、自动前进可关、词根导航、趋势图修复、完成庆祝、滑动评分等）见 `.scratch/uiux-plan.md`，规划中。
 
 ### 10.5 真题刷题（62 套六级真题）✅
 
-- **数据（2026-11-20 升级 schema 2）**：在用集为外部导入的 schema 2 分片（62 套 + manifest，[scripts/import-exams.js](../scripts/import-exams.js) 可复现导入;分片单源、manifest 由分片派生并补 writing/translation 布尔）;新增 `hasAnswers/answersComplete/answersCoverage/answersSource/stats` 答案元数据，2026-06-01/03 两套含官方答案。旧 `build-exams.js` 为 schema 1 解析管线（溯源保留，重跑后须重新导入）。启动只读 manifest，打开某套才懒加载分片（[platform.js:134](../app/js/platform.js#L134)、[main.js:363](../main.js#L363)）。残缺套顶部如实提示（缺题/缺选项数）。
-- **年份折叠网格（2026-11-20）**：列表按年份分组为可折叠组——组头按钮（年 + 套数 + 已练进度 + 箭头）**全部默认收缩**，点组头展开/收起;组内卡片网格含月/套、题量与题型、已练进度条与「已练 x/y」、含答案/答案覆盖率/残缺徽标;移动 2 列、≥960 3 列、≥1280 4 列;进入某套后返回保持该年展开（[app.js:3814 renderExamsList](../app/js/app.js#L3814)）。
+- **数据（2026-11-20 升级 schema 2）**：在用集为外部导入的 schema 2 分片（62 套 + manifest，[scripts/import-exams.js](../scripts/import-exams.js) 可复现导入;分片单源、manifest 由分片派生并补 writing/translation 布尔）;新增 `hasAnswers/answersComplete/answersCoverage/answersSource/stats` 答案元数据，2026-06-01/03 两套含官方答案。旧 `build-exams.js` 为 schema 1 解析管线（溯源保留，重跑后须重新导入）。启动只读 manifest，打开某套才懒加载分片（[platform.js:136-138](../app/js/platform.js#L136-L138)、[main.js:357](../main.js#L357)）。残缺套顶部如实提示（缺题/缺选项数）。
+- **年份折叠网格（2026-11-20）**：列表按年份分组为可折叠组——组头按钮（年 + 套数 + 已练进度 + 箭头）**全部默认收缩**，点组头展开/收起;组内卡片网格含月/套、题量与题型、已练进度条与「已练 x/y」、含答案/答案覆盖率/残缺徽标;移动 2 列、≥960 3 列、≥1280 4 列;进入某套后返回保持该年展开（[app.js:4020 renderExamsList](../app/js/app.js#L4020)）。
 - **题型**：仔细阅读（一段材料 + 一组选择题，逐题推进）、信息匹配（[A]–[O] 段落 ↔ 陈述句字母芯片）、**选词填空（2026-11-20 开刷）**、短文写作 / 汉译英（写作区 + 字符计数）;按「一段材料 + 一组题」推进，不整卷塞满（[exams.js:39 availableTypes / 51 sessions](../app/js/exams.js#L39)）。听力无音频暂不开刷（数据入库）。
-- **选词填空刷法（2026-11-20）**：短文内空位渲染为可点芯片（兼容裸数字与 `__26__` 两种 OCR 形态），空位导航条逐空跳转;A–O 词库网格选词（移动 2 列 / ≥600 3 列），已被其他空占用的字母标灰并注「Qxx」;有官方答案即自动判分（反馈带正确字母 + 词），无答案走 AI 分析（入参含词库）/自评;错题重练含选词组（[app.js:4114 examClozePassageHtml / 4132 examBankHtml](../app/js/app.js#L4114)、[exams.js:107 analyzeQuestion](../app/js/exams.js#L107)）。
-- **三级判分**：`answers` 有官方答案→自动判分（schema 2 起 2026-06-01/03 两套生效，反馈标注「官方答案」）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[exams.js:77 judge](../app/js/exams.js#L77)）。
+- **选词填空刷法（2026-11-20）**：短文内空位渲染为可点芯片（兼容裸数字与 `__26__` 两种 OCR 形态），空位导航条逐空跳转;A–O 词库网格选词（移动 2 列 / ≥600 3 列），已被其他空占用的字母标灰并注「Qxx」;有官方答案即自动判分（反馈带正确字母 + 词），无答案走 AI 分析（入参含词库）/自评;错题重练含选词组（[app.js:4326 examClozePassageHtml / 4132 examBankHtml](../app/js/app.js#L4326)、[exams.js:107 analyzeQuestion](../app/js/exams.js#L107)）。
+- **三级判分**：`answers` 有官方答案→自动判分（schema 2 起 2026-06-01/03 两套生效，反馈标注「官方答案」）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[exams.js:80 judge](../app/js/exams.js#L80)）。
 - **持久化**：Store `exams` 块（每题作答/判定/模式/时间、完成记录、错题 ≤300、AI 缓存 ≤300），导出导入纳入且剔除密钥规则不变（[store.js:331](../app/js/store.js#L331)）。
 - 入口：专项视图顶部「真题刷题」;列表→试卷→题型作答三级面包屑可逐级回跳（§9.5）;详见 DEVELOPMENT §8.37/§8.42。
 
@@ -364,20 +364,44 @@
 
 ---
 
-### 10.7 AI 学习空间（2026-11-20）✅
+### 10.7 AI 学习空间（全屏导学，2026-11-20 重构）✅
 
-- **入口**：学习页模式切换第三档「AI」（学习 / 测试 / AI，图标+文字），与测试互斥;返回键回学习档;桌面 ≥960 居中 780 列（[app.js:4314 renderAiSpace](../app/js/app.js#L4314)、[index.html mode-ai / #ai-space](../app/index.html)）。未接入 AI 时三模块统一显示接入横幅，一键跳设置「词典与 AI」。
-- **每日报告**：汇总当日日志（新学/复习/三档/时长）、到期复习数、错题本最近错词、查看最多词，生成中文日报（概览/薄弱信号/明日建议）;**按天缓存**于 `space.report`，可重新生成;标注「AI 生成 · 仅供参考」（[app.js:4344](../app/js/app.js#L4344)）。
-- **错题门诊**：错题本逐词列卡（词 + 释义 + 错次 + 易混伙伴）;「AI 讲透」结合释义与易混词生成记忆钩子/辨析/例句并按词缓存;「变式再练」以该词+易混词为白名单组 5 题 en2zh 卷（`QuizEngine` 新增 `cfg.words` 白名单，[quiz.js:136](../app/js/quiz.js#L136)），同根/误选干扰复用现有逻辑;「全部错题再练」走 errors 范围（[app.js:4365-4404](../app/js/app.js#L4365-L4404)）。
-- **单词问答室**：选词（当前词/错词/查词历史建议芯片）+ 自由提问;多轮上下文（最近 4 轮入 prompt），气泡流渲染，按词缓存 ≤8 轮、可清空;Enter 发送（[app.js:4406](../app/js/app.js#L4406)）。
-- **存储**：新增 `space` 块（report/clinic/qa），normalize 校验 + 容量上限（14/300/100），纳入备份导出与 merge/replace 导入（qa 同词 turns 去重合并截 8）;详见 DATA.md §5.1/§5.3/§6.2（[store.js:389 normalizeSpace](../app/js/store.js#L389)）。
-- 全部 AI 调用走 `Platform.llmChat`（三端绕 CORS 同既有链路），失败显示可重试错误条，不写缓存。
+- **入口与形态**：学习页「AI」按钮改为**入口**（不再占用模式档），点击打开整页 `#ai-space-sheet`（右滑入全屏，返回箭头关闭，学习/测试模式不受影响）;原三标签内联面板已移除（[app.js:4586 openAiSpace](../app/js/app.js#L4586)、[index.html #ai-space-sheet](../app/index.html)）。
+- **先确认再开始**：confirm 阶段展示学习记录摘要（到期复习/错词/今日新学复习/翻译材料数），可选**学习时长**（10/15/20/30 分钟）、**学习重点**（智能混合/到期复习/错题门诊/翻译与写作）、**教学策略**（讲练结合/提问引导/背诵检查），并给出**计划预览**（逐步列表）;配置持久化于 `space.tutor.plan`，确认后才进入导学（[app.js:4696 renderAiConfirm](../app/js/app.js#L4696)、[app.js:4551 aiBuildSteps](../app/js/app.js#L4551)）。
+- **逐步导学**：步骤引擎按配置生成 review（到期/新词）/ clinic（错词讲透）/ study（翻译精读）步骤;每步 AI 讲解按策略变换 prompt（提问引导先抛问题、背诵检查先给中文让用户回忆），讲解按步缓存于 `space.tutor`;**即时检查**内联完成——讲练结合/提问引导为英→中释义选择，背诵检查为中→英选词，答错标红并给出正确答案、错词计入会话;翻译精读步先自译再揭示参考译文;每步附**随步提问**输入（≤8 轮上下文）;答完/揭示后才能下一步，可跳过;会话进度持久化，**重载自动续学**（[app.js:4750 renderAiSession](../app/js/app.js#L4750)、[app.js:4606 aiEnterStep](../app/js/app.js#L4606)、[app.js:4636 aiFetchTeach](../app/js/app.js#L4636)）。
+- **完成后才有日报**：全部步骤完成进入 done 阶段——汇总（步骤数/检查正确率/时长/仍错词），**此时才自动生成当日报告**（当日日志 + 本次导学结果入 prompt），按天缓存于 `space.report`，可重新生成;confirm 阶段列历史报告逐日查看（[app.js:4869 renderAiDone](../app/js/app.js#L4869)、[app.js:4935 aiGenReport](../app/js/app.js#L4935)）。
+- **存储**：`space` 块新增 `tutor` 种类（plan/session/讲解缓存），normalize 校验会话形状（steps≤12、picks、qa≤8 轮）+ 上限 60 条;导出导入沿用按 key 取新合并;详见 DATA.md §5.1/§5.3/§6.2（[store.js:392 normalizeTutorSession](../app/js/store.js#L392)、[store.js:415 normalizeSpace](../app/js/store.js#L415)）。
+- 未接入 AI：confirm 显示接入横幅并禁用开始（一键跳设置「词典与 AI」）;会话中未接入仍可自学词表完成检查。全部 AI 调用走 `Platform.llmChat` 三端链路，失败显示可重试错误条，不写缓存;注入文本一律 `esc()`。
+- 验证：`.scratch/ai-space-e2e.cjs` 30/30（全屏入口/确认配置持久化/策略入 prompt/检查判分与锁定/随步问答/重载续学零调用/完成后才生日报/历史报告/未接入态/导出导入/桌面布局/零控制台错误;AI 以 stub 保证确定性）+ 千问 MaaS 真实链路实测（§10.9）。
+
+### 10.8 翻译与写作学习材料（study.json 单源，2026-11-20）✅
+
+- **数据**：`app/data/study.json`（0.83 MB）单源收纳六级翻译 9 篇（001–009）、六级写作 77 篇、四级写作 12 篇（C4-001–C4-012）、积累素材 25 块、526 个学习小节;`links` 78 条为唯一卷↔材料对齐（原文对齐 5 / 卷标对齐 73），覆盖 62 套中 57 套;正文只存一份，真题分片不复制（62 分片字节不变）。**懒加载**：启动不拉取，`Platform.loadStudy()`（Electron `get-study` IPC / Web fetch）首次进入专项或真题详情时加载并建 id/examId 索引（[platform.js:149 loadStudy](../app/js/platform.js#L149)、[main.js:364 get-study](../main.js#L364)、[library.js:226 studyInit](../app/js/library.js#L226)）。
+- **入口**：专项「考试专项」组新增**真题翻译与写作材料**四行入口（六级翻译 9 / 六级写作 77 / 四级写作 12 / 积累素材 25），保留原话题词组（[app.js:1600 studyMaterialEntries](../app/js/app.js#L1600)）。
+- **阅读器**：整页 `#study-sheet`——列表（统计 tiles + 类别 chips + 篇目行：序号/话题/卷标/整理日期/小节数/对齐徽标）→ 篇目详情（小节导航 chips 平滑滚动、正文 pre-wrap 块、来源与编号脚注）;**背诵模式**隐藏参考译文与迁移练习答案（写作隐藏英文原文与润色版），逐块「点击揭示」原位展开不重置滚动;积累素材按文件分 3 组 25 块原位展开/收起（[app.js:1944 openStudySheet](../app/js/app.js#L1944)、[app.js:2053 renderStudyItem](../app/js/app.js#L2053)）。
+- **真题详情参考资料**：每套真题详情列出对齐材料（翻译/写作/C4 写作，含对齐方式徽标），点击直达阅读器对应篇目，关闭返回真题详情（[app.js:4341 renderExamDetail refs](../app/js/app.js#L4341)）。
+- 验证：`.scratch/study-reader-e2e.cjs` 21/21（懒加载/四入口计数/9+77+12+25 列表/背诵隐藏与原位揭示/小节导航/真题参考资料往返/桌面无溢出/零控制台错误）。
+
+### 10.9 千问 MaaS 服务商（DEV-ONLY，2026-11-20）✅
+
+- `ai.js` 新增 `QWEN_MAAS_API` 预设（`id:'qwenmaas'`，发布前移除）：Base `https://maas.qianwenaiapi.com/compatible-mode/v1`（OpenAI 兼容），三模型下拉 `qwen3.8-flash`（默认）/ `qwen3.8-omni-flash` / `qwen4-max`，内置开发 Key（前缀 `sk-ws-H…`，完整值仅存 ai.js）;`noThink:true` 经 `resolveConfig → Platform.llmChat / main.js llm-chat / exams.chat / AI 空间`全链透传 `enable_thinking:false`——`qwen4-max` 为推理模型，不关思考会耗尽 token 返回空 content（[ai.js:55-63](../app/js/ai.js#L55-L63)）。
+- **默认服务商切换**：新装默认 `qwenmaas` 且 `enabled:true`;旧存 `devfree/qnafree` 自动迁移到 `qwenmaas`（用户自选其他服务商不受影响）（[store.js:34](../app/js/store.js#L34)）。
+- 实测：三模型 HTTP 200（flash 2167ms / omni-flash 1493ms / max 需 enable_thinking:false）;AI 空间导学真实讲解链路浏览器实测通过。**与 devfree/qnafree 同列发布前删除 + 服务端作废清单**（DEVELOPMENT §9）。
+
+### 10.10 加载页品牌动效（abc 彩虹波浪，2026-11-20）✅
+
+- **abc 波浪**：加载页中央圆体特粗 `a b c` 三字母以波浪形式循环跳动（`ab-wave` 1.15s squash/stretch 关键帧 + 每字母 .14s 阶梯延迟），色相沿彩虹循环（`ab-hue` 3.3s），三字母色相相位错开 -1.1s/-2.2s 使任意时刻三色互异;字母带 currentColor 柔光晕;≥960px 字号 72→96px（[index.html:960](../app/index.html#L960)、[app.css:1208-1232](../app/css/app.css#L1208-L1232)）。
+- **真实进度**：10 个数据文件逐文件回调驱动百分比与阶段文案（正在连接词库/整理词根家族/对照官方考纲/汇总真题词频…），Web fetch 逐文件 report、Electron 主进程每读一个文件 send `dataset-progress`;进度条为彩虹渐变流动条（[app.js:5051-5062](../app/js/app.js#L5051-L5062)、[platform.js:121-140](../app/js/platform.js#L121-L140)、[main.js:350-352](../main.js#L350-L352)、[app.css:1230-1231](../app/css/app.css#L1230-L1231)）。
+- **入场/退场**：首启保证 ≥1250ms 展示窗、同会话再启 400ms（`sessionStorage glance.boot`）;退场整幅幕布上移（`translateY(-102%)` 520ms）+ 核心缩小淡出，学习页子元素 `ve-rise` 交错入场（[app.js:5087-5097](../app/js/app.js#L5087-L5097)、[app.css:1194-1207](../app/css/app.css#L1194-L1207)、[app.css:1238-1241](../app/css/app.css#L1238-L1241)）。
+- **降级与失败**：`prefers-reduced-motion` 改静态三色（红/青/紫）+ 仅淡入淡出;数据缺失隐藏核心、显示失败文案 + 重试（reload）（[app.css:1243-1250](../app/css/app.css#L1243-L1250)、[app.js:5076-5080](../app/js/app.js#L5076-L5080)、[index.html:965-968](../app/index.html#L965-L968)）。
+- **氛围**：三角 aurora 色团（blur 70px 慢漂移）+ 细颗粒叠层，全部取主题 token 色;加载页无声音。
+- 验证：`.scratch/loading-e2e.cjs` **16/16**（三字母相位/色相互异、波浪 transform 与色相随时间变化、进度推进、幕布与交错入场、首启窗口、再启加速、reduced-motion 静态、失败重试、桌面居中、零控制台错误）;移动/桌面节流实测截图 `.scratch/shots/p19-mobile-loading-abc*.png`、`p19-desktop-loading-abc.png` 目检波浪与彩虹成立。
 
 ## 11. 数据与存储
 
 ### 11.1 导出 / 导入 ✅
 
-- 通用 JSON 导出（无损状态块）/ 导入恢复（[store.js:479-527 exportData](../app/js/store.js#L479-L527)、[store.js:579-680 importData](../app/js/store.js#L579-L680)），跨机迁移；导出剔除密钥。
+- 通用 JSON 导出（无损状态块）/ 导入恢复（[store.js:708-756 exportData](../app/js/store.js#L708-L756)、[store.js:820-921 importData](../app/js/store.js#L820-L921)），跨机迁移；导出剔除密钥。
 
 ### 11.2 存储位置可配置 ✅
 
@@ -385,7 +409,7 @@
 
 ### 11.3 卸载不丢数据镜像 ✅
 
-- Android 自动在共享目录 `Documents/Glance` 留备份（`GlanceStorage.java`，API≥29 走 MediaStore 免权限），卸载重装一键恢复；60s 节流 + 隐藏立即镜像（[app.js:2690-2693 scheduleMirror](../app/js/app.js#L2690-L2693)、[platform.js:276-285](../app/js/platform.js#L276-L285)）。
+- Android 自动在共享目录 `Documents/Glance` 留备份（`GlanceStorage.java`，API≥29 走 MediaStore 免权限），卸载重装一键恢复；60s 节流 + 隐藏立即镜像（[app.js:3262-3265 scheduleMirror](../app/js/app.js#L3262-L3265)、[platform.js:290-299](../app/js/platform.js#L290-L299)）。
 
 ### 11.4 API Key 静态加密 ✅
 
@@ -405,7 +429,7 @@
 
 ### 12.3 导航返回栈与原生震动 ✅
 
-- **统一返回逻辑（Android 硬件返回）**：`@capacitor/app` 监听 `backButton`，按优先级 嵌套弹层 → 弹层 → 子页（词书/统计/AI 库回 opener）→ 测试态回学习态 → 顶层 tab 历史 → 根节点才退出（[app.js:68 handleBack](../app/js/app.js#L68)、[app.js:2969](../app/js/app.js#L2969)）;顶层 tab 切换维护 `navStack` 历史（[app.js:34-36](../app/js/app.js#L34-L36)）。浏览器/Electron 不注册，无副作用。
+- **统一返回逻辑（Android 硬件返回）**：`@capacitor/app` 监听 `backButton`，按优先级 嵌套弹层 → 弹层 → 子页（词书/统计/AI 库回 opener）→ 测试态回学习态 → 顶层 tab 历史 → 根节点才退出（[app.js:77 handleBack](../app/js/app.js#L77)、[app.js:3353](../app/js/app.js#L3353)）;顶层 tab 切换维护 `navStack` 历史（[app.js:38-40](../app/js/app.js#L38-L40)）。浏览器/Electron 不注册，无副作用。
 - **原生震动反馈**：`@capacitor/haptics`（自带 VIBRATE 权限），[platform.js:92 haptic](../app/js/platform.js#L92) 仅原生生效;评分/答题用 success/warn/error 通知震动，tab/模式/选书/过滤用 light tap;Electron/浏览器 no-op。
 
 ---
@@ -447,21 +471,21 @@
 ### 13.2 组卷与队列优化（interleaving）（主题/词性交错 ✅；复习推迟 🔭）
 
 - 现状已自研「同根不连续 / 题型不连出三题 / 近期降权」（§4.2）。
-- **本期已落地（2026-11-14）· 主题/词性交错**：在 [quiz.js sample](../app/js/quiz.js#L634) 新增两条交错轴——
+- **本期已落地（2026-11-14）· 主题/词性交错**：在 [quiz.js sample](../app/js/quiz.js#L839) 新增两条交错轴——
   - **主题**：候选取首要主题（`themeOf` = `Themes.themesOf(word)[0]`），硬约束「不连出三题同主题」+ 新主题加分（×1.08）+ 近期主题降权;
   - **词性**：候选取 `posGroup`，硬约束「不连出三题同词性」+ 近期词性降权;
   - 两轴随既有三段放宽（phase 0 严格 → phase 1 减半 → phase 2 忽略）逐级松弛，**保题量优先**。实测（六级书，20 题×多轮）：词性最长连续段由随机基线 ~4–5 降到 **≤2**，题量填充率 **100%、零放宽**;主题轴在主题覆盖稀疏的书里作用有限（数据覆盖问题，非代码）。
 - **未做（仍 🔭）· 复习推迟（reschedule）**：宜在 [srs.js buildQueue/session](../app/js/srs.js#L160-L181) 上扩展，或借 ts-fsrs 中间件；不依赖未核实的第三方包。
 
-### 13.3 AI 学习空间（AI 辅助学习）🔭 明确不在本期实现
+### 13.3 AI 学习空间进阶（发音评测/自适应辅导）🔭
 
-**现状**：AI 讲解是「按词静态生成一段解释」（§6），13 个商用 OpenAI 兼容服务商（开发期另加 2 个免费预设）已够用，**无需重型教育 SDK**。
+**现状**：交互式全屏导学已落地（§10.7：确认计划→策略导学→即时检查→随步问答→完成后日报），千问 MaaS 三模型接入（§10.9）;13 个商用 OpenAI 兼容服务商 + 3 个开发预设，**无需重型教育 SDK**。
 
-**升级方向（未来评估）**：从「静态生成」升级为「交互式学习空间」——追问答疑、发音评测、语法纠正、自适应辅导、对话式练习。
+**升级方向（未来评估）**：发音评测、语法纠正、自适应辅导难度曲线、对话式口语练习。
 
 **技术取舍（参考调研）**：
 
-- **直接用现有 OpenAI 兼容接口**：若只是按词生成解释或轻量追问，现有 [ai.js](../app/js/ai.js) + [platform.js:210 llmChat](../app/js/platform.js#L210) 已足够，**不必为 SDK 引入额外依赖**。
+- **直接用现有 OpenAI 兼容接口**：若只是按词生成解释或轻量追问，现有 [ai.js](../app/js/ai.js) + [platform.js:233 llmChat](../app/js/platform.js#L233) 已足够，**不必为 SDK 引入额外依赖**。
 - **[Speak](https://www.speak.com/) SDK**（Node.js/Python，语言学习专用）：支持发音评测、语法纠正、自适应辅导，底层兼容 OpenAI 实时 API。若要做「交互式追问 + 发音评测」值得评估;代价是引入 SDK 依赖与会话管理复杂度。
 - **Google Gemini API**：可作词汇查询 / 语法反馈的**备选模型后端**;当前 ai.js 预设未含 Gemini，可以 OpenAI 兼容方式新增一个服务商，无需 SDK。
 - **建议**：先以现有接口做「按词追问」最小验证，再决定是否引入 Speak 这类专用 SDK;发音评测可优先评估浏览器/Web Speech 或原生能力，避免过早重依赖。
@@ -493,7 +517,8 @@
 | 词库 | 六级真题词频书（5,772 词头，按真题次数排序） | ✅ | library.js:156-178 / app.js:1596-1631 |
 | 词根 | 家族导航 + 四类筛选 + 字母分组吸顶 + 按需加载 + 词缀浏览 + 进度条 | ✅ | app.js:1306-1445 / app.js:1940-1962 |
 | 真题 | 年份折叠网格（默认收缩）+ 选词填空开刷 + schema2 答案元数据 + 三级面包屑 | ✅ | app.js:3814-3887 / app.js:4114-4146 / exams.js:39-70 |
-| AI 空间 | 学习页第三模式：每日报告（按天缓存）+ 错题门诊（讲透/变式再练）+ 单词问答室（多轮缓存） | ✅ | app.js:4303-4460 / store.js:389-418 / quiz.js:136 |
+| AI 空间 | 全屏导学：确认计划（时长/重点/策略）→ 逐步讲解+即时检查+随步问答 → 完成后才生日报;重载续学 | ✅ | app.js:4509-5018 / store.js:387-447 |
+| 材料 | study.json 单源懒加载：翻译 9 / 写作 77+12 / 积累 25 块阅读器 + 背诵模式 + 真题详情参考资料 | ✅ | app.js:1926-2099 / library.js:225-262 / platform.js:149 |
 | 显示 | 查词历史日期分组 / 学习时间轴 / 桌面侧栏图标+文字 | ✅ | app.js:2414 / app.js:2710 / app.css 末尾媒体块 |
 | 专项 | 29 静态主题分类 + 专项学习 | ✅ | themes.js / app.js:1328-1472 |
 | 专项 | 选词填空 7 牌组（词性/重复/近五年/全部，369 词） | ✅ | scripts/build-cet6-cloze.js / themes.js:234-242 / app.js:1359-1472 |
@@ -503,17 +528,18 @@
 | 测试 | 干扰项（同根/音近/词形镜像） | ✅ | quiz.js:302-491 |
 | 查词 | 查词/历史/生词本 + 在线查词入口 | ✅ | app.js:1686-1731 / app.js:2040-2154 |
 | 词典 | 4 内置源 + 自定义添加 + 逐源开关 + 并行合并去重 | ✅ | dictionary.js / store.js:367-424 / app.js:1773-1945 / app.js:2830-2932 |
-| AI | 13 商用服务商 + 2 免费预设（DEV-ONLY）+ 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:1733-1772 / app.js:1946-2039 / app.js:2785-2829 / app.js:3151-3156 |
+| AI | 13 商用服务商 + 3 开发预设（DEV-ONLY：devfree/qnafree/qwenmaas）+ 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:3151-3156 |
 | 发音 | 真人音频优先 + 原生/Web TTS | ✅ | platform.js:53 |
 | 统计 | 日历/掌握/正确率/趋势/接触榜 | ✅ | app.js:2223-2402 |
 | 我的 | 头像昵称 + 四入口设置中心 + AI 解释缓存 | ✅ | app.js:2253-2846 |
 | 外观 | 8 主题 + 壁纸 + 透明度 | ✅ | app.js:88-175 |
+| 外观 | 加载页 abc 彩虹波浪 + 逐文件真实进度 + 幕布交错入场 + reduced-motion/失败重试 | ✅ | app.css:1194-1250 / app.js:5051-5097 / index.html:956-969 |
 | 数据 | 导出导入 + 存储位置 + 镜像 + Key 加密 | ✅ | store.js / main.js / platform.js |
 | 平台 | Electron/Android/浏览器 + CI/CD | ✅ | main.js / android-build.yml |
 | 平台 | 返回栈导航 + 原生震动（Android） | ✅ | app.js:68 / platform.js:92 |
 | 迭代 | ts-fsrs 对照验证 ✅ / 迁移 🔭（FSRS-7） | ✅/🔭 | §13.1 |
 | 迭代 | 组卷主题/词性交错 ✅ / 复习推迟 🔭 | ✅/🔭 | §13.2 |
-| 迭代 | AI 学习空间（Speak/Gemini 评估） | 🔭 | §13.3 |
+| 迭代 | AI 空间已落地全屏导学（§10.7）;发音评测/自适应辅导仍待评估 | ✅/🔭 | §10.7 / §13.3 |
 
 ---
 

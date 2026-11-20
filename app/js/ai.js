@@ -48,6 +48,19 @@
     jsonMode: true
   };
   if (QNAI_FREE_API) PROVIDERS.unshift(QNAI_FREE_API);
+
+  // Qwen MaaS 开发端点（同为 DEV-ONLY，发布前与上面一并移除并作废 Key）：
+  // OpenAI 兼容 /compatible-mode/v1，三模型实测 200;qwen4-max 为推理模型，
+  // 须 enable_thinking:false 才直出 content（noThink 由 llmChat 链透传）。
+  const QWEN_MAAS_API = {
+    id: 'qwenmaas', name: '千问 MaaS（发布前移除）', dev: true,
+    base: 'https://maas.qianwenaiapi.com/compatible-mode/v1',
+    model: 'qwen3.8-flash',
+    models: ['qwen3.8-flash', 'qwen3.8-omni-flash', 'qwen4-max'],
+    devKey: 'sk-ws-H.YXPILXI.uA8n.MEYCIQCp6MXcvqQjpmJ0OWBinwrqKWHeL2nUvLX2ShtkqDVokwIhAL7mqHgt05nzrkgaITdwhqIBR_x-AkNwJdLQW8jn2FJ7',
+    jsonMode: true, noThink: true
+  };
+  if (QWEN_MAAS_API) PROVIDERS.unshift(QWEN_MAAS_API);
   // =====================================================================
 
   const SYSTEM_PROMPT = [
@@ -103,7 +116,7 @@
     const base = p.custom ? (cfg.base || '') : p.base;
     const model = (cfg.model || '').trim() || p.model;
     const key = (cfg.key || '').trim() || p.devKey || '';
-    return { base, model, key, jsonMode: p.jsonMode, anthropic: !!p.anthropic, provider: p };
+    return { base, model, key, jsonMode: p.jsonMode, anthropic: !!p.anthropic, noThink: !!p.noThink, provider: p };
   }
   // Effective key = user-entered key, else a provider's built-in dev key (DEV-ONLY).
   function effectiveKey(cfg) { return resolveConfig(cfg || {}).key; }
@@ -115,7 +128,7 @@
     if (!rc.base) return { ok: false, error: '请填写 API 地址（Base URL）' };
     if (!rc.model) return { ok: false, error: '请填写模型名称' };
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userPrompt(word, entry) }];
-    const args = { base: rc.base, key: rc.key, model: rc.model, messages, temperature: 0.3, jsonMode: rc.jsonMode, anthropic: rc.anthropic };
+    const args = { base: rc.base, key: rc.key, model: rc.model, messages, temperature: 0.3, jsonMode: rc.jsonMode, anthropic: rc.anthropic, noThink: rc.noThink };
     let res = await Platform.llmChat(args);
     if (!res.ok) return { ok: false, error: res.error };
     let data = parseJson(res.content);

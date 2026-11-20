@@ -80,7 +80,6 @@
     if (currentView === 'exams' && examPane !== 'list') { examBack(); return true; }
     if (SUB_VIEWS.includes(currentView)) { backFromSub(); return true; }
     if (currentView === 'study' && mode === 'quiz') { setMode('study'); return true; }
-    if (currentView === 'study' && mode === 'ai') { setMode('study'); return true; }
     if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
     return false;
   }
@@ -436,14 +435,11 @@
     $('quiz-start').hidden = !(quizOn && quizScreen === 'start');
     $('quiz-session').hidden = !(quizOn && quizScreen === 'session');
     $('quiz-done').hidden = !(quizOn && quizScreen === 'done');
-    $('ai-space').hidden = mode !== 'ai';
     $('grade-footer').hidden = !hasItem;
     $('mode-study').classList.toggle('active', inStudy);
     $('mode-quiz').classList.toggle('active', quizOn);
-    $('mode-ai').classList.toggle('active', mode === 'ai');
     $('mode-study').setAttribute('aria-selected', String(inStudy));
     $('mode-quiz').setAttribute('aria-selected', String(quizOn));
-    $('mode-ai').setAttribute('aria-selected', String(mode === 'ai'));
   }
 
   function setMode(m) {
@@ -453,9 +449,6 @@
       else if (quizSession) quizScreen = 'session';
       else quizScreen = 'start';
       renderQuizScreen();
-    } else if (m === 'ai') {
-      clearQuizAuto();
-      renderAiSpace();
     } else {
       clearQuizAuto();
       updateStudyVisibility();
@@ -1580,6 +1573,9 @@
         section.appendChild(themeGrid(g.themes.filter(t => t.cloze)));
         section.appendChild(el('div', 'section-sublabel', '翻译与作文话题'));
         section.appendChild(themeGrid(g.themes.filter(t => !t.cloze)));
+        section.appendChild(el('div', 'section-sublabel', '真题翻译与写作材料'));
+        section.appendChild(studyMaterialEntries());
+        if (!Library.studyReady()) Library.studyInit().then(() => { if (!$('view-themes').hidden) renderThemes(); });
       } else {
         section.appendChild(themeGrid(g.themes));
       }
@@ -1599,6 +1595,28 @@
     btn.addEventListener('click', () => openClozeSheet());
     hero.appendChild(btn);
     return hero;
+  }
+
+  function studyMaterialEntries() {
+    const c = Library.studyCounts();
+    const wrap = el('div', 'list-gap');
+    [
+      ['translation', '六级翻译', c ? c.translations + ' 篇' : '加载中', '原文 · 参考译文 · 背诵清单 · 语法 · 迁移练习'],
+      ['writing6', '六级写作', c ? (c.writings - c.cet4Writings) + ' 篇' : '加载中', '题目 · 英文原文 · 中文理解 · 润色版 · 结构思路'],
+      ['writing4', '四级写作', c ? c.cet4Writings + ' 篇' : '加载中', 'C4-001–C4-012 · 审题逻辑 · 学习示例'],
+      ['misc', '积累素材', c ? Library.studyMisc().length + ' 块' : '加载中', '重点词汇 · 万能句型 · 通用表达 · 个人错题']
+    ].forEach(([kind, name, count, desc]) => {
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(el('span', 'set-tile', kind === 'misc' ? '积' : kind === 'translation' ? '译' : '写'));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', name));
+      main.appendChild(el('div', 'row-sub', desc));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge', count));
+      row.addEventListener('click', () => openStudySheet(kind));
+      wrap.appendChild(row);
+    });
+    return wrap;
   }
 
   // Deck word list state: the POS filter and the sort are live controls over the
@@ -1903,6 +1921,180 @@
     body.appendChild(el('div', 'field-hint', '来源文件：' + (s.file || '—') + ' · 词性按选项自身形态判定，一个词可属于多个词性组'));
     foot.hidden = false;
     $('cloze-study-btn').textContent = '学习本卷 15 个选项';
+  }
+
+  // ===================== 翻译与写作材料（study.json 单源懒加载） =====================
+  let studyKind = 'translation';
+  let studyItemId = '';
+  let studyRecite = false;
+  let studyRevealed = new Set();
+  let studyMiscOpen = new Set();
+  const STUDY_MATCH_NAME = { text: '原文对齐', label: '卷标对齐', 'label-only': '仅卷标' };
+  function studyTabItems(kind) {
+    if (kind === 'translation') return Library.studyList('translation');
+    if (kind === 'writing4') return Library.studyList('writing', 'CET4');
+    if (kind === 'misc') return Library.studyMisc();
+    return Library.studyList('writing', 'CET6');
+  }
+  function studyKindOfItem(it) {
+    if (!it) return 'translation';
+    if (it.kind === 'translation') return 'translation';
+    return it.level === 'CET4' ? 'writing4' : 'writing6';
+  }
+  function openStudySheet(kind, itemId) {
+    studyItemId = itemId || '';
+    if (studyItemId && Library.studyReady()) studyKind = studyKindOfItem(Library.studyItem(studyItemId));
+    else if (kind) studyKind = kind;
+    studyRevealed = new Set();
+    if (!Library.studyReady()) {
+      Library.studyInit().then(() => {
+        if (openSheetEl && openSheetEl.id === 'study-sheet') {
+          if (studyItemId) studyKind = studyKindOfItem(Library.studyItem(studyItemId));
+          renderStudySheet();
+        }
+      });
+    }
+    renderStudySheet();
+  }
+  function renderStudySheet() {
+    const body = $('study-body');
+    body.innerHTML = '';
+    if (!Library.studyReady()) {
+      $('study-title').textContent = '翻译与写作';
+      $('study-meta').textContent = '单源 study.json · 按需加载';
+      body.appendChild(el('div', 'empty-hint', '学习材料加载中…'));
+      if (!openSheetEl || openSheetEl.id !== 'study-sheet') openSheet('study-sheet');
+      return;
+    }
+    if (studyItemId) { renderStudyItem(body); if (!openSheetEl || openSheetEl.id !== 'study-sheet') openSheet('study-sheet'); return; }
+    const c = Library.studyCounts() || {};
+    $('study-title').textContent = '翻译与写作材料';
+    $('study-meta').textContent = (c.sections || 0) + ' 个学习小节 · ' + (c.linked || 0) + ' 条真题对齐 · 覆盖 ' + (c.textVerified || 0) + ' 套原文核对';
+    const stats = el('div', 'stat-row');
+    [[c.translations || 0, '翻译篇目'], [c.writings || 0, '写作篇目'], [c.sections || 0, '学习小节'], [c.linked || 0, '真题对齐']].forEach(([v, k]) => {
+      const t = el('div', 'stat-tile');
+      t.appendChild(el('div', 'stat-num', String(v)));
+      t.appendChild(el('div', 'stat-key', k));
+      stats.appendChild(t);
+    });
+    body.appendChild(stats);
+    const chips = el('div', 'chip-row wrap');
+    [['translation', '六级翻译'], ['writing6', '六级写作'], ['writing4', '四级写作'], ['misc', '积累素材']].forEach(([id, label]) => {
+      const n = studyTabItems(id).length;
+      const ch = el('button', 'chip' + (studyKind === id ? ' active' : ''), label + ' ' + n); ch.type = 'button';
+      ch.addEventListener('click', () => { studyKind = id; renderStudySheet(); });
+      chips.appendChild(ch);
+    });
+    body.appendChild(chips);
+    if (studyKind === 'misc') { renderStudyMisc(body); if (!openSheetEl || openSheetEl.id !== 'study-sheet') openSheet('study-sheet'); return; }
+    const items = studyTabItems(studyKind);
+    const head = el('div', 'block-head');
+    head.appendChild(el('span', null, studyKind === 'translation' ? '真题翻译 · 原文 + 参考译文 + 背诵清单' : '真题写作 · 题目 + 原文 + 润色 + 迁移练习'));
+    head.appendChild(el('span', 'count-pill', items.length + ' 篇'));
+    body.appendChild(head);
+    const wrap = el('div', 'list-gap');
+    items.forEach(it => {
+      const row = el('button', 'row'); row.type = 'button';
+      row.appendChild(el('span', 'set-tile', String(it.seq).padStart(2, '0')));
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', it.topic || it.title));
+      main.appendChild(el('div', 'row-sub', (it.exam ? it.exam.label : '未对齐真题') + (it.date ? ' · 整理 ' + it.date : '') + ' · ' + (it.sections || []).length + ' 小节'));
+      row.appendChild(main);
+      const match = it.link && it.link.match;
+      row.appendChild(el('span', 'row-badge' + (match === 'text' ? ' green' : match ? '' : ' gray'), match ? STUDY_MATCH_NAME[match] || match : '素材'));
+      row.addEventListener('click', () => { studyItemId = it.id; studyRevealed = new Set(); renderStudySheet(); });
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+    body.appendChild(el('div', 'field-hint', '正文只存一份于 study.json，真题卷内仅保留 id 反向引用；对齐方式：原文对齐 = 逐字核对，卷标对齐 = 按卷面标签匹配。'));
+    if (!openSheetEl || openSheetEl.id !== 'study-sheet') openSheet('study-sheet');
+  }
+  function renderStudyMisc(body) {
+    const misc = Library.studyMisc();
+    const byFile = new Map();
+    misc.forEach(m => { if (!byFile.has(m.file)) byFile.set(m.file, []); byFile.get(m.file).push(m); });
+    byFile.forEach((blocks, file) => {
+      const head = el('div', 'block-head');
+      head.appendChild(el('span', null, file));
+      head.appendChild(el('span', 'count-pill', blocks.length + ' 块'));
+      body.appendChild(head);
+      const wrap = el('div', 'list-gap');
+      blocks.forEach(m => {
+        const key = m.file + ':' + m.heading;
+        const row = el('button', 'row'); row.type = 'button';
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', m.heading));
+        main.appendChild(el('div', 'row-sub', m.text.slice(0, 42).replace(/\n/g, ' ') + '…'));
+        row.appendChild(main);
+        row.appendChild(el('span', 'row-badge gray', studyMiscOpen.has(key) ? '收起' : '展开'));
+        row.addEventListener('click', () => {
+          const badge = row.querySelector('.row-badge');
+          if (studyMiscOpen.has(key)) {
+            studyMiscOpen.delete(key);
+            if (row.nextElementSibling && row.nextElementSibling.classList.contains('study-text')) row.nextElementSibling.remove();
+            if (badge) badge.textContent = '展开';
+          } else {
+            studyMiscOpen.add(key);
+            row.after(studyTextBlock(m.text));
+            if (badge) badge.textContent = '收起';
+          }
+        });
+        wrap.appendChild(row);
+        if (studyMiscOpen.has(key)) wrap.appendChild(studyTextBlock(m.text));
+      });
+      body.appendChild(wrap);
+    });
+  }
+  function studyTextBlock(text) {
+    const box = el('div', 'study-text');
+    box.textContent = text;
+    return box;
+  }
+  function renderStudyItem(body) {
+    const it = Library.studyItem(studyItemId);
+    if (!it) { studyItemId = ''; renderStudySheet(); return; }
+    studyKind = studyKindOfItem(it);
+    $('study-title').textContent = it.topic || it.title;
+    $('study-meta').textContent = (it.level === 'CET4' ? '四级' : '六级') + (it.kind === 'translation' ? '翻译' : '写作') + (it.exam ? ' · ' + it.exam.label : '') + (it.date ? ' · 整理 ' + it.date : '');
+    const back = el('button', 'btn-ghost cloze-back', '← 返回材料列表'); back.type = 'button';
+    back.addEventListener('click', () => { studyItemId = ''; renderStudySheet(); });
+    body.appendChild(back);
+    const bar = el('div', 'chip-row wrap');
+    const hideRe = it.kind === 'translation' ? /参考译文|迁移练习/ : /英文原文|润色版/;
+    const recite = el('button', 'chip' + (studyRecite ? ' active' : ''), studyRecite ? '背诵模式：开' : '背诵模式：关'); recite.type = 'button';
+    recite.addEventListener('click', () => { studyRecite = !studyRecite; studyRevealed = new Set(); renderStudySheet(); });
+    bar.appendChild(recite);
+    if (it.exam) bar.appendChild(el('span', 'chip static', it.exam.label + ' · ' + (STUDY_MATCH_NAME[(it.link || {}).match] || '已对齐')));
+    body.appendChild(bar);
+    if (studyRecite) body.appendChild(el('div', 'field-hint', it.kind === 'translation' ? '背诵模式：参考译文与迁移练习答案已隐藏，先自译再逐块揭示对照。' : '背诵模式：英文原文与润色版已隐藏，先看中文理解自写再揭示对照。'));
+    const secs = (it.sections && it.sections.length) ? it.sections : Object.keys(it.fields || {}).map(k => ({ heading: k, text: it.fields[k] }));
+    const nav = el('div', 'chip-row wrap');
+    secs.forEach((s, i) => {
+      const ch = el('button', 'chip', s.heading.length > 12 ? s.heading.slice(0, 12) + '…' : s.heading); ch.type = 'button';
+      ch.addEventListener('click', () => {
+        const t = document.getElementById('study-sec-' + i);
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      nav.appendChild(ch);
+    });
+    body.appendChild(nav);
+    secs.forEach((s, i) => {
+      const box = el('section', 'data-block study-sec');
+      box.id = 'study-sec-' + i;
+      const head = el('div', 'data-block-head');
+      head.appendChild(el('span', 'data-block-title', s.heading));
+      box.appendChild(head);
+      if (studyRecite && hideRe.test(s.heading) && !studyRevealed.has(i)) {
+        const reveal = el('button', 'study-reveal', '背诵模式 · 点击揭示「' + s.heading + '」'); reveal.type = 'button';
+        reveal.addEventListener('click', () => { studyRevealed.add(i); reveal.replaceWith(studyTextBlock(s.text)); });
+        box.appendChild(reveal);
+      } else {
+        box.appendChild(studyTextBlock(s.text));
+      }
+      body.appendChild(box);
+    });
+    if (it.meta) body.appendChild(el('div', 'field-hint', it.meta));
+    body.appendChild(el('div', 'field-hint', '来源：' + ((it.source || {}).file || 'study.json') + ' · 编号 ' + it.id));
   }
 
   // ===================== 真题词频 / 真题出处 =====================
@@ -3149,7 +3341,7 @@
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
     AI.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; sel.appendChild(o); });
-    sel.value = ai.provider || 'devfree';
+    sel.value = ai.provider || 'qwenmaas';
     $('set-ai-enabled').checked = !!ai.enabled;
     $('set-ai-model').value = ai.model || '';
     $('set-ai-base').value = ai.base || '';
@@ -3410,11 +3602,11 @@
 
     $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
     $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
-    $('mode-ai').addEventListener('click', () => { Platform.haptic('tap'); setMode('ai'); });
+    $('mode-ai').addEventListener('click', () => { Platform.haptic('tap'); openAiSpace(); });
     $('ai-settings-btn').addEventListener('click', () => openSettings('dict'));
-    $('ai-space').addEventListener('click', aiSpaceClick);
-    $('ai-space').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && (e.target.id === 'ai-qa-q' || e.target.id === 'ai-qa-word')) { e.preventDefault(); aiQaSend(); }
+    $('ai-space-body').addEventListener('click', aiSpaceClick);
+    $('ai-space-body').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.id === 'ai-ask-input') { e.preventDefault(); aiAsk(); }
     });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
@@ -3943,6 +4135,26 @@
       card.innerHTML = '<div class="exam-type-head"><span class="exam-type-name">' + EXAM_TYPE_NAME[type] + '</span><span class="exam-type-stat">暂不开刷</span></div><p class="exam-type-desc">' + note + '</p>';
       pane.appendChild(card);
     });
+    const refs = Library.studyReady() ? Library.studyForExam(ex.examId) : [];
+    if (refs.length) {
+      const card = el('div', 'exam-type-card');
+      card.innerHTML = '<div class="exam-type-head"><span class="exam-type-name">参考资料 · 翻译与写作</span><span class="exam-type-stat">' + refs.length + ' 篇</span></div><p class="exam-type-desc">本套真题对应的学习材料：原文、参考译文/润色版、背诵清单与迁移练习</p>';
+      const wrap = el('div', 'list-gap');
+      refs.forEach(({ item, match }) => {
+        const row = el('button', 'row compact'); row.type = 'button';
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', (item.kind === 'translation' ? '翻译 ' : '写作 ') + (item.topic || item.title)));
+        main.appendChild(el('div', 'row-sub', item.id + ' · ' + (item.sections || []).length + ' 小节'));
+        row.appendChild(main);
+        row.appendChild(el('span', 'row-badge' + (match === 'text' ? ' green' : ' gray'), STUDY_MATCH_NAME[match] || '对齐'));
+        row.dataset.study = item.id;
+        wrap.appendChild(row);
+      });
+      card.appendChild(wrap);
+      pane.appendChild(card);
+    } else if (!Library.studyReady()) {
+      Library.studyInit().then(() => { if (examCur === ex && examPane === 'detail') renderExamDetail(); });
+    }
     const back = el('button', 'link-btn', '‹ 返回真题列表');
     back.type = 'button';
     back.dataset.backList = '1';
@@ -4254,8 +4466,9 @@
   }
 
   function examClick(e) {
-    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list]');
+    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list],[data-study]');
     if (!t) return;
+    if (t.dataset.study) { openStudySheet(null, t.dataset.study); return; }
     if (t.dataset.exam) { openExam(t.dataset.exam); return; }
     if (t.dataset.start) { startExamType(t.dataset.start); return; }
     if (t.dataset.retry) { startExamRetry(); return; }
@@ -4293,39 +4506,412 @@
     if (t.dataset.prev) { if (examQIdx > 0) { examQIdx--; examDraft = ''; renderExamSession(); } return; }
   }
 
-  // ===================== AI 学习空间 =====================
-  let aiTab = 'report';
-  let aiQaWord = '';
-  let aiClinicOpen = '';
+  // ===================== AI 学习空间（全屏导学：确认 → 导学 → 完成后日报） =====================
+  let aiStage = 'confirm';
   let aiBusy = '';
+  let aiTeachErr = '';
+  let aiReportDate = '';
+  let aiSession = null;
+  let aiCheck = null;
+
+  const AI_FOCUS_NAME = { auto: '智能混合', due: '到期复习', errors: '错题门诊', study: '翻译与写作' };
+  const AI_STRATEGY_NAME = { teach: '讲练结合', guide: '提问引导', recite: '背诵检查' };
+  const AI_STRATEGY_SYS = {
+    teach: '教学策略「讲练结合」：先讲清楚再让用户做检查。逐词给核心义、词根/联想记忆钩子和一句短例句；材料则给关键表达与翻译/写作要点。',
+    guide: '教学策略「提问引导」：先围绕词或材料提出 1–2 个引导性问题，再给提示与讲解，最后留一个思考题让用户在下方输入框作答。',
+    recite: '教学策略「背诵检查」：先给中文释义与语境，请用户自己回忆英文表达，再给记忆线索；不要直接给出完整例句。'
+  };
 
   function aiReady() { const cfg = Store.data.ai || {}; return !!(cfg.enabled && window.AI && AI.effectiveKey(cfg)); }
   async function aiSpaceChat(system, user) {
     const rc = AI.resolveConfig(Store.data.ai || {});
     if (!rc.key || !rc.base || !rc.model) return { ok: false, error: 'AI 未配置（服务商 / Key / 模型）' };
-    const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.4, jsonMode: false, anthropic: rc.anthropic });
+    const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.4, jsonMode: false, anthropic: rc.anthropic, noThink: rc.noThink });
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true, text: String(res.content || '').trim(), provider: rc.provider && rc.provider.id, model: rc.model };
   }
   function aiNoteHtml(rec) { return '<p class="ai-note">AI 生成 · 仅供参考' + (rec && rec.provider ? ' · ' + esc(rec.provider) : '') + '</p>'; }
-  function aiOffHtml() { return '<div class="ai-off"><p>尚未接入 AI 服务；接入后可用每日报告、错题门诊与问答室。</p><button class="btn-primary" type="button" data-ai-act="settings">去接入 AI</button></div>'; }
+  function aiOffHtml() { return '<div class="ai-off"><p>尚未接入 AI 服务。接入后即可开启全屏导学：先确认学习计划，再按教学策略逐步讲解，完成学习后生成每日报告。</p><button class="btn-primary" type="button" data-ai-act="settings">去接入 AI</button></div>'; }
   function aiFailHtml(err) { return '<div class="exam-feedback bad">生成失败：' + esc(err || '未知错误') + '</div>'; }
 
-  function renderAiSpace() {
-    updateStudyVisibility();
-    $('ai-space-sub').textContent = aiReady() ? '报告 · 错题门诊 · 问答室' : '未接入 AI · 点右上齿轮配置';
-    document.querySelectorAll('#ai-tabs .chip').forEach(c => {
-      const on = c.dataset.aiTab === aiTab;
-      c.classList.toggle('active', on);
-      c.setAttribute('aria-selected', String(on));
-    });
-    ['report', 'clinic', 'qa'].forEach(k => { $('ai-pane-' + k).hidden = k !== aiTab; });
-    if (aiTab === 'report') renderAiReport();
-    else if (aiTab === 'clinic') renderAiClinic();
-    else renderAiQa();
+  function aiCfg() {
+    const p = Store.spaceGet('tutor', 'plan');
+    return { minutes: p ? p.minutes : 15, focus: p ? p.focus : 'auto', strategy: p ? p.strategy : 'teach' };
+  }
+  function aiSaveCfg(patch) { Store.spaceSet('tutor', 'plan', Object.assign(aiCfg(), patch, { t: Date.now() })); }
+  function aiDueWords(n) {
+    const now = Date.now();
+    return ((book && book.entries) || []).filter(e => SRS.isDue(Store.data.srs[e.word], now)).slice(0, n).map(e => e.word);
+  }
+  function aiNewWords(n) { return ((book && book.entries) || []).filter(e => !Store.data.srs[e.word]).slice(0, n).map(e => e.word); }
+  function aiStudyStep(id) {
+    const it = Library.studyItem(id);
+    return { kind: 'study', words: [], studyId: id, title: '翻译精读 · ' + (it ? (it.topic || it.title) : id) };
+  }
+  function aiBuildSteps(cfg) {
+    const steps = [];
+    const due = aiDueWords(12), errs = Store.errorWords();
+    const m = cfg.minutes;
+    const reviewN = m <= 10 ? 4 : m <= 15 ? 6 : m <= 20 ? 8 : 10;
+    const clinicN = m <= 10 ? 2 : m <= 15 ? 3 : 4;
+    const studyN = m >= 30 ? 2 : m >= 20 ? 1 : 0;
+    const chunk = (arr, size, kind, name) => {
+      for (let i = 0; i < arr.length; i += size) steps.push({ kind, words: arr.slice(i, i + size), studyId: '', title: name + ' · ' + Math.min(size, arr.length - i) + ' 词' });
+    };
+    const addStudy = n => {
+      if (!Library.studyReady()) return;
+      Library.studyList('translation').slice(0, n).forEach(it => steps.push(aiStudyStep(it.id)));
+    };
+    if (cfg.focus === 'due') {
+      chunk(due.length ? due : aiNewWords(reviewN), 5, 'review', due.length ? '到期复习' : '新词预览');
+    } else if (cfg.focus === 'errors') {
+      chunk(errs.slice(0, clinicN + 3), 3, 'clinic', '错题门诊');
+      if (due.length) chunk(due.slice(0, 4), 4, 'review', '到期复习');
+    } else if (cfg.focus === 'study') {
+      addStudy(studyN || 1);
+      if (due.length) chunk(due.slice(0, 4), 4, 'review', '到期复习');
+    } else {
+      if (due.length) chunk(due.slice(0, reviewN), 5, 'review', '到期复习');
+      if (errs.length) chunk(errs.slice(0, clinicN), 3, 'clinic', '错题门诊');
+      addStudy(studyN);
+    }
+    if (!steps.length) {
+      const w = due.length ? due.slice(0, 4) : aiNewWords(4);
+      if (w.length) chunk(w, 4, 'review', '新词预览');
+      else if (Library.studyReady()) { const it = Library.studyList('translation')[0]; if (it) steps.push(aiStudyStep(it.id)); }
+    }
+    return steps.slice(0, 8);
   }
 
-  const AI_SYS_REPORT = '你是大学英语六级词汇学习教练。根据用户当日学习数据写一份中文日报：1) 今日概览（新学/复习/三档评分/时长）；2) 薄弱信号（错词与易混点）；3) 明日建议（2-3 条可执行）。不得编造未提供的数据；数据为空就如实说今天还没有记录并给鼓励。不超过 350 字，可分段，不用 markdown 标题。';
+  function openAiSpace() {
+    const saved = Store.spaceGet('tutor', 'session');
+    if (saved && saved.date === Store.today() && !saved.done && saved.steps.length) {
+      aiSession = saved; aiStage = 'session'; aiEnterStep();
+    } else { aiSession = null; aiStage = 'confirm'; }
+    if (!Library.studyReady()) Library.studyInit().then(() => {
+      if (openSheetEl && openSheetEl.id === 'ai-space-sheet') {
+        renderAiSpace();
+        const s = aiCurStep();
+        if (aiStage === 'session' && s && s.kind === 'study') aiFetchTeach();
+      }
+    });
+    renderAiSpace();
+    const s = aiCurStep();
+    if (aiStage === 'session' && s && (s.kind !== 'study' || Library.studyReady())) aiFetchTeach();
+  }
+  function aiSaveSession() { if (!aiSession) return; aiSession.t = Date.now(); Store.spaceSet('tutor', 'session', aiSession); }
+  function aiCurStep() { return aiSession ? aiSession.steps[aiSession.idx] || null : null; }
+  function aiShuffle(a) { return a.slice().sort(() => Math.random() - 0.5); }
+  function aiGloss(w) { const e = Library.lookup(w) || {}; return String(e.zh || '').split(/[;；\n]/)[0].slice(0, 24) || w; }
+  function aiEnterStep() {
+    aiCheck = null; aiTeachErr = '';
+    const s = aiCurStep();
+    if (!s || s.kind === 'study') return;
+    const zh2en = aiCfg().strategy === 'recite';
+    const pool = ((book && book.entries) || []).map(e => e.word).filter(w => w);
+    aiCheck = s.words.map(w => {
+      const gloss = aiGloss(w);
+      let prompt, answer, options;
+      if (zh2en) {
+        prompt = gloss; answer = w;
+        options = aiShuffle(pool.filter(x => x !== w)).slice(0, 3);
+      } else {
+        prompt = w; answer = gloss;
+        const others = aiShuffle(s.words.filter(x => x !== w).concat(aiShuffle(pool).slice(0, 8))).filter(x => x !== w);
+        options = [];
+        for (const x of others) { const g = aiGloss(x); if (g !== answer && !options.includes(g)) options.push(g); if (options.length >= 3) break; }
+      }
+      while (options.length < 3) options.push('（无匹配释义）');
+      return { word: w, prompt, answer, options: aiShuffle([answer].concat(options.slice(0, 3))) };
+    });
+  }
+  function aiPickKey(w) { return aiSession.idx + ':' + w; }
+  function aiStepComplete() {
+    const s = aiCurStep();
+    if (!s || !aiSession) return false;
+    if (s.kind === 'study') return !!aiSession.revealed[aiSession.idx];
+    return s.words.every(w => aiSession.picks[aiPickKey(w)] != null);
+  }
+  function aiTeachKey(s) { return 'teach:' + aiSession.date + ':' + aiSession.idx + ':' + s.kind + ':' + (s.words.join('-') || s.studyId); }
+  async function aiFetchTeach() {
+    const s = aiCurStep();
+    if (!s || aiBusy || !aiReady() || Store.spaceGet('tutor', aiTeachKey(s))) return;
+    if (s.kind === 'study' && !Library.studyReady()) { Library.studyInit().then(() => aiFetchTeach()); return; }
+    aiBusy = 'teach'; renderAiSpace();
+    const system = '你是大学英语六级学习教练，正在全屏学习空间里按步骤导学。' + AI_STRATEGY_SYS[aiCfg().strategy] + '用中文回答，不用 markdown 标题，不超过 320 字。';
+    let user;
+    if (s.kind === 'study') {
+      const it = Library.studyItem(s.studyId) || {};
+      const src = String((it.fields || {}).sourceText || '').slice(0, 400);
+      user = ['学习材料：' + (it.title || s.studyId), '中文原文摘录：', src, '任务：给出本篇 3 个关键表达（英文 + 中文）与 1 条翻译要点。'].join('\n');
+    } else {
+      const lines = s.words.map(w => {
+        const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 3);
+        return w + ' — ' + (aiGloss(w) || '（词库无释义）') + (mix.length ? '（用户易混：' + mix.join('、') + '）' : '');
+      });
+      user = [s.kind === 'clinic' ? '这些是用户测试答错的词，请讲透：' : '本步学习词：', lines.join('\n')].join('\n');
+    }
+    const res = await aiSpaceChat(system, user);
+    aiBusy = '';
+    if (res.ok) Store.spaceSet('tutor', aiTeachKey(s), { text: res.text, t: Date.now(), provider: res.provider, model: res.model });
+    else aiTeachErr = res.error;
+    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+  }
+
+  function renderAiSpace() {
+    $('ai-space-sub').textContent = aiReady() ? '确认计划 → 逐步导学 → 完成后生成日报' : '未接入 AI · 点右上齿轮配置';
+    const body = $('ai-space-body');
+    const sc = body.scrollTop;
+    body.innerHTML = '';
+    if (aiStage === 'confirm') renderAiConfirm(body);
+    else if (aiStage === 'session') renderAiSession(body);
+    else if (aiStage === 'done') renderAiDone(body);
+    else renderAiReportView(body);
+    if (!openSheetEl || openSheetEl.id !== 'ai-space-sheet') openSheet('ai-space-sheet');
+    body.scrollTop = aiStage === 'session' ? sc : 0;
+  }
+
+  function aiStatRow(pairs) {
+    const stats = el('div', 'stat-row');
+    pairs.forEach(([v, k]) => {
+      const t = el('div', 'stat-tile');
+      t.appendChild(el('div', 'stat-num', String(v)));
+      t.appendChild(el('div', 'stat-key', k));
+      stats.appendChild(t);
+    });
+    return stats;
+  }
+  function aiCfgChips(label, act, options, cur) {
+    const box = el('div', 'ai-cfg');
+    box.appendChild(el('div', 'ai-cfg-label', label));
+    const row = el('div', 'chip-row wrap');
+    options.forEach(([v, name]) => {
+      const c = el('button', 'chip' + (cur === v ? ' active' : ''), name); c.type = 'button';
+      c.dataset.aiAct = act; c.dataset.v = v;
+      row.appendChild(c);
+    });
+    box.appendChild(row);
+    return box;
+  }
+  function renderAiConfirm(body) {
+    const cfg = aiCfg();
+    const today = Store.today();
+    const log = Store.data.logs[today] || {};
+    const due = aiDueWords(999).length;
+    const errs = Store.errorWords().length;
+    const sc = Library.studyCounts();
+    if (!aiReady()) body.appendChild(el('div', 'ai-card')).innerHTML = aiOffHtml();
+    const hero = el('div', 'ai-card');
+    hero.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">开始前，先确认今日计划</span></div>' +
+      '<p class="field-hint">根据你的学习记录与目标，AI 按所选教学策略逐步讲解；完成全部步骤后才生成每日报告。</p>';
+    hero.appendChild(aiStatRow([[due, '到期复习'], [errs, '错词'], [(log.newWords || []).length + ' / ' + (log.reviewWords || []).length, '今日新学/复习'], [sc ? sc.translations : '…', '翻译材料']]));
+    hero.appendChild(aiCfgChips('学习时长', 'cfg-min', [[10, '10 分钟'], [15, '15 分钟'], [20, '20 分钟'], [30, '30 分钟']], cfg.minutes));
+    hero.appendChild(aiCfgChips('学习重点', 'cfg-focus', Object.keys(AI_FOCUS_NAME).map(k => [k, AI_FOCUS_NAME[k]]), cfg.focus));
+    hero.appendChild(aiCfgChips('教学策略', 'cfg-strategy', Object.keys(AI_STRATEGY_NAME).map(k => [k, AI_STRATEGY_NAME[k]]), cfg.strategy));
+    const steps = aiBuildSteps(cfg);
+    const plan = el('div', 'ai-plan');
+    plan.appendChild(el('div', 'ai-cfg-label', '计划预览 · ' + steps.length + ' 步'));
+    if (!steps.length) plan.appendChild(el('p', 'field-hint', '暂无可学内容：先去学习页学几个词，或完成一次测试。'));
+    steps.forEach((s, i) => {
+      const row = el('div', 'ai-plan-row');
+      row.appendChild(el('span', 'ai-plan-no', String(i + 1)));
+      row.appendChild(el('span', 'ai-plan-title', s.title));
+      row.appendChild(el('span', 'row-badge gray', s.kind === 'study' ? '精读' : s.kind === 'clinic' ? '讲透+检查' : '讲解+检查'));
+      plan.appendChild(row);
+    });
+    hero.appendChild(plan);
+    const start = el('button', 'btn-primary ai-start', '确认，开始学习'); start.type = 'button';
+    start.dataset.aiAct = 'start';
+    start.disabled = !aiReady() || !steps.length;
+    hero.appendChild(start);
+    if (!aiReady()) hero.appendChild(el('p', 'field-hint', '接入 AI 后即可开始；计划与进度会保存在本机。'));
+    body.appendChild(hero);
+    const reports = Object.keys(Store.data.space.report || {}).sort().reverse();
+    const card = el('div', 'ai-card');
+    card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">每日报告</span><span class="exam-badge gray">' + reports.length + ' 份</span></div>' +
+      '<p class="field-hint">报告只在完成一次导学后生成，按天缓存。</p>';
+    if (!reports.length) card.appendChild(el('p', 'field-hint', '还没有报告。完成今天的导学后，这里会出现第一份。'));
+    const wrap = el('div', 'list-gap');
+    reports.forEach(d => {
+      const rec = Store.spaceGet('report', d);
+      const row = el('button', 'row compact'); row.type = 'button';
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', d + (d === today ? ' · 今天' : '')));
+      main.appendChild(el('div', 'row-sub', String(rec.text || '').slice(0, 36).replace(/\n/g, ' ') + '…'));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge' + (d === today ? ' green' : ' gray'), '查看'));
+      row.dataset.aiAct = 'report-view'; row.dataset.date = d;
+      wrap.appendChild(row);
+    });
+    card.appendChild(wrap);
+    body.appendChild(card);
+  }
+
+  function renderAiSession(body) {
+    const s = aiCurStep();
+    if (!s) { aiStage = 'confirm'; renderAiConfirm(body); return; }
+    const cfg = aiCfg();
+    const head = el('div', 'ai-card');
+    const mins = Math.max(0, Math.round((Date.now() - (aiSession.startedAt || Date.now())) / 60000));
+    head.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">第 ' + (aiSession.idx + 1) + ' / ' + aiSession.steps.length + ' 步 · ' + esc(s.title) + '</span>' +
+      '<span class="exam-badge">' + esc(AI_STRATEGY_NAME[cfg.strategy]) + '</span><span class="exam-badge gray">' + mins + ' 分钟</span></div>';
+    const bar = el('div', 'freq-bar');
+    const fill = el('div', 'freq-bar-fill');
+    fill.style.width = Math.round(100 * aiSession.idx / aiSession.steps.length) + '%';
+    bar.appendChild(fill);
+    head.appendChild(bar);
+    body.appendChild(head);
+
+    const teach = el('div', 'ai-card');
+    teach.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">AI 讲解</span></div>';
+    const rec = Store.spaceGet('tutor', aiTeachKey(s));
+    if (rec) teach.innerHTML += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
+    else if (!aiReady()) teach.innerHTML += '<p class="field-hint">未接入 AI，本步可自学词表并完成检查；接入后 AI 会按策略讲解。</p>';
+    else if (aiBusy === 'teach') teach.innerHTML += '<p class="ai-placeholder ai-thinking">AI 正在准备本步讲解…</p>';
+    else if (aiTeachErr) { teach.innerHTML += aiFailHtml(aiTeachErr); const r = el('button', 'btn-ghost', '重试讲解'); r.type = 'button'; r.dataset.aiAct = 'teach-retry'; teach.appendChild(r); }
+    else { teach.innerHTML += '<p class="ai-placeholder">讲解尚未生成。</p>'; const g = el('button', 'btn-ghost', '生成讲解'); g.type = 'button'; g.dataset.aiAct = 'teach-retry'; teach.appendChild(g); }
+    body.appendChild(teach);
+
+    if (s.kind === 'study') {
+      const it = Library.studyItem(s.studyId) || {};
+      const card = el('div', 'ai-card');
+      card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">' + esc(it.title || s.studyId) + '</span>' + (it.exam ? '<span class="exam-badge gray">' + esc(it.exam.label) + '</span>' : '') + '</div>';
+      const src = el('div', 'study-text');
+      src.textContent = String((it.fields || {}).sourceText || '（原文缺失）');
+      card.appendChild(src);
+      if (aiSession.revealed[aiSession.idx]) {
+        card.appendChild(el('div', 'ai-cfg-label', '参考译文'));
+        const ref = el('div', 'study-text');
+        ref.textContent = String((it.fields || {}).reference || '（译文缺失）');
+        card.appendChild(ref);
+      } else {
+        const rv = el('button', 'study-reveal', '先自己译一遍 · 点击揭示参考译文'); rv.type = 'button';
+        rv.dataset.aiAct = 'reveal';
+        card.appendChild(rv);
+      }
+      body.appendChild(card);
+    } else {
+      const card = el('div', 'ai-card');
+      card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">' + (s.kind === 'clinic' ? '错词讲透' : '本步词表') + '</span><span class="exam-badge gray">' + s.words.length + ' 词</span></div>';
+      const wrap = el('div', 'list-gap');
+      s.words.forEach(w => {
+        const row = el('div', 'row static compact');
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', w));
+        main.appendChild(el('div', 'row-sub', aiGloss(w)));
+        row.appendChild(main);
+        if (s.kind === 'clinic') {
+          const err = Store.data.errors[w] || {};
+          row.appendChild(el('span', 'row-badge gray', '错 ' + (err.count || 1)));
+        }
+        wrap.appendChild(row);
+      });
+      card.appendChild(wrap);
+      body.appendChild(card);
+
+      const check = el('div', 'ai-card');
+      check.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">即时检查</span><span class="exam-badge gray">' + (cfg.strategy === 'recite' ? '看中文选英文' : '看英文选释义') + '</span></div>';
+      (aiCheck || []).forEach(q => {
+        const box = el('div', 'ai-check-q');
+        box.appendChild(el('div', 'ai-check-prompt', q.prompt));
+        const picked = aiSession.picks[aiPickKey(q.word)];
+        const opts = el('div', 'ai-check-opts');
+        q.options.forEach(op => {
+          const b = el('button', 'ai-opt', op); b.type = 'button';
+          b.dataset.aiAct = 'pick'; b.dataset.word = q.word; b.dataset.opt = op;
+          if (picked != null) {
+            b.disabled = true;
+            if (op === q.answer) b.classList.add('right');
+            else if (op === picked) b.classList.add('wrong');
+          }
+          opts.appendChild(b);
+        });
+        box.appendChild(opts);
+        if (picked != null) box.appendChild(el('div', 'ai-check-verdict' + (picked === q.answer ? ' ok' : ' bad'), picked === q.answer ? '答对了' : '正确答案：' + q.answer));
+        check.appendChild(box);
+      });
+      body.appendChild(check);
+    }
+
+    const ask = el('div', 'ai-card');
+    ask.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">随步提问</span></div>';
+    if (aiSession.qa.length) {
+      const thread = el('div', 'ai-qa-thread');
+      aiSession.qa.forEach(t => {
+        thread.appendChild(el('div', 'ai-qa-q', t.q));
+        const a = el('div', 'ai-qa-a'); a.textContent = t.a;
+        thread.appendChild(a);
+      });
+      ask.appendChild(thread);
+    }
+    const row = el('div', 'ai-qa-input');
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.id = 'ai-ask-input'; inp.placeholder = '对本步的词或材料有疑问？直接问'; inp.autocomplete = 'off';
+    row.appendChild(inp);
+    const send = el('button', 'btn-primary', aiBusy === 'ask' ? '思考中…' : '提问'); send.type = 'button';
+    send.dataset.aiAct = 'ask'; send.disabled = aiBusy === 'ask' || !aiReady();
+    row.appendChild(send);
+    ask.appendChild(row);
+    body.appendChild(ask);
+
+    const foot = el('div', 'exam-actions ai-session-foot');
+    const skip = el('button', 'btn-ghost', '跳过本步'); skip.type = 'button';
+    skip.dataset.aiAct = 'skip';
+    foot.appendChild(skip);
+    const next = el('button', 'btn-primary', aiSession.idx + 1 >= aiSession.steps.length ? '完成学习，生成日报' : '下一步'); next.type = 'button';
+    next.dataset.aiAct = 'next';
+    next.disabled = !aiStepComplete();
+    foot.appendChild(next);
+    if (!aiStepComplete()) foot.appendChild(el('span', 'field-hint', s.kind === 'study' ? '揭示译文后进入下一步' : '答完全部检查进入下一步'));
+    body.appendChild(foot);
+  }
+
+  function renderAiDone(body) {
+    const s = aiSession || { steps: [], correct: 0, total: 0, wrong: [], startedAt: Date.now() };
+    const mins = Math.max(1, Math.round((Date.now() - (s.startedAt || Date.now())) / 60000));
+    const card = el('div', 'ai-card');
+    card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">本次导学完成</span><span class="exam-badge green">' + esc(Store.today()) + '</span></div>';
+    card.appendChild(aiStatRow([[s.steps.length, '完成步骤'], [s.correct + ' / ' + s.total, '检查答对'], [mins + ' 分钟', '学习时长']]));
+    if (s.wrong.length) {
+      card.appendChild(el('div', 'ai-cfg-label', '本次仍错的词'));
+      const chips = el('div', 'chip-row wrap');
+      s.wrong.forEach(w => chips.appendChild(el('span', 'chip static', w)));
+      card.appendChild(chips);
+    }
+    body.appendChild(card);
+    const rep = el('div', 'ai-card');
+    rep.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">今日报告</span></div>';
+    const rec = Store.spaceGet('report', Store.today());
+    if (aiBusy === 'report') rep.innerHTML += '<p class="ai-placeholder ai-thinking">正在汇总今日学习，生成日报…</p>';
+    else if (rec) rep.innerHTML += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
+    else if (aiTeachErr) rep.innerHTML += aiFailHtml(aiTeachErr);
+    else rep.innerHTML += '<p class="field-hint">报告生成中…</p>';
+    const acts = el('div', 'exam-actions');
+    const regen = el('button', 'btn-ghost', '重新生成'); regen.type = 'button';
+    regen.dataset.aiAct = 'report-gen'; regen.disabled = aiBusy === 'report' || !aiReady();
+    acts.appendChild(regen);
+    const back = el('button', 'btn-primary', '返回学习'); back.type = 'button';
+    back.dataset.aiAct = 'close';
+    acts.appendChild(back);
+    rep.appendChild(acts);
+    body.appendChild(rep);
+    const more = el('button', 'link-btn', '查看历史报告'); more.type = 'button';
+    more.dataset.aiAct = 'to-confirm';
+    body.appendChild(more);
+  }
+
+  function renderAiReportView(body) {
+    const back = el('button', 'btn-ghost cloze-back', '← 返回计划页'); back.type = 'button';
+    back.dataset.aiAct = 'to-confirm';
+    body.appendChild(back);
+    const rec = Store.spaceGet('report', aiReportDate);
+    const card = el('div', 'ai-card');
+    card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">每日报告 · ' + esc(aiReportDate) + '</span></div>';
+    card.innerHTML += rec ? '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec) : '<p class="field-hint">该日报告不存在。</p>';
+    body.appendChild(card);
+  }
+
+  const AI_SYS_REPORT = '你是大学英语六级词汇学习教练。用户刚完成一次全屏导学。根据当日学习数据与本次导学结果写一份中文日报：1) 今日概览（新学/复习/评分/时长/导学步骤与检查正确率）；2) 薄弱信号（错词与易混点）；3) 明日建议（2-3 条可执行）。不得编造未提供的数据；数据为空就如实说并给鼓励。不超过 350 字，可分段，不用 markdown 标题。';
   function aiReportContext() {
     const today = Store.today();
     const log = Store.data.logs[today] || {};
@@ -4333,132 +4919,110 @@
     const now = Date.now();
     const due = ((book && book.entries) || []).filter(e => SRS.isDue(Store.data.srs[e.word], now)).length;
     const views = Object.keys(Store.data.views || {}).sort((a, b) => (Store.data.views[b].n || 0) - (Store.data.views[a].n || 0)).slice(0, 5);
-    return [
+    const lines = [
       '日期：' + today,
       '今日日志：新学 ' + ((log.newWords || []).length) + ' 词、复习 ' + ((log.reviewWords || []).length) + ' 词；评分 知道 ' + (log.know || 0) + ' / 模糊 ' + (log.fuzzy || 0) + ' / 忘记 ' + (log.forgot || 0) + '；学习时长 ' + Math.round((log.ms || 0) / 60000) + ' 分钟',
       '当前到期复习：' + due + ' 词',
       '错题本最近错词：' + (errs.join('、') || '无'),
       '最近查看最多：' + (views.join('、') || '无')
-    ].join('\n');
-  }
-  function renderAiReport() {
-    const pane = $('ai-pane-report');
-    const rec = Store.spaceGet('report', Store.today());
-    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">今日报告 · ' + esc(Store.today()) + '</span>' + (rec ? '<span class="exam-badge green">已缓存</span>' : '') + '</div>';
-    if (!aiReady()) { pane.innerHTML = h + aiOffHtml() + '</div>'; return; }
-    if (rec) h += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
-    else h += '<p class="field-hint">汇总今日新学 / 复习 / 错题 / 到期复习，生成学习建议；按天缓存。</p>';
-    h += '<div class="exam-actions"><button class="btn-primary" type="button" data-ai-act="report-gen"' + (aiBusy === 'report' ? ' disabled' : '') + '>' + (aiBusy === 'report' ? '生成中…' : rec ? '重新生成' : '生成今日报告') + '</button></div></div>';
-    pane.innerHTML = h;
+    ];
+    if (aiSession && aiSession.done) {
+      const mins = Math.max(1, Math.round((Date.now() - (aiSession.startedAt || Date.now())) / 60000));
+      lines.push('本次导学：' + aiSession.steps.length + ' 步（' + aiSession.steps.map(s => s.title).join('；') + '），检查答对 ' + aiSession.correct + '/' + aiSession.total + '，用时 ' + mins + ' 分钟，仍错词：' + (aiSession.wrong.join('、') || '无') + '，策略：' + AI_STRATEGY_NAME[aiCfg().strategy]);
+    }
+    return lines.join('\n');
   }
   async function aiGenReport() {
-    if (aiBusy) return;
-    aiBusy = 'report'; renderAiReport();
+    if (aiBusy || !aiReady()) return;
+    aiBusy = 'report'; aiTeachErr = ''; renderAiSpace();
     const res = await aiSpaceChat(AI_SYS_REPORT, aiReportContext());
     aiBusy = '';
     if (res.ok) { Store.spaceSet('report', Store.today(), { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('今日报告已生成'); }
-    renderAiReport();
-    if (!res.ok) $('ai-pane-report').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+    else aiTeachErr = res.error;
+    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
   }
 
-  const AI_SYS_CLINIC = '你是大学英语六级词汇教练。用户在测试中答错了这个词。请结合给出的释义与他的易混词，用中文讲解：1) 核心义与记忆钩子（词根/联想）；2) 与每个易混词的辨析（义侧重点/搭配）；3) 一句强化正确用法的例句。不超过 300 字，不用 markdown 标题。';
-  function renderAiClinic() {
-    const pane = $('ai-pane-clinic');
-    const words = Store.errorWords();
-    if (!words.length) { pane.innerHTML = '<div class="ai-card"><p class="field-hint">还没有错词。测试答错的词会到这里，逐词讲透并变式再练。</p></div>'; return; }
-    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">错题门诊 · ' + words.length + ' 词</span><button class="btn-ghost" type="button" data-ai-act="clinic-all">全部错题再练</button></div>';
-    if (!aiReady()) h += aiOffHtml();
-    h += '<div class="ai-clinic-list">';
-    words.slice(0, 30).forEach(w => {
-      const e = Library.lookup(w) || {};
-      const err = Store.data.errors[w] || {};
-      const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 3);
-      const rec = Store.spaceGet('clinic', w);
-      const open = aiClinicOpen === w;
-      h += '<div class="ai-clinic-row"><div class="ai-clinic-top"><span class="ai-clinic-word">' + esc(w) + '</span><span class="ai-clinic-zh">' + esc(String(e.zh || '').slice(0, 40)) + '</span><span class="exam-badge amber">错 ' + (err.count || 1) + '</span></div>';
-      if (mix.length) h += '<p class="ai-clinic-mix">易混：' + mix.map(esc).join(' · ') + '</p>';
-      h += '<div class="exam-actions"><button class="btn-ghost" type="button" data-ai-act="clinic-ai" data-word="' + esc(w) + '"' + (aiBusy === 'clinic:' + w ? ' disabled' : '') + '>' + (aiBusy === 'clinic:' + w ? '讲解中…' : rec ? '再看讲解' : 'AI 讲透') + '</button><button class="btn-ghost" type="button" data-ai-act="clinic-quiz" data-word="' + esc(w) + '">变式再练</button></div>';
-      if (open && rec) h += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
-      h += '</div>';
-    });
-    h += '</div></div>';
-    pane.innerHTML = h;
+  function aiStart() {
+    const steps = aiBuildSteps(aiCfg());
+    if (!steps.length || !aiReady()) return;
+    aiSession = { date: Store.today(), steps, idx: 0, picks: {}, revealed: {}, qa: [], wrong: [], correct: 0, total: 0, startedAt: Date.now(), done: false, t: Date.now() };
+    aiStage = 'session';
+    aiEnterStep();
+    aiSaveSession();
+    renderAiSpace();
+    aiFetchTeach();
   }
-  async function aiClinicExplain(w) {
-    if (aiBusy) return;
-    aiClinicOpen = w;
-    aiBusy = 'clinic:' + w; renderAiClinic();
-    const e = Library.lookup(w) || {};
-    const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 4);
-    const user = ['单词：' + w, '释义：' + (e.zh || '（词库无释义）'), '用户易混词：' + (mix.join('、') || '无记录'), '要求：按系统提示讲解'].join('\n');
-    const res = await aiSpaceChat(AI_SYS_CLINIC, user);
-    aiBusy = '';
-    if (res.ok) { Store.spaceSet('clinic', w, { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('讲解已生成'); }
-    renderAiClinic();
-    if (!res.ok) $('ai-pane-clinic').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+  function aiPick(word, opt) {
+    const s = aiCurStep();
+    if (!s || !aiCheck || aiSession.picks[aiPickKey(word)] != null) return;
+    const q = aiCheck.find(x => x.word === word);
+    if (!q || !q.options.includes(opt)) return;
+    aiSession.picks[aiPickKey(word)] = opt;
+    aiSession.total++;
+    if (opt === q.answer) aiSession.correct++;
+    else if (!aiSession.wrong.includes(word)) aiSession.wrong.push(word);
+    Platform.haptic(opt === q.answer ? 'tap' : 'warn');
+    aiSaveSession();
+    renderAiSpace();
   }
-  function aiClinicQuiz(w) {
-    const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 4);
-    startQuiz({ scope: 'errors', words: [w].concat(mix), count: 5, explore: 0, types: ['en2zh'] });
+  function aiAdvance(skip) {
+    if (!aiSession) return;
+    if (!skip && !aiStepComplete()) return;
+    aiSession.idx++;
+    if (aiSession.idx >= aiSession.steps.length) {
+      aiSession.done = true;
+      aiSaveSession();
+      aiStage = 'done';
+      renderAiSpace();
+      aiGenReport();
+      return;
+    }
+    aiEnterStep();
+    aiSaveSession();
+    renderAiSpace();
+    aiFetchTeach();
   }
-
-  const AI_SYS_QA = '你是大学英语六级词汇问答教练。用中文回答用户关于该词的问题：准确简洁，按需给辨析、搭配、语境或例句；与词无关的问题礼貌引回。不超过 250 字，不用 markdown 标题。';
-  function renderAiQa() {
-    const pane = $('ai-pane-qa');
-    const suggest = [];
-    const cur = currentItem();
-    if (cur && cur.word) suggest.push(cur.word);
-    Store.errorWords().slice(0, 4).forEach(w => { if (!suggest.includes(w)) suggest.push(w); });
-    (Store.data.history || []).forEach(h => { if (h && h.word && !suggest.includes(h.word)) suggest.push(h.word); });
-    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">单词问答室</span>' + (aiQaWord ? '<button class="btn-ghost" type="button" data-ai-act="qa-clear">清空本词</button>' : '') + '</div>';
-    if (!aiReady()) { pane.innerHTML = h + aiOffHtml() + '</div>'; return; }
-    h += '<div class="chip-row ai-qa-suggest">' + suggest.slice(0, 6).map(w => '<button class="chip' + (w === aiQaWord ? ' active' : '') + '" type="button" data-ai-act="qa-word" data-word="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div>';
-    h += '<div class="ai-qa-input"><input type="text" id="ai-qa-word" placeholder="单词，如 ambiguous" value="' + esc(aiQaWord) + '" autocomplete="off"><input type="text" id="ai-qa-q" placeholder="你的问题，如：和 vague 怎么区分？" autocomplete="off"><button class="btn-primary" type="button" data-ai-act="qa-send"' + (aiBusy === 'qa' ? ' disabled' : '') + '>' + (aiBusy === 'qa' ? '思考中…' : '提问') + '</button></div>';
-    const rec = aiQaWord ? Store.spaceGet('qa', aiQaWord) : null;
-    if (rec && rec.turns.length) h += '<div class="ai-qa-thread">' + rec.turns.map(t => '<div class="ai-qa-q">' + esc(t.q) + '</div><div class="ai-qa-a">' + esc(t.a).replace(/\n/g, '<br>') + '</div>').join('') + '</div>' + aiNoteHtml(rec);
-    else if (aiQaWord) h += '<p class="field-hint">该词还没有问答，先问第一句。</p>';
-    else h += '<p class="field-hint">选一个词或输入词，再问搭配、辨析、语境；问答按词缓存。</p>';
-    h += '</div>';
-    pane.innerHTML = h;
-  }
-  async function aiQaSend() {
-    if (aiBusy) return;
-    const wEl = $('ai-qa-word'), qEl = $('ai-qa-q');
-    const w = String((wEl && wEl.value) || '').trim();
-    const q = String((qEl && qEl.value) || '').trim();
-    if (!w || !q) { announce('先填单词和问题'); return; }
-    aiQaWord = w;
-    aiBusy = 'qa'; renderAiQa();
-    const e = Library.lookup(w) || {};
-    const prev = (Store.spaceGet('qa', w) || { turns: [] }).turns.slice(-4);
-    const user = ['单词：' + w, '词库释义：' + (e.zh || '（无）'), prev.length ? '此前问答：\n' + prev.map(t => '问：' + t.q + '\n答：' + t.a).join('\n') : '', '当前问题：' + q].filter(Boolean).join('\n\n');
-    const res = await aiSpaceChat(AI_SYS_QA, user);
+  const AI_SYS_ASK = '你是大学英语六级学习教练。用户在全屏导学的某一步中提问。用中文准确简洁回答，不超过 200 字，不用 markdown 标题；围绕当前步骤的词或材料，无关问题礼貌引回。';
+  async function aiAsk() {
+    const inp = $('ai-ask-input');
+    const q = String((inp && inp.value) || '').trim();
+    if (!q || aiBusy || !aiReady() || !aiSession) return;
+    aiBusy = 'ask'; renderAiSpace();
+    const s = aiCurStep() || {};
+    const ctx = s.kind === 'study'
+      ? '当前步骤：翻译精读 ' + (s.studyId || '')
+      : '当前步骤词：' + (s.words || []).join('、');
+    const prev = aiSession.qa.slice(-3).map(t => '问：' + t.q + '\n答：' + t.a).join('\n');
+    const res = await aiSpaceChat(AI_SYS_ASK, [ctx, prev ? '此前问答：\n' + prev : '', '当前问题：' + q].filter(Boolean).join('\n\n'));
     aiBusy = '';
     if (res.ok) {
-      const rec = Store.spaceGet('qa', w) || { turns: [] };
-      const turns = rec.turns.concat([{ q, a: res.text, t: Date.now() }]).slice(-8);
-      Store.spaceSet('qa', w, { turns, t: Date.now(), provider: res.provider, model: res.model });
+      aiSession.qa = aiSession.qa.concat([{ q, a: res.text, t: Date.now() }]).slice(-8);
+      aiSaveSession();
       announce('回答已生成');
-    }
-    renderAiQa();
-    if (!res.ok) $('ai-pane-qa').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+    } else announce('提问失败：' + res.error);
+    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
   }
 
   function aiSpaceClick(e) {
-    const t = e.target.closest('[data-ai-tab],[data-ai-act]');
+    const t = e.target.closest('[data-ai-act]');
     if (!t) return;
-    if (t.dataset.aiTab) { aiTab = t.dataset.aiTab; Platform.haptic('tap'); renderAiSpace(); return; }
-    const act = t.dataset.aiAct, w = t.dataset.word || '';
+    const act = t.dataset.aiAct;
     if (act === 'settings') openSettings('dict');
+    else if (act === 'cfg-min') { aiSaveCfg({ minutes: +t.dataset.v }); renderAiSpace(); }
+    else if (act === 'cfg-focus') { aiSaveCfg({ focus: t.dataset.v }); renderAiSpace(); }
+    else if (act === 'cfg-strategy') { aiSaveCfg({ strategy: t.dataset.v }); renderAiSpace(); }
+    else if (act === 'start') aiStart();
+    else if (act === 'teach-retry') { aiTeachErr = ''; aiFetchTeach(); }
+    else if (act === 'pick') aiPick(t.dataset.word, t.dataset.opt);
+    else if (act === 'reveal') { if (aiSession) { aiSession.revealed[aiSession.idx] = true; aiSaveSession(); renderAiSpace(); } }
+    else if (act === 'skip') aiAdvance(true);
+    else if (act === 'next') aiAdvance(false);
+    else if (act === 'ask') aiAsk();
+    else if (act === 'report-view') { aiReportDate = t.dataset.date; aiStage = 'report'; renderAiSpace(); }
+    else if (act === 'to-confirm') { aiStage = 'confirm'; renderAiSpace(); }
     else if (act === 'report-gen') aiGenReport();
-    else if (act === 'clinic-all') startQuiz({ scope: 'errors', explore: 0 });
-    else if (act === 'clinic-ai') aiClinicExplain(w);
-    else if (act === 'clinic-quiz') aiClinicQuiz(w);
-    else if (act === 'qa-word') { aiQaWord = w; renderAiQa(); }
-    else if (act === 'qa-clear') { if (aiQaWord) Store.spaceSet('qa', aiQaWord, { turns: [], t: Date.now() }); renderAiQa(); }
-    else if (act === 'qa-send') aiQaSend();
+    else if (act === 'close') closeSheet();
   }
-
   // ===================== init =====================
   window.addEventListener('DOMContentLoaded', async () => {
     await Store.load();
@@ -4484,8 +5048,20 @@
     applyTheme(Store.data.theme);
     applyBackground();
     wireEvents();
+    $('load-retry').addEventListener('click', () => location.reload());
+    const bootT0 = performance.now();
+    const LOAD_PHASE = { words: '正在连接词库', roots: '整理词根家族', roottrees: '整理词根家族', meta: '建立词书索引', exams: '建立词书索引', affixes: '建立词缀索引', official: '对照官方考纲', frequency: '汇总真题词频', cloze: '构建选词牌组', examManifest: '加载真题索引' };
+    let loadDone = 0;
+    const onProgress = name => {
+      loadDone++;
+      const pct = Math.min(100, Math.round(100 * loadDone / 10));
+      const fill = $('load-bar-fill'), pctEl = $('load-pct'), phase = $('load-phase');
+      if (fill) fill.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (phase) phase.textContent = (LOAD_PHASE[name] || '加载中') + '…';
+    };
     let ds = null;
-    try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }
+    try { ds = await Platform.loadDataset(onProgress); } catch (e) { console.error('dataset load failed', e); }
     Library.init(ds || {});
     if (Library.migrateCustomBooks(Store.data.customBooks)) Store.save();
     if (window.Themes && ds && ds.words) {
@@ -4498,7 +5074,8 @@
       if (n) $('exams-entry-sub').textContent = n + ' 套六级真题 · 阅读 / 选词 / 匹配 / 写译';
     }
     if (!Library.hasData()) {
-      $('loading').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3)">词库加载失败。<br>请确认 app/data 数据文件存在。</div>';
+      $('load-core').hidden = true;
+      $('load-fail').hidden = false;
       return;
     }
     book = activeBook();
@@ -4507,8 +5084,16 @@
     renderStudy();
     renderBooks();
     const loading = $('loading');
-    loading.classList.add('fade');
-    setTimeout(() => { loading.hidden = true; }, 320);
+    const firstBoot = !sessionStorage.getItem('glance.boot');
+    const enter = () => {
+      sessionStorage.setItem('glance.boot', '1');
+      loading.classList.add('done');
+      const v = $('view-study');
+      v.classList.add('view-enter');
+      setTimeout(() => { loading.hidden = true; }, 620);
+      setTimeout(() => v.classList.remove('view-enter'), 1300);
+    };
+    setTimeout(enter, Math.max(0, (firstBoot ? 1250 : 400) - (performance.now() - bootT0)));
     switchView('study');
   });
 })();
