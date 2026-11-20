@@ -312,6 +312,7 @@
 | `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史;`config` 含 `explore`(0–40，默认 20)/`confusion`/`curated`;`history[word]` 含 `mix{伙伴词: 误选次数}`（每词 ≤8，[store.js:574 cleanMix](../app/js/store.js#L574)、[store.js:586 recordQuizResult](../app/js/store.js#L586)） |
 | `quizExamples` | `{word: {examples[≤6], provider, ts}}` | 例句填空缓存 |
 | `aiCache` / `dictCache` | `{word: record}` | AI 解释 / 外部词典按词缓存 |
+| `space` | `{report: {date: rec}, clinic: {word: rec}, qa: {word: {turns[≤8], t, provider, model}}}` | AI 学习空间缓存：每日报告按天、门诊讲解按词、问答按词多轮;rec 为 `{text≤4000, t, provider, model}`;上限 report 14 / clinic 300 / qa 100（[store.js normalizeSpace](../app/js/store.js)） |
 | 偏好 | `plan, activeBook, profile, theme, studyPanel, studyPanelOrder, bookFilter, progressBars, autoSpeak, preferAudio, ttsRate, ttsLang, background, ai, dict` | 本机设置 |
 
 **`dict` 块（多词典）**（[store.js:34](../app/js/store.js#L34)、[store.js:61-106 normalizeDict](../app/js/store.js#L61-L106)）：
@@ -371,6 +372,7 @@
 | FSRS 序列词数 | 1000 词（超出删最旧） | [store.js:178](../app/js/store.js#L178) |
 | FSRS 优化频率 | 每 200 次复习 | [store.js:179](../app/js/store.js#L179) |
 | 测试按词历史 | 2000 词（超出删最旧） | [store.js:334](../app/js/store.js#L334) |
+| AI 空间缓存 | report 14 天 / clinic 300 词 / qa 100 词、每词 turns ≤8、text ≤4000 | [store.js normalizeSpace / SPACE_CAPS](../app/js/store.js) |
 | 昵称 / 书名 | 16 / 24 字符 | [store.js:62](../app/js/store.js#L62)、[app.js:2539](../app/js/app.js#L2539) |
 
 ### 5.4 存储位置与持久化（卸载不丢数据）
@@ -459,6 +461,7 @@
 | `history` | 合并去重、按 ts 降序截 100 | 先清空再合并 |
 | `quiz` | 能力按答题数加权、计数相加、历史累加（`mix` 次数相加后按 top-8 截断） | 配置校验后重置（含 explore/confusion/curated）、历史清空再累加 |
 | `fsrs` | 仅本地 count 为空时接收 | 接收 |
+| `space` | 按 key 取 t 较新者;qa 同词 turns 去重合并后截 8 | 先清空再按 merge 还原 |
 | `settings` | 忽略 | 生效，但**保留本机 API Key**;学习面板按 §5.1 迁移（旧 `cardOrder` 接管顺序、`autoExplain` 丢弃） |
 
 （[store.js:582-687 importData](../app/js/store.js#L582-L687)）

@@ -80,6 +80,7 @@
     if (currentView === 'exams' && examPane !== 'list') { examBack(); return true; }
     if (SUB_VIEWS.includes(currentView)) { backFromSub(); return true; }
     if (currentView === 'study' && mode === 'quiz') { setMode('study'); return true; }
+    if (currentView === 'study' && mode === 'ai') { setMode('study'); return true; }
     if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
     return false;
   }
@@ -431,15 +432,18 @@
     const hasItem = inStudy && !!currentItem();
     $('study-panel').hidden = !hasItem;
     $('study-empty').hidden = !(inStudy && !currentItem());
-    const quizOn = !inStudy;
+    const quizOn = mode === 'quiz';
     $('quiz-start').hidden = !(quizOn && quizScreen === 'start');
     $('quiz-session').hidden = !(quizOn && quizScreen === 'session');
     $('quiz-done').hidden = !(quizOn && quizScreen === 'done');
+    $('ai-space').hidden = mode !== 'ai';
     $('grade-footer').hidden = !hasItem;
     $('mode-study').classList.toggle('active', inStudy);
-    $('mode-quiz').classList.toggle('active', !inStudy);
+    $('mode-quiz').classList.toggle('active', quizOn);
+    $('mode-ai').classList.toggle('active', mode === 'ai');
     $('mode-study').setAttribute('aria-selected', String(inStudy));
-    $('mode-quiz').setAttribute('aria-selected', String(!inStudy));
+    $('mode-quiz').setAttribute('aria-selected', String(quizOn));
+    $('mode-ai').setAttribute('aria-selected', String(mode === 'ai'));
   }
 
   function setMode(m) {
@@ -449,6 +453,9 @@
       else if (quizSession) quizScreen = 'session';
       else quizScreen = 'start';
       renderQuizScreen();
+    } else if (m === 'ai') {
+      clearQuizAuto();
+      renderAiSpace();
     } else {
       clearQuizAuto();
       updateStudyVisibility();
@@ -891,9 +898,9 @@
       : '暂无学习记录：本轮以新词探索为主，学习、查词、收藏与答错记录都会自动成为组卷依据。';
   }
 
-  async function startQuiz() {
+  async function startQuiz(override) {
     if (quizBuilding) return;
-    const cfg = QuizEngine.buildConfig(quizCfg());
+    const cfg = QuizEngine.buildConfig(Object.assign({}, quizCfg(), override || {}));
     const btn = $('quiz-start-btn');
     quizBuilding = true;
     btn.disabled = true;
@@ -915,6 +922,7 @@
         };
         quizScreen = 'session';
         renderQuizScreen();
+        if (mode !== 'quiz') setMode('quiz');
       }
     } catch (err) {
       quizLastWarnings = ['生成测试失败：' + String((err && err.message) || err)];
@@ -3402,6 +3410,12 @@
 
     $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
     $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
+    $('mode-ai').addEventListener('click', () => { Platform.haptic('tap'); setMode('ai'); });
+    $('ai-settings-btn').addEventListener('click', () => openSettings('dict'));
+    $('ai-space').addEventListener('click', aiSpaceClick);
+    $('ai-space').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.target.id === 'ai-qa-q' || e.target.id === 'ai-qa-word')) { e.preventDefault(); aiQaSend(); }
+    });
     $('speak-button').addEventListener('click', () => { const it = currentItem(); if (it) speak(it.entry.word, it.entry.audio); });
     $('grade-forgot').addEventListener('click', () => grade(SRS.GRADE.FORGOT));
     $('grade-fuzzy').addEventListener('click', () => grade(SRS.GRADE.FUZZY));
@@ -4277,6 +4291,172 @@
     if (t.dataset.ai) { examAiAnalyze(t); return; }
     if (t.dataset.next) { examNext(); return; }
     if (t.dataset.prev) { if (examQIdx > 0) { examQIdx--; examDraft = ''; renderExamSession(); } return; }
+  }
+
+  // ===================== AI 学习空间 =====================
+  let aiTab = 'report';
+  let aiQaWord = '';
+  let aiClinicOpen = '';
+  let aiBusy = '';
+
+  function aiReady() { const cfg = Store.data.ai || {}; return !!(cfg.enabled && window.AI && AI.effectiveKey(cfg)); }
+  async function aiSpaceChat(system, user) {
+    const rc = AI.resolveConfig(Store.data.ai || {});
+    if (!rc.key || !rc.base || !rc.model) return { ok: false, error: 'AI 未配置（服务商 / Key / 模型）' };
+    const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.4, jsonMode: false, anthropic: rc.anthropic });
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true, text: String(res.content || '').trim(), provider: rc.provider && rc.provider.id, model: rc.model };
+  }
+  function aiNoteHtml(rec) { return '<p class="ai-note">AI 生成 · 仅供参考' + (rec && rec.provider ? ' · ' + esc(rec.provider) : '') + '</p>'; }
+  function aiOffHtml() { return '<div class="ai-off"><p>尚未接入 AI 服务；接入后可用每日报告、错题门诊与问答室。</p><button class="btn-primary" type="button" data-ai-act="settings">去接入 AI</button></div>'; }
+  function aiFailHtml(err) { return '<div class="exam-feedback bad">生成失败：' + esc(err || '未知错误') + '</div>'; }
+
+  function renderAiSpace() {
+    updateStudyVisibility();
+    $('ai-space-sub').textContent = aiReady() ? '报告 · 错题门诊 · 问答室' : '未接入 AI · 点右上齿轮配置';
+    document.querySelectorAll('#ai-tabs .chip').forEach(c => {
+      const on = c.dataset.aiTab === aiTab;
+      c.classList.toggle('active', on);
+      c.setAttribute('aria-selected', String(on));
+    });
+    ['report', 'clinic', 'qa'].forEach(k => { $('ai-pane-' + k).hidden = k !== aiTab; });
+    if (aiTab === 'report') renderAiReport();
+    else if (aiTab === 'clinic') renderAiClinic();
+    else renderAiQa();
+  }
+
+  const AI_SYS_REPORT = '你是大学英语六级词汇学习教练。根据用户当日学习数据写一份中文日报：1) 今日概览（新学/复习/三档评分/时长）；2) 薄弱信号（错词与易混点）；3) 明日建议（2-3 条可执行）。不得编造未提供的数据；数据为空就如实说今天还没有记录并给鼓励。不超过 350 字，可分段，不用 markdown 标题。';
+  function aiReportContext() {
+    const today = Store.today();
+    const log = Store.data.logs[today] || {};
+    const errs = Store.errorWords().slice(0, 8);
+    const now = Date.now();
+    const due = ((book && book.entries) || []).filter(e => SRS.isDue(Store.data.srs[e.word], now)).length;
+    const views = Object.keys(Store.data.views || {}).sort((a, b) => (Store.data.views[b].n || 0) - (Store.data.views[a].n || 0)).slice(0, 5);
+    return [
+      '日期：' + today,
+      '今日日志：新学 ' + ((log.newWords || []).length) + ' 词、复习 ' + ((log.reviewWords || []).length) + ' 词；评分 知道 ' + (log.know || 0) + ' / 模糊 ' + (log.fuzzy || 0) + ' / 忘记 ' + (log.forgot || 0) + '；学习时长 ' + Math.round((log.ms || 0) / 60000) + ' 分钟',
+      '当前到期复习：' + due + ' 词',
+      '错题本最近错词：' + (errs.join('、') || '无'),
+      '最近查看最多：' + (views.join('、') || '无')
+    ].join('\n');
+  }
+  function renderAiReport() {
+    const pane = $('ai-pane-report');
+    const rec = Store.spaceGet('report', Store.today());
+    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">今日报告 · ' + esc(Store.today()) + '</span>' + (rec ? '<span class="exam-badge green">已缓存</span>' : '') + '</div>';
+    if (!aiReady()) { pane.innerHTML = h + aiOffHtml() + '</div>'; return; }
+    if (rec) h += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
+    else h += '<p class="field-hint">汇总今日新学 / 复习 / 错题 / 到期复习，生成学习建议；按天缓存。</p>';
+    h += '<div class="exam-actions"><button class="btn-primary" type="button" data-ai-act="report-gen"' + (aiBusy === 'report' ? ' disabled' : '') + '>' + (aiBusy === 'report' ? '生成中…' : rec ? '重新生成' : '生成今日报告') + '</button></div></div>';
+    pane.innerHTML = h;
+  }
+  async function aiGenReport() {
+    if (aiBusy) return;
+    aiBusy = 'report'; renderAiReport();
+    const res = await aiSpaceChat(AI_SYS_REPORT, aiReportContext());
+    aiBusy = '';
+    if (res.ok) { Store.spaceSet('report', Store.today(), { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('今日报告已生成'); }
+    renderAiReport();
+    if (!res.ok) $('ai-pane-report').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+  }
+
+  const AI_SYS_CLINIC = '你是大学英语六级词汇教练。用户在测试中答错了这个词。请结合给出的释义与他的易混词，用中文讲解：1) 核心义与记忆钩子（词根/联想）；2) 与每个易混词的辨析（义侧重点/搭配）；3) 一句强化正确用法的例句。不超过 300 字，不用 markdown 标题。';
+  function renderAiClinic() {
+    const pane = $('ai-pane-clinic');
+    const words = Store.errorWords();
+    if (!words.length) { pane.innerHTML = '<div class="ai-card"><p class="field-hint">还没有错词。测试答错的词会到这里，逐词讲透并变式再练。</p></div>'; return; }
+    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">错题门诊 · ' + words.length + ' 词</span><button class="btn-ghost" type="button" data-ai-act="clinic-all">全部错题再练</button></div>';
+    if (!aiReady()) h += aiOffHtml();
+    h += '<div class="ai-clinic-list">';
+    words.slice(0, 30).forEach(w => {
+      const e = Library.lookup(w) || {};
+      const err = Store.data.errors[w] || {};
+      const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 3);
+      const rec = Store.spaceGet('clinic', w);
+      const open = aiClinicOpen === w;
+      h += '<div class="ai-clinic-row"><div class="ai-clinic-top"><span class="ai-clinic-word">' + esc(w) + '</span><span class="ai-clinic-zh">' + esc(String(e.zh || '').slice(0, 40)) + '</span><span class="exam-badge amber">错 ' + (err.count || 1) + '</span></div>';
+      if (mix.length) h += '<p class="ai-clinic-mix">易混：' + mix.map(esc).join(' · ') + '</p>';
+      h += '<div class="exam-actions"><button class="btn-ghost" type="button" data-ai-act="clinic-ai" data-word="' + esc(w) + '"' + (aiBusy === 'clinic:' + w ? ' disabled' : '') + '>' + (aiBusy === 'clinic:' + w ? '讲解中…' : rec ? '再看讲解' : 'AI 讲透') + '</button><button class="btn-ghost" type="button" data-ai-act="clinic-quiz" data-word="' + esc(w) + '">变式再练</button></div>';
+      if (open && rec) h += '<div class="ai-text">' + esc(rec.text).replace(/\n/g, '<br>') + '</div>' + aiNoteHtml(rec);
+      h += '</div>';
+    });
+    h += '</div></div>';
+    pane.innerHTML = h;
+  }
+  async function aiClinicExplain(w) {
+    if (aiBusy) return;
+    aiClinicOpen = w;
+    aiBusy = 'clinic:' + w; renderAiClinic();
+    const e = Library.lookup(w) || {};
+    const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 4);
+    const user = ['单词：' + w, '释义：' + (e.zh || '（词库无释义）'), '用户易混词：' + (mix.join('、') || '无记录'), '要求：按系统提示讲解'].join('\n');
+    const res = await aiSpaceChat(AI_SYS_CLINIC, user);
+    aiBusy = '';
+    if (res.ok) { Store.spaceSet('clinic', w, { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('讲解已生成'); }
+    renderAiClinic();
+    if (!res.ok) $('ai-pane-clinic').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+  }
+  function aiClinicQuiz(w) {
+    const mix = Object.keys((Store.data.quiz.history[w] || {}).mix || {}).slice(0, 4);
+    startQuiz({ scope: 'errors', words: [w].concat(mix), count: 5, explore: 0, types: ['en2zh'] });
+  }
+
+  const AI_SYS_QA = '你是大学英语六级词汇问答教练。用中文回答用户关于该词的问题：准确简洁，按需给辨析、搭配、语境或例句；与词无关的问题礼貌引回。不超过 250 字，不用 markdown 标题。';
+  function renderAiQa() {
+    const pane = $('ai-pane-qa');
+    const suggest = [];
+    const cur = currentItem();
+    if (cur && cur.word) suggest.push(cur.word);
+    Store.errorWords().slice(0, 4).forEach(w => { if (!suggest.includes(w)) suggest.push(w); });
+    (Store.data.history || []).forEach(h => { if (h && h.word && !suggest.includes(h.word)) suggest.push(h.word); });
+    let h = '<div class="ai-card"><div class="ai-card-head"><span class="ai-card-title">单词问答室</span>' + (aiQaWord ? '<button class="btn-ghost" type="button" data-ai-act="qa-clear">清空本词</button>' : '') + '</div>';
+    if (!aiReady()) { pane.innerHTML = h + aiOffHtml() + '</div>'; return; }
+    h += '<div class="chip-row ai-qa-suggest">' + suggest.slice(0, 6).map(w => '<button class="chip' + (w === aiQaWord ? ' active' : '') + '" type="button" data-ai-act="qa-word" data-word="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div>';
+    h += '<div class="ai-qa-input"><input type="text" id="ai-qa-word" placeholder="单词，如 ambiguous" value="' + esc(aiQaWord) + '" autocomplete="off"><input type="text" id="ai-qa-q" placeholder="你的问题，如：和 vague 怎么区分？" autocomplete="off"><button class="btn-primary" type="button" data-ai-act="qa-send"' + (aiBusy === 'qa' ? ' disabled' : '') + '>' + (aiBusy === 'qa' ? '思考中…' : '提问') + '</button></div>';
+    const rec = aiQaWord ? Store.spaceGet('qa', aiQaWord) : null;
+    if (rec && rec.turns.length) h += '<div class="ai-qa-thread">' + rec.turns.map(t => '<div class="ai-qa-q">' + esc(t.q) + '</div><div class="ai-qa-a">' + esc(t.a).replace(/\n/g, '<br>') + '</div>').join('') + '</div>' + aiNoteHtml(rec);
+    else if (aiQaWord) h += '<p class="field-hint">该词还没有问答，先问第一句。</p>';
+    else h += '<p class="field-hint">选一个词或输入词，再问搭配、辨析、语境；问答按词缓存。</p>';
+    h += '</div>';
+    pane.innerHTML = h;
+  }
+  async function aiQaSend() {
+    if (aiBusy) return;
+    const wEl = $('ai-qa-word'), qEl = $('ai-qa-q');
+    const w = String((wEl && wEl.value) || '').trim();
+    const q = String((qEl && qEl.value) || '').trim();
+    if (!w || !q) { announce('先填单词和问题'); return; }
+    aiQaWord = w;
+    aiBusy = 'qa'; renderAiQa();
+    const e = Library.lookup(w) || {};
+    const prev = (Store.spaceGet('qa', w) || { turns: [] }).turns.slice(-4);
+    const user = ['单词：' + w, '词库释义：' + (e.zh || '（无）'), prev.length ? '此前问答：\n' + prev.map(t => '问：' + t.q + '\n答：' + t.a).join('\n') : '', '当前问题：' + q].filter(Boolean).join('\n\n');
+    const res = await aiSpaceChat(AI_SYS_QA, user);
+    aiBusy = '';
+    if (res.ok) {
+      const rec = Store.spaceGet('qa', w) || { turns: [] };
+      const turns = rec.turns.concat([{ q, a: res.text, t: Date.now() }]).slice(-8);
+      Store.spaceSet('qa', w, { turns, t: Date.now(), provider: res.provider, model: res.model });
+      announce('回答已生成');
+    }
+    renderAiQa();
+    if (!res.ok) $('ai-pane-qa').insertAdjacentHTML('beforeend', aiFailHtml(res.error));
+  }
+
+  function aiSpaceClick(e) {
+    const t = e.target.closest('[data-ai-tab],[data-ai-act]');
+    if (!t) return;
+    if (t.dataset.aiTab) { aiTab = t.dataset.aiTab; Platform.haptic('tap'); renderAiSpace(); return; }
+    const act = t.dataset.aiAct, w = t.dataset.word || '';
+    if (act === 'settings') openSettings('dict');
+    else if (act === 'report-gen') aiGenReport();
+    else if (act === 'clinic-all') startQuiz({ scope: 'errors', explore: 0 });
+    else if (act === 'clinic-ai') aiClinicExplain(w);
+    else if (act === 'clinic-quiz') aiClinicQuiz(w);
+    else if (act === 'qa-word') { aiQaWord = w; renderAiQa(); }
+    else if (act === 'qa-clear') { if (aiQaWord) Store.spaceSet('qa', aiQaWord, { turns: [], t: Date.now() }); renderAiQa(); }
+    else if (act === 'qa-send') aiQaSend();
   }
 
   // ===================== init =====================

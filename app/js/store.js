@@ -33,6 +33,7 @@
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
     ai: { provider: 'devfree', key: '', model: '', base: '', enabled: false },
     aiCache: {},
+    space: { report: {}, clinic: {}, qa: {} },
     dict: { provider: 'freezh', enabled: ['freezh'], merge: true, custom: [], keys: {} },
     dictCache: {},
     quiz: {
@@ -148,6 +149,7 @@
     else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false }, d.ai);
     delete d.ai.autoExplain;
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
+    d.space = normalizeSpace(d.space);
     d.dict = normalizeDict(d.dict);
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
@@ -382,6 +384,37 @@
 
   // ===================== exam practice（真题刷题） =====================
   const EXAM_ID_RE = /^\d{4}-\d{2}[-_]\d{2}$/;
+  const SPACE_KINDS = ['report', 'clinic', 'qa'];
+  const SPACE_CAPS = { report: 14, clinic: 300, qa: 100 };
+  function normalizeSpace(raw) {
+    const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const out = { report: {}, clinic: {}, qa: {} };
+    SPACE_KINDS.forEach(kind => {
+      const bag = src[kind] && typeof src[kind] === 'object' ? src[kind] : {};
+      Object.keys(bag).forEach(k => {
+        const v = bag[k];
+        if (!v || typeof v !== 'object') return;
+        if (kind === 'qa') {
+          const turns = Array.isArray(v.turns) ? v.turns.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-8) : [];
+          if (!turns.length) return;
+          out.qa[k] = { turns, t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
+        } else {
+          if (typeof v.text !== 'string' || !v.text.trim()) return;
+          out[kind][k] = { text: v.text.slice(0, 4000), t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
+        }
+      });
+      const keys = Object.keys(out[kind]).sort((a, b) => (out[kind][b].t || 0) - (out[kind][a].t || 0));
+      keys.slice(SPACE_CAPS[kind]).forEach(k => { delete out[kind][k]; });
+    });
+    return out;
+  }
+  function spaceGet(kind, key) { return (data.space[kind] || {})[key] || null; }
+  function spaceSet(kind, key, rec) {
+    if (!SPACE_KINDS.includes(kind) || typeof key !== 'string' || !key) return;
+    data.space = normalizeSpace(Object.assign({}, data.space, { [kind]: Object.assign({}, data.space[kind], { [key]: rec }) }));
+    save();
+  }
+
   const EXAM_TYPES = ['reading', 'matching', 'writing', 'translation', 'cloze', 'listening'];
   function normalizeExams(raw) {
     const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
@@ -672,6 +705,7 @@
         srs: clone(srs), logs: clone(data.logs || {}), views: clone(views), favorites: clone(fav),
         favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
+        space: clone(data.space || { report: {}, clinic: {}, qa: {} }),
         customBooks: clone(data.customBooks || {}),
         customThemes: clone(data.customThemes || []),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
@@ -761,6 +795,7 @@
       data.quizExamples = {};
       data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
       data.exams = { progress: {}, wrong: [], aiCache: {} };
+      data.space = { report: {}, clinic: {}, qa: {} };
     }
 
     if (src) {
@@ -799,6 +834,19 @@
         else cur.last = Math.max(cur.last || 0, e.last || 0);
       }
       if (isObj(src.aiCache)) for (const w of Object.keys(src.aiCache)) if (isObj(src.aiCache[w])) data.aiCache[w] = src.aiCache[w];
+      if (isObj(src.space)) {
+        const sp = normalizeSpace(src.space);
+        SPACE_KINDS.forEach(kind => {
+          Object.keys(sp[kind]).forEach(k => {
+            const v = sp[kind][k], cur = data.space[kind][k];
+            if (kind === 'qa' && cur && Array.isArray(cur.turns)) {
+              const seen = new Set(cur.turns.map(x => x.q + '|' + x.t));
+              const turns = cur.turns.concat(v.turns.filter(x => !seen.has(x.q + '|' + x.t))).sort((a, b) => (a.t || 0) - (b.t || 0)).slice(-8);
+              data.space.qa[k] = { turns, t: Math.max(cur.t || 0, v.t || 0), provider: v.provider || cur.provider, model: v.model || cur.model };
+            } else if (!cur || (v.t || 0) >= (cur.t || 0)) data.space[kind][k] = v;
+          });
+        });
+      }
       if (isObj(src.dictCache)) for (const w of Object.keys(src.dictCache)) if (isObj(src.dictCache[w])) data.dictCache[w] = src.dictCache[w];
       if (isObj(src.customBooks)) for (const k of Object.keys(src.customBooks)) if (isObj(src.customBooks[k])) data.customBooks[k] = src.customBooks[k];
       if (isObj(src.quiz)) mergeQuiz(src.quiz, replace);
@@ -895,6 +943,7 @@
     exportData, importData,
     defaultPanelOrder: () => DEFAULTS.studyPanelOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
+    spaceGet, spaceSet,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
     dictKey, setDictKey, setDictEnabled, moveDictSource, addDictSource, updateDictSource, removeDictSource,
     setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile,

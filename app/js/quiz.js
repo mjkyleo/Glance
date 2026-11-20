@@ -133,6 +133,7 @@
     const add = w => { if (w) set.add(w); };
     const book = currentBook();
     const scope = cfg.scope || 'mixed';
+    if (Array.isArray(cfg.words) && cfg.words.length) { cfg.words.forEach(add); return Array.from(set); }
     if (scope === 'book' || scope === 'mixed') (book.entries || []).forEach(e => add(e.word));
     if (scope === 'theme') Themes.wordsOf(cfg.theme).forEach(add);
     if (scope === 'favorites' || scope === 'mixed') Store.favoriteWords('').forEach(add);
@@ -982,6 +983,7 @@
       difficulty: ['auto', 'easy', 'normal', 'hard'].includes(c.difficulty) ? c.difficulty : 'auto',
       online: c.online !== false,
       theme: typeof c.theme === 'string' ? c.theme : '',
+      words: Array.isArray(c.words) ? c.words.filter(w => typeof w === 'string' && w).slice(0, 40) : undefined,
       explore: clamp(Math.round(Number(c.explore ?? 20) || 0), 0, 40),
       confusion: c.confusion !== false,
       curated: c.curated !== false
