@@ -1,5 +1,5 @@
 // Glance 真题刷题引擎：manifest/分片懒加载、按题型组卷、三级判分（答案自动 → AI 分析 → 自评）。
-// 语料无官方答案（answers:null 留位）；听力无音频暂不开刷；选词填空复用现有专项牌组。
+// schema2 语料：少数套卷含官方答案（answers map，自动判分），其余 answers:null 留位；听力无音频暂不开刷；选词填空复用现有专项牌组。
 (function () {
   let manifest = null;
   const shards = new Map();
@@ -95,7 +95,7 @@
     return { ok: true, text: String(res.content || '').trim(), provider: rc.provider && rc.provider.id, model: rc.model };
   }
 
-  const SYS_QUESTION = '你是大学英语六级真题辅导老师。语料没有官方答案，用户提供真题题目、选项与他的作答。请：1) 推断最可能的正确选项并说明理由；2) 点评用户的选择；3) 讲解题干与选项中的关键语言点。明确标注「AI 推断，仅供参考」。用中文回答，不超过 300 字。';
+  const SYS_QUESTION = '你是大学英语六级真题辅导老师。该题无可验证的官方答案，用户提供真题题目、选项与他的作答。请：1) 推断最可能的正确选项并说明理由；2) 点评用户的选择；3) 讲解题干与选项中的关键语言点。明确标注「AI 推断，仅供参考」。用中文回答，不超过 300 字。';
   const SYS_WRITING = '你是大学英语六级写作与翻译辅导老师。请根据真题题目批改用户的作答：给出估计分数档（写作/翻译均按 15 分制）、指出 2-3 个主要问题、给出一版修改参考。明确标注「AI 批改，仅供参考」。用中文回答，不超过 500 字。';
 
   function questionCacheKey(examId, no) { return examId + ':' + no; }

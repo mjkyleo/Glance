@@ -88,7 +88,7 @@
 
 - 任选词书（含自定义）对比四级 / 六级考纲：`compareToOfficial` 返回考纲内 / 超纲 / 考纲缺失 + 双向覆盖率（[library.js:384-413](../app/js/library.js#L384-L413)）。
 - 归一化 `officialForms` 处理变体对、上标、可选字母、短语（[library.js:332-344](../app/js/library.js#L332-L344)）。
-- UI 面板：源书 + 级别选择，摘要 + 覆盖率条 + 三个可折叠词表（每段限 300 词可展开全部）（[app.js:2439-2465 renderCompare](../app/js/app.js#L2439-L2465)）。
+- UI 面板（2026-11-20 compact 化）：源书 + 级别选择，摘要 + 覆盖率条常显;三个词表段**默认收缩且零预渲染**，展开才懒加载 120 词/批、「加载更多」逐批追加（取代旧 300 预渲染 + 一次展开全部）;整卡可「收起/展开」只留标题行（[app.js:2782 cmpSection](../app/js/app.js#L2782)、[app.js:2811 renderCompare](../app/js/app.js#L2811)、[index.html:400 cmp-toggle](../app/index.html#L400)）。
 
 ### 2.5 词条富字段与派生 ✅
 
@@ -225,7 +225,8 @@
 
 ### 5.1 查词 / 历史 / 生词本 ✅
 
-- 查词 [app.js:1945-2014 runSearch](../app/js/app.js#L1945-L2014)，词详情弹层 [app.js:1594-1630 openWordSheet](../app/js/app.js#L1594-L1630)，查词历史 [app.js:2015-2025 renderHistory](../app/js/app.js#L2015-L2025)，生词本/收藏 [app.js:2026-2059 renderFavorites](../app/js/app.js#L2026-L2059)。
+- 查词 [app.js:2344 runSearch](../app/js/app.js#L2344)，词详情页 [app.js:1991 openWordSheet](../app/js/app.js#L1991)，查词历史 [app.js:2414 renderHistory](../app/js/app.js#L2414)，生词本/收藏 [app.js:2459 renderFavorites](../app/js/app.js#L2459)。
+- **历史按日期分组（2026-11-20）**：今天 / 昨天 / M月D日（跨年带年份）分组，组头带词数与折叠箭头;**最近一组默认展开、其余收缩**，点组头切换;不再截断 30 条（历史上限 100 全展示）。
 - **在线查词入口** ✅：本地词库无精确匹配时，结果顶部置顶「在线查词：〈query〉」行，点击即开词卡并自动联网查询、按词缓存到本机（[app.js:2051-2060](../app/js/app.js#L2051-L2060)、[app.css:1137](../app/css/app.css#L1137)）。
 
 ### 5.2 外部词典：多词典并行 ✅
@@ -284,7 +285,8 @@
 
 ### 8.1 学习统计 ✅
 
-- 统计总览 [app.js:2224-2251 renderStats](../app/js/app.js#L2224-L2251)；高频接触词榜 [app.js:2252-2273 renderTopViews](../app/js/app.js#L2252-L2273)；带月份与逐日数字的打卡日历 [app.js:2274-2314 renderCalendar](../app/js/app.js#L2274-L2314)；掌握分布 [app.js:2315-2333 renderMastery](../app/js/app.js#L2315-L2333)；正确率 [app.js:2334-2352 renderRetention](../app/js/app.js#L2334-L2352)；趋势 [app.js:2353-2371 renderTrend](../app/js/app.js#L2353-L2371)；逐日历史 [app.js:2372-2401 renderDayHistory](../app/js/app.js#L2372-L2401)。
+- 统计总览 [app.js:2561 renderStats](../app/js/app.js#L2561)；高频接触词榜 [app.js:2590 renderTopViews](../app/js/app.js#L2590)；带月份与逐日数字的打卡日历 [app.js:2612 renderCalendar](../app/js/app.js#L2612)；掌握分布 [app.js:2653 renderMastery](../app/js/app.js#L2653)；正确率 [app.js:2672 renderRetention](../app/js/app.js#L2672)；趋势 [app.js:2691 renderTrend](../app/js/app.js#L2691)。
+- **学习记录时间轴（2026-11-20）**：逐日历史改垂直时间轴——左侧连线 + 日期节点（今日 accent 实心），每日卡片含星期、新学/复习/三档次数/时长，展开看认识/模糊/忘记 pills 与新学/复习词芯片;**最近一天默认展开**，30 天/批「再往前」追加（[app.js:2710 renderDayHistory](../app/js/app.js#L2710)）。
 
 ### 8.2 单词接触次数 ✅
 
@@ -304,14 +306,19 @@
 
 ### 9.3 桌面 Web 自适应布局 ✅
 
-- ≥960px：底栏变左侧栏（品牌标记 + 竖排导航，[index.html:430 side-brand](../app/index.html#L430)），内容列最宽 1120 居中;功能页铺满侧栏以右内容区;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果与设置页正文居中 780 列;滚动条加宽并带 hover（[app.css:1507](../app/css/app.css#L1507)）。
+- ≥960px：底栏变左侧栏（品牌标记 + **图标+文字竖排菜单**，2026-11-20 起桌面显示导航名称、移动端底栏保持纯图标;[index.html:430 side-brand](../app/index.html#L430)），内容列最宽 1120 居中;功能页铺满侧栏以右内容区;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果与设置页正文居中 780 列;滚动条加宽并带 hover（[app.css:1507](../app/css/app.css#L1507)）。
 - ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1570](../app/css/app.css#L1570)、[index.html:35 word-head](../app/index.html#L35)）;移动端 `.word-head{display:contents}` 保持原单列不变。
 
 ### 9.4 全页面化 · 图标极简 · 导航反馈 ✅（2026-11-20）
 
 - **功能入口全页面化**：词卡 / 词根家族 / 词缀 / 主题 / 分组选择 / 选词填空 / 个人资料 / 测试设置 / 词典编辑 / 设置共 11 个原底部抽屉改为整页——`position:fixed; inset:0`、无圆角无阴影、自右向左滑入（`translateX(100%)→0`），头部为返回箭头 + 标题（[app.css:1111-1112](../app/css/app.css#L1111-L1112)、[index.html 各 sheet-close 返回图标](../app/index.html#L462)）。原有 openSheet/closeSheet/嵌套/焦点/返回栈逻辑不变（[app.js:295 openSheet](../app/js/app.js#L295)）;移动端页面打开时主界面 inert，桌面 ≥960px 侧栏保持可点（遮罩左移 216px 且透明），点侧栏即关页切换（[app.js:260 pagesDesktop](../app/js/app.js#L260)、[app.js:41 switchView 关页](../app/js/app.js#L41)、[app.css:1552](../app/css/app.css#L1552)）。
-- **图标极简**：底栏标签、学习/测试与词根/词缀切换文字、评分按钮文字、我的行副标题、设置行小字、测试退出文字均隐藏，仅留图标 + aria-label/title（[app.css:1587-1606](../app/css/app.css#L1587-L1606)、[index.html:23 mode-text](../app/index.html#L23)）。
+- **图标极简**：底栏标签（移动端）、学习/测试切换文字、评分按钮文字、我的行副标题、设置行小字、测试退出文字均隐藏，仅留图标 + aria-label/title;**词根/词缀切换例外保留「词根」「词缀」文字**（2026-11-20 用户要求，[app.css:1606-1608](../app/css/app.css#L1606-L1608)、[index.html:23 mode-text](../app/index.html#L23)）。
 - **底栏互动反馈**：滑动指示胶囊（accent 13% 混色，弹性曲线跟随_active  tab，横竖两向，ResizeObserver + resize 重算）、按压涟漪（pointerdown 落点扩散、animationend 自清理）、图标弹跳 pop（[index.html:429 tab-indicator](../app/index.html#L429)、[app.js:265 placeTabIndicator](../app/js/app.js#L265)、[app.js:3650 涟漪](../app/js/app.js#L3650)、[app.css:1591-1597](../app/css/app.css#L1591-L1597)）。
+
+### 9.5 多级面包屑 ✅（2026-11-20）
+
+- 统一 `setCrumbs` 渲染可点击面包屑（末级为当前态不可点，[app.js:86 setCrumbs](../app/js/app.js#L86)）;覆盖：四个子页头部（我的 › 学习统计/词书与计划/AI 解释缓存/真题刷题）、真题 列表→试卷→题型作答/结果 三至四级（[app.js:102 examCrumbs](../app/js/app.js#L102)）、设置页（我的 › 设置 · 面板名）、嵌套词典编辑（设置 › 添加/编辑词典源）、词根家族（词根 › root）、家族进入的词卡（词根 › root › word，点击 root 回家族页）。
+- 单级时自动隐藏;与返回箭头/返回栈并存不冲突（面包屑是跳级 shortcut，返回键仍逐级）。
 
 ---
 
@@ -339,11 +346,12 @@
 
 ### 10.5 真题刷题（62 套六级真题）✅
 
-- **数据**：Gitee 真题语料 62 套 txt 经 [scripts/build-exams.js](../scripts/build-exams.js) 解析为 `app/data/exams/` 分片 + manifest + report（幂等、严格校验 0 错误）;启动只读 manifest，打开某套才懒加载分片（[platform.js:134](../app/js/platform.js#L134)、[main.js:363](../main.js#L363)）。残缺套顶部如实提示（缺题/缺选项数）。
+- **数据（2026-11-20 升级 schema 2）**：在用集为外部导入的 schema 2 分片（62 套 + manifest，[scripts/import-exams.js](../scripts/import-exams.js) 可复现导入;分片单源、manifest 由分片派生并补 writing/translation 布尔）;新增 `hasAnswers/answersComplete/answersCoverage/answersSource/stats` 答案元数据，2026-06-01/03 两套含官方答案。旧 `build-exams.js` 为 schema 1 解析管线（溯源保留，重跑后须重新导入）。启动只读 manifest，打开某套才懒加载分片（[platform.js:134](../app/js/platform.js#L134)、[main.js:363](../main.js#L363)）。残缺套顶部如实提示（缺题/缺选项数）。
+- **年份卡片网格（2026-11-20）**：列表改年份分组标题（年 + 套数）+ 卡片网格——月/套、题量与题型、已练进度条与「已练 x/y」、含答案/答案覆盖率/残缺徽标;移动 2 列、≥960 3 列、≥1280 4 列（[app.js:3813 renderExamsList](../app/js/app.js#L3813)）。
 - **题型**：仔细阅读（一段材料 + 一组选择题，逐题推进）、信息匹配（[A]–[O] 段落 ↔ 陈述句字母芯片）、短文写作 / 汉译英（写作区 + 字符计数）;按「一段材料 + 一组题」推进，不整卷塞满（[exams.js](../app/js/exams.js)）。听力无音频暂不开刷（数据入库）；选词填空复用专项牌组。
-- **三级判分**：`answers` 有官方答案→自动判分（字段留位待补）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[app.js:3309 起](../app/js/app.js#L3309)）。
+- **三级判分**：`answers` 有官方答案→自动判分（schema 2 起 2026-06-01/03 两套生效，反馈标注「官方答案」）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[exams.js:77 judge](../app/js/exams.js#L77)）。
 - **持久化**：Store `exams` 块（每题作答/判定/模式/时间、完成记录、错题 ≤300、AI 缓存 ≤300），导出导入纳入且剔除密钥规则不变（[store.js:331](../app/js/store.js#L331)）。
-- 入口：专项视图顶部「真题刷题」;详见 DEVELOPMENT §8.37。
+- 入口：专项视图顶部「真题刷题」;列表→试卷→题型作答三级面包屑可逐级回跳（§9.5）;详见 DEVELOPMENT §8.37/§8.42。
 
 ### 10.6 空间利用率与自定义分组（2026-11-19）✅
 
@@ -471,9 +479,11 @@
 | 词库 | 官方考纲为根（四/六级） | ✅ | library.js:330-413 |
 | 词库 | 10 考试书 + 质量过滤 | ✅ | library.js:238-262 |
 | 词库 | 自定义导入 JSON/TSV/CSV/TXT | ✅ | library.js:569-584 |
-| 词库 | 考纲对比（覆盖/超纲/缺失） | ✅ | library.js:384-413 / app.js:2404-2464 |
+| 词库 | 考纲对比（覆盖/超纲/缺失，compact 懒加载） | ✅ | library.js:384-413 / app.js:2782-2838 |
 | 词库 | 六级真题词频书（5,772 词头，按真题次数排序） | ✅ | library.js:156-178 / app.js:1596-1631 |
 | 词根 | 家族导航 + 四类筛选 + 字母分组吸顶 + 按需加载 + 词缀浏览 + 进度条 | ✅ | app.js:1306-1445 / app.js:1940-1962 |
+| 真题 | 年份卡片网格 + schema2 答案元数据 + 三级面包屑 | ✅ | app.js:3813-3851 / app.js:102 / scripts/import-exams.js |
+| 显示 | 查词历史日期分组 / 学习时间轴 / 桌面侧栏图标+文字 | ✅ | app.js:2414 / app.js:2710 / app.css 末尾媒体块 |
 | 专项 | 29 静态主题分类 + 专项学习 | ✅ | themes.js / app.js:1328-1472 |
 | 专项 | 选词填空 7 牌组（词性/重复/近五年/全部，369 词） | ✅ | scripts/build-cet6-cloze.js / themes.js:234-242 / app.js:1359-1472 |
 | 专项 | 26 套真题卷浏览（A–O 选项 + 整卷学习 + 缺失说明） | ✅ | app.js:1478-1595 / index.html:445-452 |

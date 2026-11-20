@@ -1,1 +1,244 @@
-{"examId":"2022-06_02","year":2022,"month":6,"set":2,"title":"2022年6月英语六级真题(第2套)","sections":[{"part":"III","partTitle":"选词填空","section":"A","type":"cloze","directions":"","groups":[{"range":"26-35","prompt":"","passage":"Directionsr In this section, there is a passage with ten blanks. You are required to select one\nwordfor each blankfrom a list of choices given in a 'word bankfollowing the passage. Read the\npassage through carefully before making your choices, Each choice in the bank is identified\nby a letter. Please mark the corresponding letter for each item on Answer Sheet 2 with a single\nline through the centre. You may not use any of the words in the bank more than once.\nyour overall wellbeing, empirical evidence has shown. Researchers carried out an\ninvestigation to explore the 26 between having kind thoughts and a person's\npsychological state.\nFor the study, five groups of participants were presented with a different set of audio\nand others which persuaded them to think in a self^critical manner. After listening to the\naudio instructions, the participants were asked to answer a series of questions. These\nincluded whether they felt agitated, how likely they were to show kindness to themselves\nand how 28 they felt to other individuals.\nlikely to exhibit a bodily response associated with being relaxed and feeling safe. Their\nheart rates also dropped, which is a healthy sign of a heart that can respond flexibly to\nsituations. Yet, 29 , those who listened to the critical audio clips were noted as having\na higher heart rate and sweat response afterwards, both of which 30 feelings of threat\nand distress.\nHaving the ability to switch off the body's natural threat response can 31 a person's\nimmune system. This, in turn, gives them a greater likelihood of recovering quickly from\nillness. These findings help us to further understand some of our clinical trials research\nfindings, where we show that individuals with 32 depression benefit particularly from\nself-awareness-based 33 therapy. They essentially learn to become more sympathetic\nto themselves.\nThe sense is that for people 34 to depression, meeting their negative thoughts\nand feelings with 35 is a radically different way; that these thoughts are not facts. It\nintroduces a different way of being and knowing that is quite transformative for many\npeople.\nA) adversely I) indignantly\nB) amiably J) insulation\nC) boost K) lavish\nD) cognitive L) prone\nE) compassion M) recurrent\nF) connected N) signify\nG) correlation 0 ) surpass\nH) fascinated","questions":[{"no":26,"type":"cloze","stem":"","options":{}},{"no":28,"type":"cloze","stem":"","options":{}},{"no":29,"type":"cloze","stem":"","options":{}},{"no":30,"type":"cloze","stem":"","options":{}},{"no":31,"type":"cloze","stem":"","options":{}},{"no":32,"type":"cloze","stem":"","options":{}},{"no":33,"type":"cloze","stem":"","options":{}},{"no":34,"type":"cloze","stem":"","options":{}},{"no":35,"type":"cloze","stem":"","options":{}}],"bank":{}}]},{"part":"III","partTitle":"仔细阅读","section":"C","type":"reading","directions":"","groups":[{"range":"52-55","prompt":"","passage":"","questions":[{"no":52,"type":"reading","stem":"What does the author advise scientists do to deal with topics outside o f their specialty?","options":{"A":"Write or present on them from new angles.","B":"Utilize information from diverse sources.","C":"Turn to a specialist for professional help.","D":"Fact-check with colleagues in their field."},"missingOptions":[]},{"no":53,"type":"reading","stem":"What does the author say we can learn from social media?","options":{"A":"A solid academic foundation is essential to understanding baffling scientific principles.","C":"Scientific articles have gained increasing popularity among the general public.","D":"The public's understanding of science is much better than some have claimed."},"missingOptions":["B"]},{"no":54,"type":"reading","stem":"What does the example of the biologist who shared an intricate analogy show?","options":{"A":"It is helpful to use illustrations in explaining scientific phenomena.","B":"It is imperative to have appropriate titles to explain scientific issues.","C":"A learned scholar is not necessarily a qualified science communicator.","D":"A nonscientific audience cannot duly understand principles of science."},"missingOptions":[]},{"no":55,"type":"reading","stem":"What does the author suggest scientists do to close the gap between science and society?","options":{"A":"Explain complex concepts scientifically.","B":"Make appropriate use of scientific terms.","C":"Take courses in public speaking.","D":"Develop communication skills."},"missingOptions":[]}]}]}],"writing":{"directions":"Directions: For this part, you are allowed 30 minutes to write an essay that begins with the sentence “Nowadays more and more people keep learning new skills to adapt to a fast-changing world.\" You can make comments, cite examples, or use your personal experiences to develop your essay. You should write at least 150 words but no more than 200 words.","prompt":"Nowadays more and more people keep learning new skills to adapt to a fast-changing world."},"translation":{"directions":"Directions: For this part, you are allowed 30 minutes to translate a passage from Chinese into English. You should write your answer on Answer Sheet 2.","passage":"南 京长江大桥是长 江 上 首 座 由 中 国 设 计 、采 用 国 产 材 料 建 造 的 铁 路 、公 路 两 用 桥 ，上层\n的 4 车 道 公 路 桥 长 4589米 ，下 层 的 双 轨 道 铁 路 桥 长 6772米 。铁路桥连接原来的天津一浦口\n和 上 海 一 南 京 两 条 铁 路 线 ，使 火 车 过 江 从 过 去 一 个 半 小 时 缩 短 为 现 在 的 2 分 钟 。 大桥是南北\n交通的重要枢纽，也是 南 京 的 著 名 景 点 之 一 。\n南京长江大桥的建成 标 志 着 中 国 桥 梁 建 设 的 一 个 飞 跃 ， 大大方便了长江两岸的物资交流"},"answers":null,"quality":{"questionCount":13,"maxNo":55,"gaps":[27,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51],"duplicateNos":[],"optionsIncomplete":[{"no":53,"missing":["B"]}],"chineseNoiseLines":0,"needsReview":true},"source":{"file":"2022-06_02.txt"}}
+{
+  "examId": "2022-06_02",
+  "year": 2022,
+  "month": 6,
+  "set": 2,
+  "title": "2022年6月英语六级真题(第2套)",
+  "hasAnswers": false,
+  "answers": null,
+  "answersComplete": false,
+  "answersCoverage": 0,
+  "answersSource": null,
+  "answersNote": "未取得可验证的答案来源",
+  "stats": {
+    "questionCount": 13,
+    "byType": {
+      "cloze": {
+        "total": 9,
+        "answered": 0
+      },
+      "reading": {
+        "total": 4,
+        "answered": 0
+      }
+    },
+    "missingNos": [
+      26,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      52,
+      53,
+      54,
+      55
+    ],
+    "types": [
+      "cloze",
+      "reading"
+    ]
+  },
+  "sections": [
+    {
+      "part": "III",
+      "partTitle": "选词填空",
+      "section": "A",
+      "type": "cloze",
+      "directions": "Directionsr In this section, there is a passage with ten blanks. You are required to select one wordfor each blankfrom a list of choices given in a 'word bankfollowing the passage. Read the passage through carefully before making your choices, Each choice in the bank is identified by a letter. Please mark the corresponding letter for each item on Answer Sheet 2 with a single line through the centre. You may not use any of the words in the bank more than once.",
+      "groups": [
+        {
+          "range": "26-35",
+          "prompt": "",
+          "passage": "your overall wellbeing, empirical evidence has shown. Researchers carried out an\ninvestigation to explore the 26 between having kind thoughts and a person's\npsychological state.\nFor the study, five groups of participants were presented with a different set of audio\nand others which persuaded them to think in a self^critical manner. After listening to the\naudio instructions, the participants were asked to answer a series of questions. These\nincluded whether they felt agitated, how likely they were to show kindness to themselves\nand how 28 they felt to other individuals.\nlikely to exhibit a bodily response associated with being relaxed and feeling safe. Their\nheart rates also dropped, which is a healthy sign of a heart that can respond flexibly to\nsituations. Yet, 29 , those who listened to the critical audio clips were noted as having\na higher heart rate and sweat response afterwards, both of which 30 feelings of threat\nand distress.\nHaving the ability to switch off the body's natural threat response can 31 a person's\nimmune system. This, in turn, gives them a greater likelihood of recovering quickly from\nillness. These findings help us to further understand some of our clinical trials research\nfindings, where we show that individuals with 32 depression benefit particularly from\nself-awareness-based 33 therapy. They essentially learn to become more sympathetic\nto themselves.\nThe sense is that for people 34 to depression, meeting their negative thoughts\nand feelings with 35 is a radically different way; that these thoughts are not facts. It\nintroduces a different way of being and knowing that is quite transformative for many\npeople.",
+          "bank": {
+            "A": "adversely",
+            "I": "indignantly",
+            "B": "amiably",
+            "J": "insulation",
+            "C": "boost",
+            "K": "lavish",
+            "D": "cognitive",
+            "L": "prone",
+            "E": "compassion",
+            "M": "recurrent",
+            "F": "connected",
+            "N": "signify",
+            "G": "correlation",
+            "O": "surpass",
+            "H": "fascinated"
+          },
+          "questions": [
+            {
+              "no": 26,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 28,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 29,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 30,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 31,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 32,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 33,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 34,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            },
+            {
+              "no": 35,
+              "type": "cloze",
+              "stem": "",
+              "options": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": "III",
+      "partTitle": "仔细阅读",
+      "section": "C",
+      "type": "reading",
+      "directions": "",
+      "groups": [
+        {
+          "range": "52-55",
+          "prompt": "",
+          "passage": "",
+          "questions": [
+            {
+              "no": 52,
+              "type": "reading",
+              "stem": "What does the author advise scientists do to deal with topics outside o f their specialty?",
+              "options": {
+                "A": "Write or present on them from new angles.",
+                "B": "Utilize information from diverse sources.",
+                "C": "Turn to a specialist for professional help.",
+                "D": "Fact-check with colleagues in their field."
+              },
+              "missingOptions": []
+            },
+            {
+              "no": 53,
+              "type": "reading",
+              "stem": "What does the author say we can learn from social media?",
+              "options": {
+                "A": "A solid academic foundation is essential to understanding baffling scientific principles.",
+                "C": "Scientific articles have gained increasing popularity among the general public.",
+                "D": "The public's understanding of science is much better than some have claimed."
+              },
+              "missingOptions": [
+                "B"
+              ]
+            },
+            {
+              "no": 54,
+              "type": "reading",
+              "stem": "What does the example of the biologist who shared an intricate analogy show?",
+              "options": {
+                "A": "It is helpful to use illustrations in explaining scientific phenomena.",
+                "B": "It is imperative to have appropriate titles to explain scientific issues.",
+                "C": "A learned scholar is not necessarily a qualified science communicator.",
+                "D": "A nonscientific audience cannot duly understand principles of science."
+              },
+              "missingOptions": []
+            },
+            {
+              "no": 55,
+              "type": "reading",
+              "stem": "What does the author suggest scientists do to close the gap between science and society?",
+              "options": {
+                "A": "Explain complex concepts scientifically.",
+                "B": "Make appropriate use of scientific terms.",
+                "C": "Take courses in public speaking.",
+                "D": "Develop communication skills."
+              },
+              "missingOptions": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "writing": {
+    "directions": "Directions: For this part, you are allowed 30 minutes to write an essay that begins with the sentence “Nowadays more and more people keep learning new skills to adapt to a fast-changing world.\" You can make comments, cite examples, or use your personal experiences to develop your essay. You should write at least 150 words but no more than 200 words.",
+    "prompt": "Nowadays more and more people keep learning new skills to adapt to a fast-changing world."
+  },
+  "translation": {
+    "directions": "Directions: For this part, you are allowed 30 minutes to translate a passage from Chinese into English. You should write your answer on Answer Sheet 2.",
+    "passage": "南 京长江大桥是长 江 上 首 座 由 中 国 设 计 、采 用 国 产 材 料 建 造 的 铁 路 、公 路 两 用 桥 ，上层\n的 4 车 道 公 路 桥 长 4589米 ，下 层 的 双 轨 道 铁 路 桥 长 6772米 。铁路桥连接原来的天津一浦口\n和 上 海 一 南 京 两 条 铁 路 线 ，使 火 车 过 江 从 过 去 一 个 半 小 时 缩 短 为 现 在 的 2 分 钟 。 大桥是南北\n交通的重要枢纽，也是 南 京 的 著 名 景 点 之 一 。\n南京长江大桥的建成 标 志 着 中 国 桥 梁 建 设 的 一 个 飞 跃 ， 大大方便了长江两岸的物资交流"
+  },
+  "quality": {
+    "questionCount": 13,
+    "maxNo": 55,
+    "gaps": [
+      27,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51
+    ],
+    "duplicateNos": [],
+    "optionsIncomplete": [
+      {
+        "no": 53,
+        "missing": [
+          "B"
+        ]
+      }
+    ],
+    "chineseNoiseLines": 0,
+    "needsReview": true
+  },
+  "source": {
+    "txt": "2022-06_02.txt"
+  }
+}

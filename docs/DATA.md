@@ -39,7 +39,7 @@
 | `official.json` | 80 KB | `{source, note, cet4[], cet6[]}` | 7,896 条（A 6,632 / B 1,264） |
 | `frequency.json` | 282 KB | `{source, …, stats, map}` | 5,772 词头 / 72,380 次 |
 | `cloze.json` | 91 KB | `{source, …, decks[], sets[], words[]}` **纯引用** | 26 套 / 390 选项位 / 369 词 |
-| `exams/`（目录） | 957 KB | `manifest.json` + `report.json` + 62 分片（§2.10） | 62 套真题 / 平均 26.3 题 |
+| `exams/`（目录） | 1.5 MB | `manifest.json`（schema 2）+ 62 分片（§2.10） | 62 套真题 / 平均 26.3 题 / 2 套含官方答案 |
 | `cet6.json` | 0.51 MB | legacy 种子（纯引用，§4.2） | 3,516 组 / 5,259 词 |
 
 `official.json`、`frequency.json`、`cloze.json` 是三个**非抓取生成**的内置文件：分别源自官方考纲 PDF 词表（§2.7）、六级真题语料词频 CSV（§2.8）与真题选词填空选项库 JSON（§2.9）。
@@ -217,10 +217,10 @@
 ### 2.10 exams/（六级真题刷题分片）
 
 - **来源**：Gitee `Mjs_00987/cet6_exam_questions_txt_collection` 的 `cet6_zhenti_cleaned/` 62 个 txt（2016–2026，两种命名 `2016-06_01` / `2026-06-01` 均保留原样作 examId）。源 txt 缓存 `.scratch/zhenti-src/`（不入库）;Gitee raw 有 451 反爬，用 `git clone --depth 1` 取源。
-- **构建**：`npm run data:exams` → [scripts/build-exams.js](../scripts/build-exams.js) → `app/data/exams/{manifest.json, report.json, <examId>.json ×62}`。版本号由源内容 sha256 派生，**全量幂等**;严格校验 7 项断言（count/唯一 examId/sha256+size/题号 1–55/无重复题号/选项字母 ⊆ABCD/questionCount 一致），任一失败退出码 1。
-- **分片 schema**：`{examId, year, month, set, title, sections[{part, partTitle, section, type, directions, groups[{range, prompt, passage, bank?, questions[{no, type, stem, options, missingOptions?}]}]}], writing{directions, prompt}, translation{directions, passage}, answers:null, quality{questionCount, maxNo, gaps, duplicateNos, optionsIncomplete, chineseNoiseLines, needsReview}, source{file}}`。`type ∈ listening/cloze/matching/reading`;匹配段落字母并入 `passage` 行首 `[A]`–`[O]`，客户端按行切段;cloze 词库在 `group.bank`。**answers 固定 null 留位**，补录后写 `{"1":"A",…}` 即自动判分。
-- **加载**：启动只读 `exams/manifest.json`（[platform.js:121-133](../app/js/platform.js#L121-L133)、[main.js:342-360](../main.js#L342-L360)）;打开某套才 `Platform.loadExamShard(examId)`（[platform.js:134](../app/js/platform.js#L134)、Electron IPC `get-exam-shard` [main.js:363](../main.js#L363)，examId 正则白名单）。**分片不进启动全量加载**。
-- **残缺如实**：跳号记 `gaps` 不补空题;缺字母记 `missingOptions` 不顶替;`needsReview` 套界面顶部提示。覆盖率见 `report.json`（听力 39 / 选词 17 / 匹配 28 / 阅读 62 套）。
+- **来源与导入（2026-11-20 起 schema 2）**：在用集为外部 schema 2 分片集（含答案元数据），经 `npm run data:exams:import -- <src-dir>` → [scripts/import-exams.js](../scripts/import-exams.js) 拷入分片并**由分片派生 manifest**（补 `writing/translation` 布尔、题量/题型/sha256/size，按年/月/套降序）;校验 examId 与文件名一致、sections 存在，失败退出码 1;目录中多余旧分片自动清理。**分片是唯一源，manifest 不手改**。原始 txt 溯源管线 [scripts/build-exams.js](../scripts/build-exams.js)（schema 1）保留但**重跑会覆盖在用集**，之后须重新导入 schema 2。
+- **分片 schema 2**：schema 1 字段（`sections/groups/questions/writing/translation/quality/source`）不变，新增 `hasAnswers, answersComplete, answersCoverage, answersSource, answersNote, stats{questionCount, byType, missingNos, types}`;`answers` 为 `{"1":"A",…}` map 或 null——2026-06-01（55/55）与 2026-06-03（29/30）含官方答案，其余 null 留位。`type ∈ listening/cloze/matching/reading`;匹配段落字母并入 `passage` 行首 `[A]`–`[O]`，客户端按行切段;cloze 词库在 `group.bank`。
+- **加载**：启动只读 `exams/manifest.json`（[platform.js:121-133](../app/js/platform.js#L121-L133)、[main.js:342-360](../main.js#L342-L360)）;打开某套才 `Platform.loadExamShard(examId)`（[platform.js:134](../app/js/platform.js#L134)、Electron IPC `get-exam-shard` [main.js:363](../main.js#L363)，examId 正则白名单）。**分片不进启动全量加载**。年份网格由 manifest 运行时分组，不另存 by-year 聚合（避免重复存储）。
+- **残缺如实**：跳号记 `gaps` 不补空题;缺字母记 `missingOptions` 不顶替;`needsReview` 套界面顶部提示与网格「残缺」徽标;含答案套网格显示「含答案 / 答案 xx%」徽标。旧 `report.json` 已随 schema 2 导入移除（解析覆盖率基线仅属 legacy 管线）。
 
 ## 3. 运行时组织（Library）
 

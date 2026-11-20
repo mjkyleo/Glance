@@ -14,7 +14,8 @@
     "contrast:fsrs": "node scripts/fsrs-contrast.mjs",
     "data:frequency": "node scripts/build-frequency.js",
     "data:cloze": "node scripts/build-cet6-cloze.js",
-    "data:exams": "node scripts/build-exams.js"
+    "data:exams": "node scripts/build-exams.js",
+    "data:exams:import": "node scripts/import-exams.js"
   },
   "build": {
     "appId": "com.glance.app",

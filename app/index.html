@@ -204,6 +204,7 @@
         </button>
         <span class="books-title" id="exams-title">真题刷题</span>
       </div>
+      <nav class="crumbs crumbs-view" id="crumbs-exams" aria-label="面包屑"></nav>
       <div class="scroll" id="exams-scroll">
         <div id="exams-list-pane">
           <p class="field-hint" id="exams-intro">2016–2026 六级真题。语料为抓取文本，部分套残缺会如实标注；听力暂无音频、选词填空请用专项牌组。无官方答案时支持自评与 AI 分析。</p>
@@ -225,7 +226,7 @@
         <section id="search-results"></section>
         <section class="block" id="history-block">
           <div class="block-head"><h3>查词历史</h3><button class="link-btn" id="history-clear" type="button">清空</button></div>
-          <div class="chip-row" id="history-list"></div>
+          <div class="list-gap" id="history-list"></div>
         </section>
         <section class="block" id="fav-block">
           <div class="block-head">
@@ -310,6 +311,7 @@
         </button>
         <span class="books-title">学习统计</span>
       </div>
+      <nav class="crumbs crumbs-view" id="crumbs-stats" aria-label="面包屑"></nav>
       <div class="scroll" id="stats-scroll">
         <div class="stat-grid" id="stats-today"></div>
         <section class="panel">
@@ -351,6 +353,7 @@
         </button>
         <span class="books-title">词书与计划</span>
       </div>
+      <nav class="crumbs crumbs-view" id="crumbs-books" aria-label="面包屑"></nav>
       <div class="scroll" id="books-scroll">
         <section class="active-book" id="active-book"></section>
         <section class="panel">
@@ -397,7 +400,8 @@
           </button>
         </section>
         <section class="panel" id="official-compare-panel">
-          <div class="panel-head"><h3>考纲对比</h3><span class="panel-sub">官方词表</span></div>
+          <div class="panel-head"><h3>考纲对比</h3><span class="panel-sub">官方词表</span><button class="link-btn" id="cmp-toggle" type="button">收起</button></div>
+          <div id="cmp-wrap">
           <p class="field-hint">将任意词书与官方《全国大学英语四、六级考试大纲（2016年修订版）》词表对比，查看考纲内 / 超纲 / 缺失。</p>
           <div class="cmp-controls">
             <label class="field"><span>对比词书</span><select id="cmp-source"></select></label>
@@ -407,6 +411,7 @@
             </select></label>
           </div>
           <div id="cmp-result"></div>
+          </div>
         </section>
       </div>
     </main>
@@ -419,6 +424,7 @@
         <span class="books-title">AI 解释库</span>
         <button class="link-btn" id="ai-export" type="button">导出全部</button>
       </div>
+      <nav class="crumbs crumbs-view" id="crumbs-ai" aria-label="面包屑"></nav>
       <div class="scroll" id="ai-scroll">
         <p class="field-hint" id="ai-lib-hint">在单词详情中点「AI 详解」生成的讲解会保存在这里，可离线查看、导出。</p>
         <div id="ai-list"></div>
@@ -458,7 +464,7 @@
 
   <div class="sheet" id="family-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title" id="family-title">词根家族</h2><p class="sheet-sub" id="family-meta"></p></div>
+      <div class="sheet-title-wrap"><nav class="crumbs" id="crumbs-family" aria-label="面包屑"></nav><h2 class="sheet-title" id="family-title">词根家族</h2><p class="sheet-sub" id="family-meta"></p></div>
       <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="family-words"></div>
@@ -500,7 +506,7 @@
 
   <div class="sheet" id="word-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title" id="word-sheet-title">单词</h2><p class="sheet-sub" id="word-sheet-sub"></p></div>
+      <div class="sheet-title-wrap"><nav class="crumbs" id="crumbs-word" aria-label="面包屑"></nav><h2 class="sheet-title" id="word-sheet-title">单词</h2><p class="sheet-sub" id="word-sheet-sub"></p></div>
       <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="word-sheet-body"></div>
@@ -592,7 +598,7 @@
   <div class="sheet-backdrop sheet-backdrop-nested" id="sheet-backdrop-nested" hidden></div>
   <div class="sheet sheet-nested" id="dict-edit-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title" id="dict-edit-title">添加词典</h2><p class="sheet-sub" id="dict-edit-sub">接入任意返回 JSON 的词典 API</p></div>
+      <div class="sheet-title-wrap"><nav class="crumbs" id="crumbs-dict-edit" aria-label="面包屑"></nav><h2 class="sheet-title" id="dict-edit-title">添加词典</h2><p class="sheet-sub" id="dict-edit-sub">接入任意返回 JSON 的词典 API</p></div>
       <button class="sheet-close" id="dict-edit-close" type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body">
@@ -633,6 +639,7 @@
   <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap">
+        <nav class="crumbs" id="crumbs-settings" aria-label="面包屑"></nav>
         <h2 class="sheet-title" id="settings-title">设置</h2>
         <p class="sheet-sub" id="settings-sub">按功能分类管理学习、外观与数据</p>
       </div>

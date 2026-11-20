@@ -83,6 +83,29 @@
     if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
     return false;
   }
+  function setCrumbs(id, items) {
+    const nav = $(id);
+    if (!nav) return;
+    nav.innerHTML = '';
+    if (items.length < 2) { nav.hidden = true; return; }
+    nav.hidden = false;
+    items.forEach((it, i) => {
+      if (i) nav.appendChild(el('span', 'crumb-sep', '›'));
+      if (i < items.length - 1 && it.fn) {
+        const b = el('button', 'crumb-link', it.label); b.type = 'button';
+        b.addEventListener('click', it.fn);
+        nav.appendChild(b);
+      } else nav.appendChild(el('span', 'crumb-current', it.label));
+    });
+  }
+  const crumbMine = () => ({ label: '我的', fn: () => switchView('me') });
+  function examCrumbs() {
+    const paper = examCur ? examCur.year + '年' + examCur.month + '月 · 第' + examCur.set + '套' : '试卷';
+    const toList = { label: '真题刷题', fn: () => { examCur = null; examShowPane('list'); renderExamsList(); } };
+    if (examPane === 'list') setCrumbs('crumbs-exams', [crumbMine(), { label: '真题刷题' }]);
+    else if (examPane === 'detail') setCrumbs('crumbs-exams', [crumbMine(), toList, { label: paper }]);
+    else setCrumbs('crumbs-exams', [crumbMine(), toList, { label: paper, fn: () => { renderExamDetail(); examShowPane('detail'); } }, { label: examPane === 'session' ? (EXAM_TYPE_NAME[examType] || '刷题') : '练习结果' }]);
+  }
 
   // ===================== theme =====================
   const THEME_META = {
@@ -1447,6 +1470,7 @@
   function openFamily(root) {
     const fam = Library.getFamily(root);
     sheetFamily = root;
+    setCrumbs('crumbs-family', [{ label: '词根', fn: () => closeSheet() }, { label: root }]);
     $('family-title').textContent = root;
     if (!fam) {
       $('family-meta').textContent = '该词根暂无完整家族数据';
@@ -1470,7 +1494,10 @@
       row.appendChild(main);
       const st = stateOf(w.word);
       row.appendChild(el('span', 'row-badge ' + (st === 'known' ? 'green' : st === 'new' ? 'gray' : ''), { new: '未学', learning: '学习中', known: '已掌握', relearn: '重学' }[st]));
-      row.addEventListener('click', () => openWordSheet(w.word));
+      row.addEventListener('click', () => openWordSheet(w.word, false, [
+        { label: '词根', fn: () => { closeSheet(); switchView('roots'); } },
+        { label: root, fn: () => openFamily(root) }
+      ]));
       wrap.appendChild(row);
     });
     body.appendChild(wrap);
@@ -1961,9 +1988,10 @@
   function findEntry(word) {
     return activeBook().entries.find(e => e.word === word) || Library.lookup(word) || null;
   }
-  function openWordSheet(word, fromSearch) {
+  function openWordSheet(word, fromSearch, trail) {
     const e = findEntry(word);
     sheetWord = word;
+    setCrumbs('crumbs-word', (trail || []).concat([{ label: word }]));
     if (fromSearch) Store.addHistory(word);
     Store.recordView(word);
     $('word-sheet-title').textContent = word;
@@ -2286,6 +2314,7 @@
   }
 
   function renderAiLibrary() {
+    setCrumbs('crumbs-ai', [crumbMine(), { label: 'AI 解释缓存' }]);
     const list = $('ai-list');
     list.innerHTML = '';
     const words = Store.aiWords();
@@ -2385,12 +2414,46 @@
   function renderHistory() {
     const list = $('history-list');
     list.innerHTML = '';
-    const h = Store.data.history;
+    const h = Store.data.history.filter(item => item && typeof item.word === 'string' && item.word.trim() && item.word !== 'undefined' && item.word !== 'null');
     if (!h.length) { list.appendChild(el('span', 'field-hint', '查过的词会出现在这里')); return; }
-    h.filter(item => item && typeof item.word === 'string' && item.word.trim() && item.word !== 'undefined' && item.word !== 'null').slice(0, 30).forEach(item => {
-      const c = el('button', 'chip word-chip', item.word); c.type = 'button';
-      c.addEventListener('click', () => openWordSheet(item.word, true));
-      list.appendChild(c);
+    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const groups = [];
+    h.forEach(item => {
+      const d = new Date(item.ts || Date.now());
+      const key = dayKey(d);
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== key) { g = { key, date: d, items: [] }; groups.push(g); }
+      g.items.push(item);
+    });
+    const now = new Date();
+    const todayK = dayKey(now), yestK = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    groups.forEach((g, i) => {
+      const wrap = el('div', 'hist-group');
+      const head = el('button', 'hist-head'); head.type = 'button';
+      const label = g.key === todayK ? '今天' : g.key === yestK ? '昨天'
+        : (g.date.getFullYear() !== now.getFullYear() ? g.date.getFullYear() + '年' : '') + (g.date.getMonth() + 1) + '月' + g.date.getDate() + '日';
+      head.appendChild(el('span', 'hist-title', label));
+      head.appendChild(el('span', 'hist-count', g.items.length + ' 词'));
+      head.appendChild(el('span', 'cmp-caret', '▾'));
+      const body = el('div', 'hist-body');
+      const cr = el('div', 'chip-row');
+      g.items.forEach(item => {
+        const c = el('button', 'chip word-chip', item.word); c.type = 'button';
+        c.addEventListener('click', () => openWordSheet(item.word, true));
+        cr.appendChild(c);
+      });
+      body.appendChild(cr);
+      const open = i === 0;
+      body.hidden = !open;
+      head.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', String(open));
+      head.addEventListener('click', () => {
+        body.hidden = !body.hidden;
+        head.classList.toggle('open', !body.hidden);
+        head.setAttribute('aria-expanded', String(!body.hidden));
+      });
+      wrap.appendChild(head); wrap.appendChild(body);
+      list.appendChild(wrap);
     });
   }
   function renderFavorites() {
@@ -2496,6 +2559,7 @@
 
   // ===================== stats =====================
   function renderStats() {
+    setCrumbs('crumbs-stats', [crumbMine(), { label: '学习统计' }]);
     const p = Store.planProgress();
     const rate = p.graded > 0 ? Math.round((p.know / p.graded) * 100) : 0;
     const grid = $('stats-today');
@@ -2646,32 +2710,65 @@
   function renderDayHistory() {
     const box = $('stats-history');
     box.innerHTML = '';
-    const keys = Object.keys(Store.data.logs).sort().reverse().slice(0, 30);
+    const keys = Object.keys(Store.data.logs).sort().reverse();
     if (!keys.length) { box.appendChild(el('div', 'empty-hint', '还没有学习记录')); return; }
-    keys.forEach(key => {
-      const l = Store.data.logs[key];
-      const det = el('details', 'day-details');
-      const sum = el('summary', 'day-row');
-      sum.appendChild(el('span', 'day-date', key.slice(5)));
-      sum.appendChild(el('span', 'day-detail', '新学 ' + (l.newWords || []).length + ' · 复习 ' + (l.reviewWords || []).length));
-      sum.appendChild(el('span', 'day-nums', (l.know + l.fuzzy + l.forgot) + ' 次'));
-      det.appendChild(sum);
-      const body = el('div', 'day-words');
-      if ((l.newWords || []).length) {
-        body.appendChild(el('div', 'section-label', '新学'));
-        const cr = el('div', 'chip-row');
-        l.newWords.forEach(w => { const c = el('button', 'chip word-chip', w); c.type = 'button'; c.addEventListener('click', () => openWordSheet(w)); cr.appendChild(c); });
-        body.appendChild(cr);
+    const tl = el('div', 'timeline');
+    box.appendChild(tl);
+    const now = new Date();
+    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const todayK = dayKey(now), yestK = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    let rendered = 0;
+    const BATCH = 30;
+    const more = el('button', 'cmp-more tl-more'); more.type = 'button';
+    const load = () => {
+      const end = Math.min(keys.length, rendered + BATCH);
+      for (; rendered < end; rendered++) {
+        const key = keys[rendered];
+        const l = Store.data.logs[key];
+        const d = new Date(key + 'T00:00:00');
+        const day = el('div', 'tl-day' + (key === todayK ? ' today' : ''));
+        const card = el('div', 'tl-card');
+        const head = el('button', 'tl-head'); head.type = 'button';
+        const label = key === todayK ? '今天' : key === yestK ? '昨天'
+          : (d.getFullYear() !== now.getFullYear() ? d.getFullYear() + '年' : '') + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+        head.appendChild(el('span', 'tl-date', label));
+        head.appendChild(el('span', 'tl-week', WEEK[d.getDay()]));
+        const graded = (l.know || 0) + (l.fuzzy || 0) + (l.forgot || 0);
+        head.appendChild(el('span', 'tl-stats', '新学 ' + (l.newWords || []).length + ' · 复习 ' + (l.reviewWords || []).length + ' · ' + graded + ' 次 · ' + fmtMs(l.ms || 0) + ' 分钟'));
+        head.appendChild(el('span', 'cmp-caret', '▾'));
+        const body = el('div', 'tl-body');
+        const grades = el('div', 'tl-grades');
+        [['认识', l.know || 0, 'green'], ['模糊', l.fuzzy || 0, 'amber'], ['忘记', l.forgot || 0, 'red']].forEach(([name, n, color]) => {
+          grades.appendChild(el('span', 'tl-grade ' + color, name + ' ' + n));
+        });
+        body.appendChild(grades);
+        [['新学', l.newWords], ['复习', l.reviewWords]].forEach(([name, words]) => {
+          if (!(words || []).length) return;
+          body.appendChild(el('div', 'section-label', name));
+          const cr = el('div', 'chip-row');
+          words.forEach(w => { const c = el('button', 'chip word-chip', w); c.type = 'button'; c.addEventListener('click', () => openWordSheet(w)); cr.appendChild(c); });
+          body.appendChild(cr);
+        });
+        const open = rendered === 0;
+        body.hidden = !open;
+        head.classList.toggle('open', open);
+        head.setAttribute('aria-expanded', String(open));
+        head.addEventListener('click', () => {
+          body.hidden = !body.hidden;
+          head.classList.toggle('open', !body.hidden);
+          head.setAttribute('aria-expanded', String(!body.hidden));
+        });
+        card.appendChild(head); card.appendChild(body);
+        day.appendChild(card);
+        tl.appendChild(day);
       }
-      if ((l.reviewWords || []).length) {
-        body.appendChild(el('div', 'section-label', '复习'));
-        const cr = el('div', 'chip-row');
-        l.reviewWords.forEach(w => { const c = el('button', 'chip word-chip', w); c.type = 'button'; c.addEventListener('click', () => openWordSheet(w)); cr.appendChild(c); });
-        body.appendChild(cr);
-      }
-      det.appendChild(body);
-      box.appendChild(det);
-    });
+      more.hidden = rendered >= keys.length;
+      more.textContent = '再往前 ' + Math.min(BATCH, keys.length - rendered) + ' 天';
+    };
+    more.addEventListener('click', load);
+    load();
+    box.appendChild(more);
   }
 
   // ===================== books =====================
@@ -2690,22 +2787,23 @@
     const body = el('div', 'cmp-body'); body.hidden = true;
     body.appendChild(el('div', 'cmp-desc', desc));
     const chips = el('div', 'cmp-chips');
-    const LIMIT = 300;
-    words.slice(0, LIMIT).forEach(w => chips.appendChild(el('span', 'cmp-chip ' + color, w)));
     body.appendChild(chips);
-    if (words.length > LIMIT) {
-      const more = el('button', 'cmp-more'); more.type = 'button';
-      more.textContent = '展开全部 ' + words.length + ' 词';
-      more.addEventListener('click', () => {
-        chips.innerHTML = '';
-        words.forEach(w => chips.appendChild(el('span', 'cmp-chip ' + color, w)));
-        more.remove();
-      });
-      body.appendChild(more);
-    }
+    const more = el('button', 'cmp-more'); more.type = 'button'; more.hidden = true;
+    body.appendChild(more);
+    const BATCH = 120;
+    let rendered = 0;
+    const load = () => {
+      const end = Math.min(words.length, rendered + BATCH);
+      for (; rendered < end; rendered++) chips.appendChild(el('span', 'cmp-chip ' + color, words[rendered]));
+      more.hidden = rendered >= words.length;
+      more.textContent = '加载更多（剩余 ' + (words.length - rendered) + ' 词）';
+    };
+    more.addEventListener('click', load);
     head.addEventListener('click', () => {
       body.hidden = !body.hidden;
       head.classList.toggle('open', !body.hidden);
+      head.setAttribute('aria-expanded', String(!body.hidden));
+      if (!body.hidden && !rendered) load();
     });
     wrap.appendChild(head); wrap.appendChild(body);
     return wrap;
@@ -2739,6 +2837,7 @@
   }
 
   function renderBooks() {
+    setCrumbs('crumbs-books', [crumbMine(), { label: '词书与计划' }]);
     const b = activeBook();
     const known = knownCount(b.entries);
     const ab = $('active-book');
@@ -3019,6 +3118,7 @@
     document.querySelectorAll('.settings-pane').forEach(p => { p.hidden = p.id !== 'pane-' + key; });
     $('settings-title').textContent = meta[0];
     $('settings-sub').textContent = meta[1];
+    setCrumbs('crumbs-settings', [crumbMine(), { label: '设置 · ' + meta[0] }]);
     const body = document.querySelector('#settings-sheet .sheet-body');
     if (body) body.scrollTop = 0;
   }
@@ -3179,6 +3279,7 @@
   function syncDictEditAuth() { $('dict-edit-header-wrap').hidden = $('dict-edit-auth').value !== 'header'; }
   function openDictEdit(id) {
     dictEditing = id || null;
+    setCrumbs('crumbs-dict-edit', [{ label: '设置', fn: () => closeNestedSheet() }, { label: id ? '编辑词典源' : '添加词典源' }]);
     const cfg = Store.data.dict;
     const p = id ? Dictionary.getProvider(id, cfg) : null;
     const isCustom = !p || p.custom;
@@ -3448,6 +3549,11 @@
     $('import-book').addEventListener('click', importBook);
     $('cmp-source').addEventListener('change', renderCompare);
     $('cmp-level').addEventListener('change', renderCompare);
+    $('cmp-toggle').addEventListener('click', () => {
+      const w = $('cmp-wrap');
+      w.hidden = !w.hidden;
+      $('cmp-toggle').textContent = w.hidden ? '展开' : '收起';
+    });
 
     $('set-new').addEventListener('change', applyPlan);
     $('set-review').addEventListener('change', applyPlan);
@@ -3688,6 +3794,7 @@
     ['list', 'detail', 'session', 'result'].forEach(p => { $('exams-' + p + '-pane').hidden = p !== name; });
     $('exams-scroll').scrollTop = 0;
     $('exams-title').textContent = name === 'list' ? '真题刷题' : name === 'detail' && examCur ? examCur.year + '年' + examCur.month + '月 · 第' + examCur.set + '套' : name === 'session' ? (EXAM_TYPE_NAME[examType] || '刷题') : '练习结果';
+    examCrumbs();
   }
   function examBack() {
     if (examPane === 'session' || examPane === 'result') { renderExamDetail(); examShowPane('detail'); }
@@ -3708,23 +3815,38 @@
     box.innerHTML = '';
     const exams = Exams.list();
     if (!exams.length) { box.appendChild(el('p', 'field-hint', '真题数据未加载（app/data/exams/manifest.json）。')); return; }
-    let year = 0;
+    let year = 0, grid = null;
     exams.forEach(m => {
-      if (m.year !== year) { year = m.year; box.appendChild(el('h3', 'exam-year', year + ' 年')); }
+      if (m.year !== year) {
+        year = m.year;
+        const head = el('div', 'exam-year-head');
+        head.appendChild(el('h3', 'exam-year', year + ' 年'));
+        head.appendChild(el('span', 'exam-year-count', exams.filter(x => x.year === year).length + ' 套'));
+        box.appendChild(head);
+        grid = el('div', 'exam-grid');
+        box.appendChild(grid);
+      }
       const p = Store.examProgress(m.examId);
       const answered = p ? Object.keys(p.a).length : 0;
-      const row = el('button', 'exam-row');
-      row.type = 'button';
-      row.dataset.exam = m.examId;
+      const card = el('button', 'exam-card');
+      card.type = 'button';
+      card.dataset.exam = m.examId;
+      const top = el('div', 'exam-card-top');
+      top.appendChild(el('span', 'exam-card-title', m.month + '月 · 第' + m.set + '套'));
+      if (m.hasAnswers) top.appendChild(el('span', 'exam-badge green', m.answersComplete ? '含答案' : '答案 ' + Math.round((m.answersCoverage || 0) * 100) + '%'));
+      if (m.needsReview) top.appendChild(el('span', 'exam-badge amber', '残缺'));
+      card.appendChild(top);
       const types = (m.types || []).filter(t => ['reading', 'matching'].includes(t)).map(t => EXAM_TYPE_NAME[t]);
       if (m.writing) types.push('写作');
       if (m.translation) types.push('翻译');
-      row.innerHTML =
-        '<span class="exam-row-main">' +
-          '<span class="exam-row-title">' + esc(m.year + '年' + m.month + '月 · 第' + m.set + '套') + (m.needsReview ? ' <span class="exam-warn-badge">残缺</span>' : '') + '</span>' +
-          '<span class="exam-row-sub">' + m.questionCount + ' 题 · ' + esc(types.join(' / ') || '写作 / 翻译') + (answered ? ' · 已练 ' + answered + ' 题' : '') + '</span>' +
-        '</span><span class="row-arrow">›</span>';
-      box.appendChild(row);
+      card.appendChild(el('div', 'exam-card-sub', m.questionCount + ' 题 · ' + (types.join(' / ') || '写作 / 翻译')));
+      const bar = el('div', 'exam-card-bar');
+      const fill = el('span', 'exam-card-fill');
+      fill.style.width = (m.questionCount ? Math.min(100, Math.round(answered / m.questionCount * 100)) : 0) + '%';
+      bar.appendChild(fill);
+      card.appendChild(bar);
+      card.appendChild(el('div', 'exam-card-foot', answered ? '已练 ' + answered + ' / ' + m.questionCount + ' 题' : '未开始'));
+      grid.appendChild(card);
     });
   }
 
@@ -3738,6 +3860,7 @@
   }
 
   function renderExamDetail() {
+    examCrumbs();
     const ex = examCur;
     const pane = $('exams-detail-pane');
     pane.innerHTML = '';
