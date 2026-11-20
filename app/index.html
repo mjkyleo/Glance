@@ -26,15 +26,17 @@
 
       <div class="scroll" id="study-panel">
         <section class="word-block">
-          <div class="word-top">
-            <span class="word-badge" id="word-badge">新词</span>
-            <span class="word-due" id="word-due"></span>
-          </div>
-          <div class="word-row">
-            <h1 class="word" id="word">Glance</h1>
-            <button class="speak-btn" id="speak-button" type="button" title="朗读 (S)" aria-label="朗读">
-              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
-            </button>
+          <div class="word-head">
+            <div class="word-top">
+              <span class="word-badge" id="word-badge">新词</span>
+              <span class="word-due" id="word-due"></span>
+            </div>
+            <div class="word-row">
+              <h1 class="word" id="word">Glance</h1>
+              <button class="speak-btn" id="speak-button" type="button" title="朗读 (S)" aria-label="朗读">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 2.2v2.1a7.8 7.8 0 0 1 0 15.4v2.1a9.9 9.9 0 0 0 0-19.6Z"/></svg>
+              </button>
+            </div>
           </div>
           <div class="study-info word-blocks" id="word-blocks"></div>
         </section>
@@ -410,6 +412,10 @@
     </main>
 
     <nav class="tabbar" id="tabbar">
+      <div class="side-brand" aria-hidden="true">
+        <span class="side-brand-mark">G</span>
+        <span class="side-brand-text"><b>Glance</b><small>词根背单词</small></span>
+      </div>
       <button class="tab active" data-view="study" type="button" aria-label="学习">
         <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3Zm-7 9.2v4L12 20l7-3.8v-4L12 16l-7-3.8Z"/></svg>
         <span>学习</span>

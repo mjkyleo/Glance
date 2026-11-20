@@ -146,7 +146,7 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`2cab4e9`（`main`，行为驱动组卷 §8.39）;其前 `19be43a`（空间利用率与自定义分组 §8.38）、`bb702f8`（真题刷题 §8.37）、`5608b68`（UI/UX 无障碍 P0 §8.36）。均已推送;`2cab4e9` 触发 run 44661023421（`android-51`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新提交：`2cab4e9`（`main`，行为驱动组卷 §8.39，已推送并触发 run 44661023421 → `android-51`）;其后的 README 规范重写与桌面 Web 布局（§8.40）**按用户要求只提交、不推送**，故不产生新 APK;`android-51` 仍为最新交付。再前 `19be43a`（§8.38）、`bb702f8`（§8.37）。
 - 最新交付：**`android-51`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-51/Glance-android.apk`（**10,853,749 字节**，versionCode 51 / versionName `1.0.6+51`，CI run **44661023421** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ 真题刷题（§8.37）+ 空间利用率与自定义分组（§8.38）+ **行为驱动组卷（§8.39：全行为记录画像组卷、探索配额、误选易混对落库与记录干扰项、来源徽标与结果构成）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
 - 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
@@ -1091,10 +1091,24 @@
 
 **交付**：随 `2cab4e9` 提交并推送（noreply + SSH 专用密钥），CI run **44661023421**（build #51）全步成功 → `android-51`（versionCode 51 / versionName `1.0.6+51`，APK **10,853,749 字节**，Strip/Verify 同前）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-51/Glance-android.apk`。**仍含 DEV-ONLY 预设，非正式发布包**（§9）。
 
+### 8.40 README 规范重写 + 桌面 Web 自适应布局 ✅
+
+**需求**：README 内容过多，按标准 README 规范重新生成;网页端启动并优化;**本轮只提交、不推送**。
+
+**README**：345 行 → 约 120 行标准结构（标题+徽章+一句话简介 → 功能亮点 9 条 → 截图 5 张 → 快速开始三端 → 使用概览 6 步 → 数据与隐私 4 条 → 项目结构 → 开发命令 → 文档链接 → License）。原 README 独有的测试设置表/四题型构造表/键盘操作移入 [docs/FEATURES.md](docs/FEATURES.md) §4.4，不丢知识;截图重新采集（`study/themes/me/quiz-session` 更新为当前 UI，新增 `desktop-study.png`），删除「截图待重采」过期说明。
+
+**桌面布局**（纯 CSS + 两处 markup，移动端零变化）：
+- ≥960px：`.app` 改 grid（216px 侧栏 + 内容列）;底栏 `nav.tabbar` 变竖排侧栏并加品牌标记（`side-brand`，移动端 `display:none`）;内容列 max 1120 居中;弹层中心偏移 108px 对齐内容列;词根/词缀列表内层 `.list-gap` 双列、`.me-menu` 双列（label 跨列）、`.theme-grid` auto-fill(215px)、`#stats-scroll` 双栏（日历跨列）;测试三屏居中 780 列;评分 footer 居中 780;滚动条 9px 带 hover（[app.css:1499-1561](app/css/app.css#L1499-L1561)）。
+- ≥1100px：学习页 `.word-block` 双栏 grid，词头包进 `.word-head`（移动端 `display:contents`）sticky 左栏 330px，信息块右栏（[app.css:1563-1578](app/css/app.css#L1563-L1578)、[index.html:29](app/index.html#L29)）。
+- 实测修复：首版把 grid 加在 `#roots-list`（.scroll 容器）上无效——行实际在内层 `.list-gap` wrapper 里，改为对 wrapper 设 grid 后双列生效（计算样式 childCount=2 暴露）。
+
+**验证**：`dict-regress` 48/48、`ui-opt-e2e` 40/40、`quiz-personal-e2e` 56/56、三门全绿;断点实测 460（底栏 57px/brand none/head contents）、1000（侧栏 216/单列）、1280（双栏 sideBySide=true）、1440 五视图无溢出零错误;桌面/移动截图目检通过。**按用户要求只提交不推送**，无新 APK。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| 本地（§8.40，未推送） | README 按标准规范重写（345→约 120 行：徽章/简介/亮点/新截图/快速开始/使用概览/数据隐私/结构/开发/文档/License，细则移入 docs/FEATURES.md §4.4 与 §9.3）;桌面 Web 自适应布局（≥960 侧栏导航+1120 内容列+双列词根/我的菜单+统计双栏+测试 780 居中列+主题 auto-fill+滚动条 hover;≥1100 学习页 sticky 词卡双栏）;移动端 display:contents 保持原样;回归 48/48 + UI e2e 40/40 + 个性化 e2e 56/56 + 三门全绿 + 460/1000/1280/1440 断点实测;按用户要求只提交不推送 |
 | `2cab4e9` | 行为驱动组卷（§8.39）：`behaviorProfile` 汇总 SRS 到期/薄弱、每日日志共学、浏览、错题、收藏/自定义组、查词/AI 缓存、测试历史与误选对;`needScore` + 难度 fit 下限 + 探索桶权重归一，记录词主导但不垄断;探索配额滑杆 0–40%（默认 20）;答错误选词落 `quiz.history[w].mix`（≤8/词，导出导入合并）;干扰项按误选对→共学→收藏/熟悉排序，≤2/3 来自记录、听音仍须音近;每题来源徽标 + 结束页构成条/图例/记录依据 + 错题行「误选 ×」;设置新增组卷依据面板与画像统计;e2e 57/57 + 回归 51/51 + UI e2e 40/40 + 三门全绿;交付 `android-51` |
 | `19be43a` | 空间利用率与自定义分组（§8.38）：词根/词缀紧凑单行 44px（一屏 8→14 条、进度细线行底）;设置合并四入口（外观+发音、词典+AI、AI 解释缓存改名、关于移页脚）;考试专项拆选词填空牌组/翻译作文话题两子组、全卡面掌握进度;自定义专项词组（创建/逐词与批量收词/管理删词/重命名/删除/专项学习，嵌套选择器弹层，备份导出导入纳入）;e2e 40/40 + 回归 50/50 + 三门全绿;交付 `android-50` |
 | `bb702f8` | 真题刷题（§8.37）：62 套六级真题 txt 按方案解析为 `app/data/exams/` 分片 + manifest + report（幂等、严格校验 0 错误，979,896 字节）;启动只读 manifest、按套懒加载分片;仔细阅读/信息匹配/写作/翻译按「一段材料 + 一组题」刷题，三级判分（官方答案自动 → AI 分析/批改 → 自评），answers:null 留位;Store `exams` 进度/错题/AI 缓存块纳入导出导入;听力入库暂不开刷、选词填空复用专项;清理旧真题草稿与 debug.log;三门回归全绿 + 浏览器实测;交付 `android-49` |

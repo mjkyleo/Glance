@@ -186,9 +186,27 @@
 
 ### 4.4 判分、错题本与流程 ✅
 
-- 答对自动跳题、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1013 answerQuiz](../app/js/app.js#L1013)、[app.js:1086 renderQuizReveal](../app/js/app.js#L1086)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1138 finishQuiz](../app/js/app.js#L1138)、[app.js:1147 renderQuizDone](../app/js/app.js#L1147)）。
+- 答对自动跳题（约 1s）、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1013 answerQuiz](../app/js/app.js#L1013)、[app.js:1086 renderQuizReveal](../app/js/app.js#L1086)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1138 finishQuiz](../app/js/app.js#L1138)、[app.js:1147 renderQuizDone](../app/js/app.js#L1147)）。
 - **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:586 recordQuizResult](../app/js/store.js#L586)，每词上限 8 个伙伴，[store.js:574 cleanMix](../app/js/store.js#L574)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:733-745](../app/js/quiz.js#L733-L745)）。
+- 键盘：`1–4` 选选项、`Enter` 开始/答错后继续、`S` 朗读。
 - 设置面板（范围/题型/难度/组卷依据）[app.js:761 renderQuizSettings](../app/js/app.js#L761);考前预估含本轮复习/探索计划 [app.js:702 renderQuizEstimate](../app/js/app.js#L702)。
+
+| 设置项 | 可选值 |
+| --- | --- |
+| 测试范围 | 当前词书 / 当前专项（29 主题之一）/ 生词本 / 错题本 / 到期复习 / 全部混合 |
+| 题目数量 | 5 / 10 / 20（默认 10） |
+| 题型 | 英选中 / 中选英 / 例句填空 / 听音选词（多选，默认四种） |
+| 难度 | 自动 / 简单 / 普通 / 困难（自动目标正确率约 70–85%） |
+| 联网补充例句 | 开 / 关（默认开，离线自动回退） |
+| 新词探索比例 | 0–40%，步长 5（默认 20） |
+| 易混词优先 / 收藏与自定义加权 | 开关，默认开 |
+
+| 题型 | 题干 | 选项构造 |
+| --- | --- | --- |
+| 英选中 | 英文单词 + 音标 | 4 个中文释义;排除近义/包含/反义 |
+| 中选英 | 中文释义 | 同词性硬过滤 → 同根/主题/标签/拼写相似度排序 → 前 8–12 候选加权抽 3 |
+| 例句填空 | 挖空双语例句 | 同词性同形态 4 词;本地例句优先、联网补充缓存;上下文不足/答案不唯一/干扰不够即换题，不伪造例句 |
+| 听音选词 | 自动播放发音、不显示拼写 | 规范化音标音近度 + 首尾音相似;排除同音/包含/直接派生;近音不足回退其他题型 |
 
 ### 4.5 行为驱动组卷（记录为依据、但不全是）✅
 
@@ -279,7 +297,12 @@
 
 ### 9.2 设置中心 ✅
 
-- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2716 SETTINGS_PANES](../app/js/app.js#L2716)、[app.js:2837 showSettingsPane](../app/js/app.js#L2837)、[app.js:2846 openSettings](../app/js/app.js#L2846)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
+- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2799 SETTINGS_PANES](../app/js/app.js#L2799)、[app.js:2920 showSettingsPane](../app/js/app.js#L2920)、[app.js:2929 openSettings](../app/js/app.js#L2929)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
+
+### 9.3 桌面 Web 自适应布局 ✅
+
+- ≥960px：底栏变左侧栏（品牌标记 + 竖排导航，[index.html:415 side-brand](../app/index.html#L415)），内容列最宽 1120 居中;弹层中心对齐内容列;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果居中 780 列;滚动条加宽并带 hover（[app.css:1504](../app/css/app.css#L1504)）。
+- ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1563](../app/css/app.css#L1563)、[index.html:29 word-head](../app/index.html#L29)）;移动端 `.word-head{display:contents}` 保持原单列不变。
 
 ---
 
@@ -287,7 +310,7 @@
 
 ### 10.1 八套主题 ✅
 
-- 8 套主题不只是换色：逐主题重排字体/字重/行距/圆角/描边阴影/留白密度/控件高度/底栏形态/动效，各自适配浅/深色（[app.js:88 applyTheme](../app/js/app.js#L88)、[app.js:100 setTheme](../app/js/app.js#L100)）。
+- 8 套主题不只是换色：逐主题重排字体/字重/行距/圆角/描边阴影/留白密度/控件高度/底栏形态/动效，各自适配浅/深色（[app.js:90 applyTheme](../app/js/app.js#L90)、[app.js:102 setTheme](../app/js/app.js#L102)）。
 
 ### 10.2 背景壁纸 ✅
 
