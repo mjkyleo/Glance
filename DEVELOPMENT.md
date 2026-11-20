@@ -146,8 +146,8 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`19be43a`（`main`，空间利用率与自定义分组 §8.38）;其前 `bb702f8`（真题刷题 §8.37）、`5608b68`（UI/UX 无障碍 P0 §8.36）、`14b25b5`（工具目录 gitignore）。均已推送;`19be43a` 触发 run 44498442504（`android-50`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
-- 最新交付：**`android-50`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-50/Glance-android.apk`（**10,846,443 字节**，versionCode 50 / versionName `1.0.6+50`，CI run **44498442504** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ 真题刷题（§8.37）+ **空间利用率与自定义分组（§8.38：词根/词缀紧凑单行、设置四入口、考试专项子分组与卡面进度、自定义专项词组）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
+- 最新提交：`2cab4e9`（`main`，行为驱动组卷 §8.39）;其前 `19be43a`（空间利用率与自定义分组 §8.38）、`bb702f8`（真题刷题 §8.37）、`5608b68`（UI/UX 无障碍 P0 §8.36）。均已推送;`2cab4e9` 触发 run 44661023421（`android-51`）。此后的认知/文档提交属 `paths-ignore`，不再触发构建。
+- 最新交付：**`android-51`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-51/Glance-android.apk`（**10,853,749 字节**，versionCode 51 / versionName `1.0.6+51`，CI run **44661023421** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = 多词典（§8.32）+ 真题词频书与选词填空专项（§8.33）+ 词书纯引用单一解释源（§8.34）+ 学习页 16 块内联与词卡同源（§8.35）+ UI/UX 无障碍 P0（§8.36）+ 真题刷题（§8.37）+ 空间利用率与自定义分组（§8.38）+ **行为驱动组卷（§8.39：全行为记录画像组卷、探索配额、误选易混对落库与记录干扰项、来源徽标与结果构成）**。**仍含 DEV-ONLY devfree + qnafree 预设（§8.25），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
 - 工作区：干净（三个提交已推送;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库）。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
@@ -1075,10 +1075,27 @@
 
 **交付**：随 `19be43a` 提交并推送（noreply + SSH 专用密钥），CI run **44498442504**（build #50）全步成功 → `android-50`（versionCode 50 / versionName `1.0.6+50`，APK **10,846,443 字节**，Strip/Verify 同前）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-50/Glance-android.apk`。**仍含 DEV-ONLY 预设，非正式发布包**（§9）。
 
+### 8.39 行为驱动组卷：记录为依据、干扰项来自记录 ✅
+
+**需求**：测试必须依据用户在 app/网页中的一切行为记录生成（是依据但不能全是），干扰项同样要由这些记录生成。
+
+**设计**（全部随机性仍在 `app/js/quiz.js`）：
+- **行为画像** `behaviorProfile(now)`（quiz.js:236）：每词信号 = FSRS 到期/薄弱（lapses、state、S）、错题次数与测试错误率、收藏/自定义词组、浏览计数、查词历史与 AI/词典缓存接触、误选对压力、今日已学标记;另产出双向误混对 `mix`、近 14 天同日共学邻词 `co`（每日 ≤60 词、邻词 ≤24）、统计（有记录词/易混/到期/收藏/活跃天数/查词接触）。
+- **组卷**：候选分「有记录」与「探索」两桶。记录桶 base = 原 baseWeight + `needScore`（quiz.js:330），今日已学 ×0.6;强记录词有难度 fit 下限 `0.22+need*0.13`（上限 0.72，quiz.js:825），近期已测惩罚对记录词衰减到 35%——否则刚答错的难词会被难度模型与 recency 双重压掉。**探索桶总权重归一到固定份额（10%）**（quiz.js:879-890）：加权抽样按总和取词，数千新词的权重和会淹没少量高需求记录词，归一后记录主导、记录耗尽时新词自然补位。探索配额 `explore`（0–40%，默认 20）作为下限强制保留新词份额;`confusion`/`curated` 开关控制记录干扰与收藏加权。
+- **干扰项**：`recordCandidates`（quiz.js:605）按证据强度 = 误选对（mix 双向，次数加权）→ 同日共学 → 收藏/自定义组 → 查词接触;每题取 ≤2 个记录干扰 + 词库相似补满 3 个（记录不足全词库回退）;同词性/释义唯一/非近义等原约束不变。听音题记录词仍须通过音近阈值（≥0.46/0.36）且 ≤2/3。英选中选项回填来源词，使误选可落库。
+- **误选落库**：`Store.recordQuizResult(word, correct, difficulty, chosenWord)`（store.js:586）答错时写 `history[word].mix[chosen]++`，`cleanMix` 每词保留 top-8（store.js:574）;normalize 与 mergeQuiz 合并时同样截断;导出导入自动携带。
+- **可见反馈**：设置「组卷依据」面板（画像统计行 + 探索滑杆 + 两开关，index.html:554-566）;入口页依据摘要（index.html:66）;预估行「本轮计划：复习 x · 探索 y」;会话来源徽标七色（到期/薄弱/易混/收藏/已学/浏览/新词，app.js:697）;结束页「本轮构成」堆叠条 + 图例 + 「依据 N 个词的学习记录组卷 · M 个干扰项来自你的易混/共学/收藏记录」;错题行附「误选 ×」。
+
+**验证**（headless Chrome CDP 实测）：新增 `.scratch/quiz-personal-e2e.cjs` **57/57**——播种 10 词全类型记录后断言画像统计、双向 mix、共学邻词、预估计划、20 题组卷中易混对互作干扰项、记录干扰 ≤2/3、en2zh 选项词映射、探索下限、mix 只记误选且 top-8 截断、滑杆/开关实时写配置、完整 UI 一轮（来源徽标/构成条/误选展示/mix 增长）、reload 与导出导入保留 explore/mix/自定义组、360px 无溢出、零运行时错误。回归 `dict-regress` **51/51**、`ui-opt-e2e` **40/40**、三门（panel-order/single-source/custom-compat）全绿。截图目检：设置面板、会话徽标、结束构成、360px 均无溢出/遮挡。
+**过程中修复的两个真实缺陷**：① 记录词被 recency+难度 fit 压到权重 0.02（fit 下限 + 惩罚衰减解决）;② 探索桶权重和淹没记录词（桶归一解决）——二者均由 e2e 构成断言暴露，非目测猜测。
+
+**交付**：随 `2cab4e9` 提交并推送（noreply + SSH 专用密钥），CI run **44661023421**（build #51）全步成功 → `android-51`（versionCode 51 / versionName `1.0.6+51`，APK **10,853,749 字节**，Strip/Verify 同前）。APK 直链 `https://github.com/mjkyleo/Glance/releases/download/android-51/Glance-android.apk`。**仍含 DEV-ONLY 预设，非正式发布包**（§9）。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| `2cab4e9` | 行为驱动组卷（§8.39）：`behaviorProfile` 汇总 SRS 到期/薄弱、每日日志共学、浏览、错题、收藏/自定义组、查词/AI 缓存、测试历史与误选对;`needScore` + 难度 fit 下限 + 探索桶权重归一，记录词主导但不垄断;探索配额滑杆 0–40%（默认 20）;答错误选词落 `quiz.history[w].mix`（≤8/词，导出导入合并）;干扰项按误选对→共学→收藏/熟悉排序，≤2/3 来自记录、听音仍须音近;每题来源徽标 + 结束页构成条/图例/记录依据 + 错题行「误选 ×」;设置新增组卷依据面板与画像统计;e2e 57/57 + 回归 51/51 + UI e2e 40/40 + 三门全绿;交付 `android-51` |
 | `19be43a` | 空间利用率与自定义分组（§8.38）：词根/词缀紧凑单行 44px（一屏 8→14 条、进度细线行底）;设置合并四入口（外观+发音、词典+AI、AI 解释缓存改名、关于移页脚）;考试专项拆选词填空牌组/翻译作文话题两子组、全卡面掌握进度;自定义专项词组（创建/逐词与批量收词/管理删词/重命名/删除/专项学习，嵌套选择器弹层，备份导出导入纳入）;e2e 40/40 + 回归 50/50 + 三门全绿;交付 `android-50` |
 | `bb702f8` | 真题刷题（§8.37）：62 套六级真题 txt 按方案解析为 `app/data/exams/` 分片 + manifest + report（幂等、严格校验 0 错误，979,896 字节）;启动只读 manifest、按套懒加载分片;仔细阅读/信息匹配/写作/翻译按「一段材料 + 一组题」刷题，三级判分（官方答案自动 → AI 分析/批改 → 自评），answers:null 留位;Store `exams` 进度/错题/AI 缓存块纳入导出导入;听力入库暂不开刷、选词填空复用专项;清理旧真题草稿与 debug.log;三门回归全绿 + 浏览器实测;交付 `android-49` |
 | `14b25b5` | `.gitignore` 纳入 `.agents/`、`.claude/`、`skills-lock.json`（本地 designer-skills 工具，不入库不入认知索引） |
