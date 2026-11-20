@@ -524,22 +524,25 @@
     const sp = Store.data.studyPanel || {};
     const on = k => sp[k] !== false;
 
-    function row(label, node) {
+    function row(label, node, meta) {
       const r = el('section', 'info-row');
-      r.appendChild(el('div', 'info-label', label));
+      const lab = el('div', 'info-label', label);
+      if (meta) lab.appendChild(el('span', 'info-label-meta', meta));
+      r.appendChild(lab);
       const body = el('div', 'info-body');
       body.appendChild(node);
       r.appendChild(body);
       return r;
     }
-    function chipList(items) {
-      const box = el('div', 'info-chips');
-      items.forEach(it => {
-        const chip = el(it.word ? 'button' : 'span', 'info-chip');
-        if (it.word) { chip.type = 'button'; chip.addEventListener('click', () => openWordSheet(it.word)); }
-        chip.appendChild(el('span', 'info-chip-main', it.main));
-        if (it.sub) chip.appendChild(el('span', 'info-chip-sub', it.sub));
-        box.appendChild(chip);
+    function linkList(items) {
+      const box = el('div', 'info-links');
+      items.forEach((it, i) => {
+        if (i) box.appendChild(el('span', 'info-sep', '·'));
+        const link = el(it.word ? 'button' : 'span', 'info-link');
+        if (it.word) { link.type = 'button'; link.addEventListener('click', () => openWordSheet(it.word)); }
+        link.appendChild(el('span', 'info-link-main', it.main));
+        if (it.sub) link.appendChild(el('span', 'info-link-sub', it.sub));
+        box.appendChild(link);
       });
       return box;
     }
@@ -551,16 +554,20 @@
         if (!text) return null;
         return el('div', 'phonetic', text);
       },
-      morphemes() { return on('morphemes') ? buildMorphemes(e) : null; },
+      morphemes() {
+        if (!on('morphemes')) return null;
+        const m = buildMorphemes(e);
+        return m ? row('构词', m) : null;
+      },
       mnemonic() {
         if (!on('mnemonic')) return null;
         const m = mnemonicText(e);
         if (!m) return null;
-        return el('div', 'word-mnemonic' + (m.ai ? ' ai' : ''), m.text);
+        return row('巧记', el('p', 'ai-text', m.text), m.ai ? 'AI' : '');
       },
       meaning() {
         if (!on('meaning') || !e.zh) return null;
-        return el('div', 'word-meaning', e.zh);
+        return row('释义', el('div', 'word-meaning', e.zh));
       },
       definitions() {
         if (!on('definitions') || !(e.definitions || []).length) return null;
@@ -588,18 +595,18 @@
         box.appendChild(rootBtn);
         const words = ((fam && fam.family) || []).filter(w => w.word !== e.word);
         if (words.length) {
-          box.appendChild(chipList(words.slice(0, 8).map(w => ({ main: w.word, sub: w.zh, word: w.word }))));
+          box.appendChild(linkList(words.slice(0, 8).map(w => ({ main: w.word, sub: w.zh, word: w.word }))));
           if (words.length > 8) box.appendChild(el('span', 'info-more', '+' + (words.length - 8) + ' 词'));
         }
         return row('词根家族', box);
       },
       synonyms() {
         if (!on('synonyms') || !(e.synonyms || []).length) return null;
-        return row('近义词', chipList(e.synonyms.slice(0, 10).map(w => ({ main: w, word: w }))));
+        return row('近义词', linkList(e.synonyms.slice(0, 10).map(w => ({ main: w, word: w }))));
       },
       derivatives() {
         if (!on('derivatives') || !(e.derivatives || []).length) return null;
-        return row('派生词', chipList(e.derivatives.slice(0, 8).map(d => ({
+        return row('派生词', linkList(e.derivatives.slice(0, 8).map(d => ({
           main: d[0],
           sub: d[1] ? ({ pre: '前缀 ', suf: '后缀 ' }[d[2]] || '') + d[1] : '',
           word: d[0]
@@ -607,24 +614,43 @@
       },
       inflections() {
         if (!on('inflections') || !(e.inflections || []).length) return null;
-        return row('词形变化', chipList(e.inflections.map(w => ({ main: w }))));
+        return row('词形变化', linkList(e.inflections.map(w => ({ main: w }))));
       },
       etymology() {
         if (!on('etymology') || !e.etymology) return null;
-        return row('词源', el('p', 'info-etymology', e.etymology));
+        return row('词源', el('p', 'ai-text', e.etymology));
       },
       examples() {
-        if (!on('examples') || !(e.examples || []).length) return null;
-        const list = el('div', 'info-examples');
-        e.examples.slice(0, 3).forEach(ex => {
-          const line = typeof ex === 'string' ? ex : (ex && (ex.en || ex.example)) || '';
-          if (line) list.appendChild(el('p', 'info-example', line));
+        if (!on('examples')) return null;
+        let list = e.examples || [];
+        let meta = '';
+        if (!list.length) {
+          const ai = Store.aiExplanation(e.word);
+          if (ai && ai.data && Array.isArray(ai.data.examples) && ai.data.examples.length) { list = ai.data.examples; meta = 'AI'; }
+        }
+        if (!list.length) return null;
+        const wrap = el('div', 'ai-examples');
+        list.slice(0, 3).forEach(ex => {
+          const en = typeof ex === 'string' ? ex : (ex && (ex.en || ex.example)) || '';
+          if (!en) return;
+          const d = el('div', 'ai-example');
+          d.appendChild(el('div', 'ai-ex-en', en));
+          const zh = typeof ex === 'string' ? '' : (ex && (ex.zh || ex.cn)) || '';
+          if (zh) d.appendChild(el('div', 'ai-ex-zh', zh));
+          wrap.appendChild(d);
         });
-        return list.childNodes.length ? row('例句', list) : null;
+        return wrap.childNodes.length ? row('例句', wrap, meta) : null;
       },
       collocations() {
-        if (!on('collocations') || !(e.collocations || []).length) return null;
-        return row('搭配', chipList(e.collocations.slice(0, 10).map(c => ({ main: c }))));
+        if (!on('collocations')) return null;
+        let list = e.collocations || [];
+        let meta = '';
+        if (!list.length) {
+          const ai = Store.aiExplanation(e.word);
+          if (ai && ai.data && Array.isArray(ai.data.collocations) && ai.data.collocations.length) { list = ai.data.collocations; meta = 'AI'; }
+        }
+        if (!list.length) return null;
+        return row('搭配', linkList(list.slice(0, 10).map(c => ({ main: c }))), meta);
       },
       freq() { return on('freq') ? freqSection(e) : null; },
       cloze() { return on('cloze') ? clozeSection(e.word) : null; },
@@ -636,7 +662,6 @@
       const node = builders[id] && builders[id]();
       if (node) host.appendChild(node);
     });
-    host.querySelectorAll('.morphemes').forEach(fitMorphemes);
     host.hidden = !host.childNodes.length;
   }
 
@@ -682,34 +707,25 @@
 
   // ===================== morphemes =====================
   function buildMorphemes(e) {
-    const morphEl = el('div', 'morphemes');
     const chips = e.morphemes || [];
     if (!chips.length) return null;
-    chips.forEach((c, i) => {
-      if (i > 0) morphEl.appendChild(el('span', 'morph-plus', '+'));
-      const chip = el('button', 'morph morph-' + c.type);
-      chip.type = 'button';
-      chip.appendChild(el('span', 'morph-text', c.text));
-      if (c.gloss) chip.appendChild(el('span', 'morph-gloss', c.gloss));
-      chip.title = ({ prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '') + (c.gloss ? ' · ' + c.gloss : '');
-      chip.addEventListener('click', () => {
+    const wrap = el('div', 'ai-morphemes');
+    chips.forEach(c => {
+      const line = el('div', 'ai-morph');
+      const part = el('button', 'ai-morph-part');
+      part.type = 'button';
+      part.textContent = c.text;
+      part.title = ({ prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '') + (c.gloss ? ' · ' + c.gloss : '');
+      part.addEventListener('click', () => {
         if (c.type === 'root' && e.root) openFamily(e.root);
         else openAffixByChip(c.text, c.type);
       });
-      morphEl.appendChild(chip);
+      line.appendChild(part);
+      line.appendChild(el('span', 'ai-morph-type', { prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '词素'));
+      if (c.gloss) line.appendChild(el('span', 'ai-morph-gloss', c.gloss));
+      wrap.appendChild(line);
     });
-    return morphEl;
-  }
-
-  // Shrink the decomposition font until every segment fits on a single line.
-  function fitMorphemes(m) {
-    if (!m || !m.children.length) return;
-    let size = 16;
-    m.style.fontSize = size + 'px';
-    while (m.scrollWidth > m.clientWidth + 1 && size > 10) {
-      size -= 0.5;
-      m.style.fontSize = size + 'px';
-    }
+    return wrap;
   }
 
   // ===================== quiz =====================
@@ -2273,7 +2289,7 @@
     const text = t => el('p', 'ai-text', t);
     if (Array.isArray(data.meanings) && data.meanings.length) {
       const wrap = el('div', 'ai-meanings');
-      data.meanings.forEach(m => { const row = el('div', 'ai-meaning'); if (m.pos) row.appendChild(el('span', 'ai-pos', m.pos)); row.appendChild(el('span', 'ai-meaning-text', (m.zh || '') + (m.en ? '  ' + m.en : ''))); wrap.appendChild(row); });
+      data.meanings.forEach(m => { const row = el('div', 'ai-meaning'); if (m.pos) row.appendChild(el('span', 'ai-pos', m.pos)); row.appendChild(el('span', 'ai-meaning-text', m.zh || '')); if (m.en) row.appendChild(el('span', 'ai-meaning-en', m.en)); wrap.appendChild(row); });
       block('释义', wrap);
     }
     if (Array.isArray(data.morphemes) && data.morphemes.length) {
@@ -3987,7 +4003,7 @@
       }
     });
 
-    window.addEventListener('resize', () => { if (currentView === 'study' && mode === 'study') fitMorphemes(); placeTabIndicator(); });
+    window.addEventListener('resize', () => { placeTabIndicator(); });
     window.matchMedia('(min-width: 960px)').addEventListener('change', () => {
       if (openSheetEl || nestedSheetEl) setAppInert(true);
       placeTabIndicator();
