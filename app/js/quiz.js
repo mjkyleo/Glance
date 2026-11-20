@@ -248,11 +248,13 @@
       return g;
     };
     const todayKey = Store.today();
+    let reps = 0;
     Object.keys(srs).forEach(w => {
       const s = srs[w];
       if (!s || SRS.isNew(s)) return;
       const g = touch(w);
       g.seen = true;
+      reps += s.reps || 0;
       if (SRS.isDue(s, now)) g.due = 1 + Math.min(1, clamp((now - (s.due || now)) / DAY, 0, 14) / 7);
       g.weak = clamp((s.lapses || 0) * 0.22 + (s.state === 'relearn' ? 0.6 : s.state === 'learning' ? 0.28 : 0.06)
         + Math.max(0, 1 - (s.S ?? 10) / 30) * 0.25, 0, 2);
@@ -318,14 +320,42 @@
       });
     });
     let confused = 0, dueN = 0, curatedN = 0;
+    const kinds = new Set();
     signals.forEach(g => {
       if (g.mix > 0) confused++;
       if (g.due > 0) dueN++;
       if (g.curated > 0) curatedN++;
+      if (g.due > 0) kinds.add('due');
+      if (g.weak >= 0.5) kinds.add('weak');
+      if (g.err > 0) kinds.add('err');
+      if (g.curated > 0) kinds.add('curated');
+      if (g.mix > 0) kinds.add('mix');
+      if (g.contact > 0) kinds.add('contact');
     });
     return {
       signals, mix, co, looked,
-      stats: { recorded: signals.size, confused, due: dueN, curated: curatedN, days: activeDays, looked: looked.size }
+      stats: { recorded: signals.size, confused, due: dueN, curated: curatedN, days: activeDays, looked: looked.size, reps, kinds: kinds.size }
+    };
+  }
+  // 定制贴合度：x/(x+k) 饱和因子保证记录只增不减、边际递减，权重和为 1。
+  const sat = (x, k) => x / (x + k);
+  const FIT_TIERS = [
+    ['初识校准', '记录尚少，本轮以新词探索为主'],
+    ['渐入佳境', '开始按你的记录挑选复习题'],
+    ['贴合', '多数题目与干扰项来自你的记录'],
+    ['量身定制', '组卷深度贴合你的到期与薄弱点'],
+    ['深度默契', '几乎每题都认识你的易混与薄弱词']
+  ];
+  function fitFor(stats, recordedInPool, poolSize) {
+    const cover = poolSize > 0 ? sat(recordedInPool / poolSize, 0.10) : 0;
+    const depth = sat(stats.reps || 0, 600);
+    const breadth = 0.6 * sat(stats.days || 0, 12) + 0.4 * sat(stats.kinds || 0, 3);
+    const score = Math.round(100 * (0.5 * cover + 0.3 * depth + 0.2 * breadth));
+    const tier = score >= 85 ? 4 : score >= 65 ? 3 : score >= 40 ? 2 : score >= 15 ? 1 : 0;
+    return {
+      score, tier,
+      parts: { cover, depth, breadth },
+      inputs: { recordedInPool, poolSize, reps: stats.reps || 0, days: stats.days || 0, kinds: stats.kinds || 0 }
     };
   }
   function needScore(g) {
@@ -1012,6 +1042,7 @@
     return {
       pool: entries.length, available, types: counts, onlineCloze, cfg,
       profile: profile.stats,
+      fit: fitFor(profile.stats, recorded, entries.length),
       plan: { review: Math.max(0, Math.min(cfg.count, available) - exploreQuota), explore: exploreQuota, recorded, fresh }
     };
   }
@@ -1065,6 +1096,6 @@
     TYPES, TYPE_LABEL, SCOPES, DIFFICULTY_TARGET, buildConfig, estimate, buildSession,
     primaryGloss, posGroup, rootOf, pool, scopeWords, listEntries,
     intrinsic, stateDifficulty, questionDifficulty, targetDifficulty, ability,
-    phoneticKey, phoneticSim, behaviorProfile, sourceFor
+    phoneticKey, phoneticSim, behaviorProfile, sourceFor, fitFor, FIT_TIERS
   };
 })();

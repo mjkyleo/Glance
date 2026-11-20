@@ -788,6 +788,40 @@
         basis.textContent = '还没有学习记录，本轮以新词探索为主；开始学习后，记录会自动成为组卷与干扰项的依据。';
       } else basis.hidden = true;
     }
+    const fitBox = $('quiz-fit');
+    if (fitBox) {
+      fitBox.innerHTML = '';
+      if (info.available && info.fit) {
+        fitBox.hidden = false;
+        const f = info.fit, tier = QuizEngine.FIT_TIERS[f.tier];
+        const head = el('div', 'quiz-fit-head');
+        head.appendChild(el('span', 'quiz-fit-score', String(f.score)));
+        const meta = el('div', 'quiz-fit-meta');
+        meta.appendChild(el('span', 'quiz-fit-tier', tier[0]));
+        meta.appendChild(el('span', 'quiz-fit-sub', '定制贴合度 · ' + tier[1]));
+        head.appendChild(meta);
+        fitBox.appendChild(head);
+        const bars = el('div', 'quiz-fit-bars');
+        [['词覆盖', f.parts.cover, 50], ['记忆深度', f.parts.depth, 30], ['学习广度', f.parts.breadth, 20]].forEach(row => {
+          const r = el('div', 'quiz-fit-row');
+          r.appendChild(el('span', 'quiz-fit-label', row[0] + ' · 权重 ' + row[2] + '%'));
+          const track = el('span', 'quiz-fit-track');
+          const fill = el('i');
+          fill.style.width = Math.round(row[1] * 100) + '%';
+          track.appendChild(fill);
+          r.appendChild(track);
+          r.appendChild(el('span', 'quiz-fit-val', String(Math.round(row[1] * 100))));
+          bars.appendChild(r);
+        });
+        fitBox.appendChild(bars);
+        const more = el('details', 'quiz-fit-more');
+        more.appendChild(el('summary', '', '计算依据'));
+        const i = f.inputs;
+        more.appendChild(el('p', '', '贴合度 = 100 × (50% × 覆盖 + 30% × 深度 + 20% × 广度)。每个因子用 x/(x+k) 饱和：记录越多越贴合、增幅渐缓，且新增记录不会让分数下降。'));
+        more.appendChild(el('p', '', '覆盖 = 当前范围有记录词占比 ' + i.recordedInPool + '/' + i.poolSize + '（k=0.10）;深度 = 累计评分 ' + i.reps + ' 次（k=600）;广度 = 活跃 ' + i.days + ' 天（k=12，占 60%）+ ' + i.kinds + '/6 类行为信号（k=3，占 40%）。'));
+        fitBox.appendChild(more);
+      } else fitBox.hidden = true;
+    }
     const note = $('quiz-start-note');
     let noteText = '';
     if (!info.available) noteText = '换个范围或先学习一些单词；也可以点右上角设置调整范围。';
@@ -5050,18 +5084,8 @@
     wireEvents();
     $('load-retry').addEventListener('click', () => location.reload());
     const bootT0 = performance.now();
-    const LOAD_PHASE = { words: '正在连接词库', roots: '整理词根家族', roottrees: '整理词根家族', meta: '建立词书索引', exams: '建立词书索引', affixes: '建立词缀索引', official: '对照官方考纲', frequency: '汇总真题词频', cloze: '构建选词牌组', examManifest: '加载真题索引' };
-    let loadDone = 0;
-    const onProgress = name => {
-      loadDone++;
-      const pct = Math.min(100, Math.round(100 * loadDone / 10));
-      const fill = $('load-bar-fill'), pctEl = $('load-pct'), phase = $('load-phase');
-      if (fill) fill.style.width = pct + '%';
-      if (pctEl) pctEl.textContent = pct + '%';
-      if (phase) phase.textContent = (LOAD_PHASE[name] || '加载中') + '…';
-    };
     let ds = null;
-    try { ds = await Platform.loadDataset(onProgress); } catch (e) { console.error('dataset load failed', e); }
+    try { ds = await Platform.loadDataset(); } catch (e) { console.error('dataset load failed', e); }
     Library.init(ds || {});
     if (Library.migrateCustomBooks(Store.data.customBooks)) Store.save();
     if (window.Themes && ds && ds.words) {

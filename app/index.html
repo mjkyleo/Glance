@@ -76,6 +76,7 @@
         <section class="quiz-start-panel">
           <div class="quiz-start-count" id="quiz-start-count"></div>
           <p class="quiz-start-basis" id="quiz-start-basis" hidden></p>
+          <div class="quiz-fit" id="quiz-fit" hidden></div>
           <p class="quiz-start-note" id="quiz-start-note" hidden></p>
           <button class="btn-primary quiz-start-btn" id="quiz-start-btn" type="button">开始</button>
         </section>
@@ -957,10 +958,14 @@
     <div class="load-aurora" aria-hidden="true"><i class="la1"></i><i class="la2"></i><i class="la3"></i></div>
     <div class="load-grain" aria-hidden="true"></div>
     <div class="load-core" id="load-core">
-      <div class="load-abc" aria-hidden="true"><span class="ab1">a</span><span class="ab2">b</span><span class="ab3">c</span></div>
-      <p class="load-phase" id="load-phase">正在连接词库…</p>
-      <div class="load-bar" aria-hidden="true"><i id="load-bar-fill"></i></div>
-      <div class="load-pct" id="load-pct">0%</div>
+      <svg class="load-mark" viewBox="-8 8 378 120" aria-hidden="true" focusable="false">
+        <g class="gm1"><circle cx="22" cy="62" r="22"/><path d="M44 40 V98 Q44 116 26 116 H18"/></g>
+        <g class="gm2"><path d="M74 18 V76 Q74 84 82 84"/></g>
+        <g class="gm3"><circle cx="126" cy="62" r="22"/><path d="M148 40 V84"/></g>
+        <g class="gm4"><path d="M178 84 V40"/><path d="M178 62 Q178 40 200 40 Q222 40 222 62 V84"/></g>
+        <g class="gm5"><path d="M288.9 47.9 A22 22 0 1 0 288.9 76.1"/></g>
+        <g class="gm6"><path d="M362 62 H318 A22 22 0 1 1 355.6 77.6"/></g>
+      </svg>
     </div>
     <div class="load-fail" id="load-fail" hidden>
       <p>词库加载失败。请确认 app/data 数据文件存在，或重试。</p>

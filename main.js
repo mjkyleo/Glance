@@ -339,7 +339,7 @@ ipcMain.handle('get-bundled-library', () =>
   fs.readFileSync(path.join(__dirname, 'app', 'data', 'cet6.json'), 'utf-8'));
 
 // 学习主窗口：索引化数据集（考纲/词根家族/词条详情/词缀）
-ipcMain.handle('get-dataset', event => {
+ipcMain.handle('get-dataset', () => {
   const dir = path.join(__dirname, 'app', 'data');
   const read = name => {
     try { return JSON.parse(fs.readFileSync(path.join(dir, name), 'utf-8')); }
@@ -348,7 +348,6 @@ ipcMain.handle('get-dataset', event => {
   const out = {};
   [['meta', 'meta.json'], ['exams', 'exams.json'], ['roots', 'roots.json'], ['roottrees', 'roottrees.json'], ['words', 'words.json'], ['affixes', 'affixes.json'], ['official', 'official.json'], ['frequency', 'frequency.json'], ['cloze', 'cloze.json'], ['examManifest', 'exams/manifest.json']].forEach(([key, file]) => {
     out[key] = read(file);
-    try { event.sender.send('dataset-progress', key); } catch {}
   });
   return out;
 });

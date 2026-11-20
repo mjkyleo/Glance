@@ -19,8 +19,8 @@
 加载路径：
 
 - Electron：IPC `get-dataset` / `get-settings`（[main.js:342](../main.js#L342)、[main.js:257](../main.js#L257)），设置文件为 `currentDataDir()/settings.json`（[main.js:50-56](../main.js#L50-L56)），默认目录 `userData`、可改自定义目录（§5.4）。
-- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes,official,frequency,cloze}.json` + `data/exams/manifest.json`（[platform.js:121-140](../app/js/platform.js#L121-L140)）;真题分片按套懒加载 `data/exams/<examId>.json`（[platform.js:142](../app/js/platform.js#L142)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
-- 启动顺序：`Store.load()` → `Library.init(ds)` → `Themes.init(ds.words, ds.cloze)`（[app.js:3723-3749](../app/js/app.js#L3723-L3749)）。
+- Android / 浏览器：并行 fetch `data/{meta,exams,roots,roottrees,words,affixes,official,frequency,cloze}.json` + `data/exams/manifest.json`（[platform.js:121-132](../app/js/platform.js#L121-L132)）;真题分片按套懒加载 `data/exams/<examId>.json`（[platform.js:134](../app/js/platform.js#L134)）;设置存 `localStorage['glance.settings']`（[platform.js:10](../app/js/platform.js#L10)）。
+- 启动顺序：`Store.load()` → `Library.init(ds)` → `Themes.init(ds.words, ds.cloze)`（[app.js:3757-3783](../app/js/app.js#L3757-L3783)）。
 
 **词库与用户状态完全分离**：清状态不伤词库，换机不丢词库;自定义词书属于用户状态，随备份迁移。
 
@@ -166,7 +166,7 @@
 | `n` | 参与归并的词形个数（含词头自身，若它单独出现过） |
 | `er` / `ef` | 词头**自身那一行**的语料排名 / 次数;词头本身未单独出现时为 `0` |
 
-- `r/f` 与 `er/ef` 必须分开：`hear` 归并后 606 次（第 1），但它自身只有 325 次（语料第 5），其余 281 次来自 `heard`/`hearing`。词卡据此说明次数构成，不把归并值冒充词形自身的频次（[app.js:2101-2136 freqSection](../app/js/app.js#L2101-L2136)）。
+- `r/f` 与 `er/ef` 必须分开：`hear` 归并后 606 次（第 1），但它自身只有 325 次（语料第 5），其余 281 次来自 `heard`/`hearing`。词卡据此说明次数构成，不把归并值冒充词形自身的频次（[app.js:2101-2136 freqSection](../app/js/app.js#L2135-L2170)）。
 - **词形归并顺序**（[lemma.js:124-159 resolve](../scripts/lib/lemma.js#L124-L159)）：精确词头 → 词库自带的 `inf`/`der` 反向索引 → 不规则变化表 → 英美拼写变体 → 保守后缀规则。
   - 后缀规则带**词性闸门**与最小词干长度（[lemma.js:56-70](../scripts/lib/lemma.js#L56-L70)）：`hacker` 不会折进 `hack`、`lester` 不会折进 `lest`;纯 `-s` 剥离先跑，`believes` 判为 `believe+s` 而非经 `-ves` 规则误判为 `belief`。
   - 拼写变体只在词库自带索引之后尝试，否则 `filled` 会被 `-lled/-led` 互换读成 `filed`;屈折剥离只作用于原词形，不与拼写变体复合（否则 `notre` → `noter` → `not`）。
@@ -220,7 +220,7 @@
 - **来源**：Gitee `Mjs_00987/cet6_exam_questions_txt_collection` 的 `cet6_zhenti_cleaned/` 62 个 txt（2016–2026，两种命名 `2016-06_01` / `2026-06-01` 均保留原样作 examId）。源 txt 缓存 `.scratch/zhenti-src/`（不入库）;Gitee raw 有 451 反爬，用 `git clone --depth 1` 取源。
 - **来源与导入（2026-11-20 起 schema 2）**：在用集为外部 schema 2 分片集（含答案元数据），经 `npm run data:exams:import -- <src-dir>` → [scripts/import-exams.js](../scripts/import-exams.js) 拷入分片并**由分片派生 manifest**（补 `writing/translation` 布尔、题量/题型/sha256/size，按年/月/套降序）;校验 examId 与文件名一致、sections 存在，失败退出码 1;目录中多余旧分片自动清理。**分片是唯一源，manifest 不手改**。原始 txt 溯源管线 [scripts/build-exams.js](../scripts/build-exams.js)（schema 1）保留但**重跑会覆盖在用集**，之后须重新导入 schema 2。
 - **分片 schema 2**：schema 1 字段（`sections/groups/questions/writing/translation/quality/source`）不变，新增 `hasAnswers, answersComplete, answersCoverage, answersSource, answersNote, stats{questionCount, byType, missingNos, types}`;`answers` 为 `{"1":"A",…}` map 或 null——2026-06-01（55/55）与 2026-06-03（29/30）含官方答案，其余 null 留位。`type ∈ listening/cloze/matching/reading`;匹配段落字母并入 `passage` 行首 `[A]`–`[O]`，客户端按行切段;cloze 词库在 `group.bank`。
-- **加载**：启动只读 `exams/manifest.json`（[platform.js:136-138](../app/js/platform.js#L136-L138)、[main.js:342-354](../main.js#L342-L354)）;打开某套才 `Platform.loadExamShard(examId)`（[platform.js:142](../app/js/platform.js#L142)、Electron IPC `get-exam-shard` [main.js:357](../main.js#L357)，examId 正则白名单）。**分片不进启动全量加载**。年份网格由 manifest 运行时分组，不另存 by-year 聚合（避免重复存储）。
+- **加载**：启动只读 `exams/manifest.json`（[platform.js:129-130](../app/js/platform.js#L129-L130)、[main.js:342-352](../main.js#L342-L352)）;打开某套才 `Platform.loadExamShard(examId)`（[platform.js:134](../app/js/platform.js#L134)、Electron IPC `get-exam-shard` [main.js:356](../main.js#L356)，examId 正则白名单）。**分片不进启动全量加载**。年份网格由 manifest 运行时分组，不另存 by-year 聚合（避免重复存储）。
 - **残缺如实**：跳号记 `gaps` 不补空题;缺字母记 `missingOptions` 不顶替;`needsReview` 套界面顶部提示与网格「残缺」徽标;含答案套网格显示「含答案 / 答案 xx%」徽标。旧 `report.json` 已随 schema 2 导入移除（解析覆盖率基线仅属 legacy 管线）。
 
 ### 2.11 study.json（翻译与写作学习材料，单源懒加载）
@@ -228,7 +228,7 @@
 - **来源**：「翻译与写作」markdown 材料结构化转换产物（外部 `D:/ky/temp/json/data/study.json` 拷入），2026-11-20 接入。**正文只存一份于本文件**，真题分片不复制材料、不存反向索引副本（62 分片字节不变）;卷↔材料对齐唯一依据是顶层 `links`。
 - **schema**：`{schema, kind, generatedFrom, counts, translations[9], writings[89], links[78], misc[25]}`。篇目 `{id, seq, level(CET6/CET4), kind(translation/writing), topic, title, meta, exam{year,month,set,label}, examId, date, fields{sourceText/reference/guidance/expressions/grammar/exercises}, sections[{heading,text}], source{file,slug}, link}`;`sections` 是完整学习内容（翻译 5 节：中文原文/参考译文/背诵清单/语法/迁移练习;写作最多 8 节：题目/英文原文/中文理解/润色版/结构思路/背诵清单/语法/练习），阅读器只渲染 sections。`misc` 为 `{file, heading, text}` 积累块（翻译积累/写作积累/四级写作积累 3 文件 25 块）。
 - **counts**：`{translations:9, writings:89, cet4Writings:12, sections:526, linked:78, textVerified:5, labelOnly:73, unlinked:0}`;`links[].match ∈ text(原文逐字核对 5)/label(卷标对齐)/label-only(仅卷标)`，覆盖 62 套中 57 套。examId 两种命名（`2026-06-01` / `2024-06_01`）与分片文件名一致。
-- **加载**：**不进启动全量**。`Platform.loadStudy()`（[platform.js:149](../app/js/platform.js#L149)，Electron IPC `get-study` [main.js:364](../main.js#L364) / Web fetch `data/study.json`）;`Library.studyInit()` 首访专项考试组或真题详情时触发，建 id/examId 索引并缓存（[library.js:225-260](../app/js/library.js#L225-L260)），API：`studyReady/studyCounts/studyItem/studyList(kind,level)/studyForExam(examId)/studyMisc`;`Library.init` 重置缓存。
+- **加载**：**不进启动全量**。`Platform.loadStudy()`（[platform.js:141](../app/js/platform.js#L141)，Electron IPC `get-study` [main.js:363](../main.js#L363) / Web fetch `data/study.json`）;`Library.studyInit()` 首访专项考试组或真题详情时触发，建 id/examId 索引并缓存（[library.js:225-260](../app/js/library.js#L225-L260)），API：`studyReady/studyCounts/studyItem/studyList(kind,level)/studyForExam(examId)/studyMisc`;`Library.init` 重置缓存。
 - **消费**：专项「真题翻译与写作材料」四入口 + 整页阅读器（背诵模式隐藏参考译文/迁移练习答案或英文原文/润色版）+ 真题详情「参考资料」卡（FEATURES §10.8）。AI 空间 study 步取翻译篇目精读（FEATURES §10.7）。
 
 ## 3. 运行时组织（Library）
@@ -239,10 +239,10 @@
   - `senses`：按 `/` 切义项，识别 `pos.` 与 `[域]` 前缀（[library.js:90-105](../app/js/library.js#L90-L105)）;
   - `mnemonic`：≥2 个词素释义时合成「词素链 → 核心义」助记（[library.js:116-122](../app/js/library.js#L116-L122)）;
   - `examFreq`：真题语料词频 `{rank, freq, forms, exactRank, exactFreq}`，语料未收该词为 `null`（[library.js:157-162 freqOf](../app/js/library.js#L157-L162)）。**与 `words.json` 的 `fr` 是两套指标**：`fr` 是源站通用词频，`examFreq` 是六级真题语料频次，互不覆盖。
-- **统一信息块（学习页与词卡同源）**：`renderWordBlocks(entry, host)` 按 `studyPanelOrder` 顺序、`studyPanel` 开关生成 16 个块——音标 / 构词 / 助记 / 释义 / 英文释义 / 词根家族 / 近义词 / 派生词 / 词形变化 / 词源 / 例句 / 搭配 / 真题词频 / 选词填空 / 词典 / AI（[app.js:397-533](../app/js/app.js#L397-L533)）。学习页 `#word-blocks` 与词卡弹层 `.word-blocks` 调用同一渲染器（[index.html:39](../app/index.html#L39)、[app.js:1661-1663](../app/js/app.js#L1661-L1663)），资源来源不同（全局词库 / 真题语料 / 词典缓存 / AI 缓存）但显示与配置只有一套。词典与 AI 块**缓存优先**：有缓存直接离线渲染，无缓存时在块内点「查询词典」/「生成 AI 解释」才联网（[app.js:1822](../app/js/app.js#L1822)、[app.js:1923](../app/js/app.js#L1923)）;渲染词卡本身不发起任何网络请求。
+- **统一信息块（学习页与词卡同源）**：`renderWordBlocks(entry, host)` 按 `studyPanelOrder` 顺序、`studyPanel` 开关生成 16 个块——音标 / 构词 / 助记 / 释义 / 英文释义 / 词根家族 / 近义词 / 派生词 / 词形变化 / 词源 / 例句 / 搭配 / 真题词频 / 选词填空 / 词典 / AI（[app.js:397-533](../app/js/app.js#L397-L533)）。学习页 `#word-blocks` 与词卡弹层 `.word-blocks` 调用同一渲染器（[index.html:39](../app/index.html#L39)、[app.js:1695-1697](../app/js/app.js#L1695-L1697)），资源来源不同（全局词库 / 真题语料 / 词典缓存 / AI 缓存）但显示与配置只有一套。词典与 AI 块**缓存优先**：有缓存直接离线渲染，无缓存时在块内点「查询词典」/「生成 AI 解释」才联网（[app.js:1856](../app/js/app.js#L1856)、[app.js:1957](../app/js/app.js#L1957)）;渲染词卡本身不发起任何网络请求。
 - 考试阶梯 `BOOK_RANK`（中考 0 → GRE 9）：`lowerTags / lowerWordSet` 取**严格低阶**词书词集并缓存，供「跳过低阶重复词」（[library.js:338](../app/js/library.js#L338)）。
 - **官方考纲书**：`officialBook(level)` 把 `official.json` 的原始词条经 `officialForms` 归一化取首形、按首形去重，再 `enrich` 成可学习词条（标 `official:true` 与 `officialText` 原文），缓存为 `{tag,name,n,entries,groups:[],official:true}`（[library.js:446-462](../app/js/library.js#L446-L462)）。`listBooks` 将「考纲四级（官方）/ 考纲六级（官方）」**置顶**于考试书之前、真题词频书置于末尾（[library.js:344-357](../app/js/library.js#L344-L357)）;`getBook('考纲四级'|'考纲六级')` 走官方分支（[library.js:312-342](../app/js/library.js#L312-L342)）。官方书**绕过** CEFR 质量过滤与 `skipLower`（官方 tag 不在 `BOOK_RANK`）。
-- **考纲对比**：`compareToOfficial(entries, level)` 把任意词书词条与官方词集 `officialWordSet(level)` 比对，返回 `covered`（考纲内）/ `beyond`（超纲）/ `missing`（考纲有而本书缺）及两个覆盖率 `coverageBook`（本书被考纲覆盖比例）/ `coverageOfficial`（考纲被本书覆盖比例）与三份词表（[library.js:465-494](../app/js/library.js#L465-L494)）。归一化 `officialForms`：去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号（`mo(u)ld` → `mould`+`mold`）（[library.js:413-424](../app/js/library.js#L413-L424)）。UI 在「词书与计划」页「考纲对比」面板：选源书 + 选考纲级别（四级 / 六级），渲染摘要 + 覆盖率条 + 三个可折叠词表（考纲内 / 超纲 / 考纲缺失），每段限 300 词并可展开全部（[app.js:2788-2849](../app/js/app.js#L2788-L2849)）。
+- **考纲对比**：`compareToOfficial(entries, level)` 把任意词书词条与官方词集 `officialWordSet(level)` 比对，返回 `covered`（考纲内）/ `beyond`（超纲）/ `missing`（考纲有而本书缺）及两个覆盖率 `coverageBook`（本书被考纲覆盖比例）/ `coverageOfficial`（考纲被本书覆盖比例）与三份词表（[library.js:465-494](../app/js/library.js#L465-L494)）。归一化 `officialForms`：去上标 → 按 `/` 拆变体 → 小写 → 展开可选字母括号（`mo(u)ld` → `mould`+`mold`）（[library.js:413-424](../app/js/library.js#L413-L424)）。UI 在「词书与计划」页「考纲对比」面板：选源书 + 选考纲级别（四级 / 六级），渲染摘要 + 覆盖率条 + 三个可折叠词表（考纲内 / 超纲 / 考纲缺失），每段限 300 词并可展开全部（[app.js:2822-2883](../app/js/app.js#L2822-L2883)）。
 - 自定义词书不走 `getBook`：`activeBook()/resolveBook(tag)` 经 `Library.customBook(tag, stored)` 把**引用**在读取时富化成完整词条（[app.js:267-277](../app/js/app.js#L267-L277)、[library.js:619-637 customBook](../app/js/library.js#L619-L637)）;全局未收录的词保留用户自带释义作为该词的唯一解释。
 - 词书过滤只作用于每日队列输入 `studyEntries`，词书本身与测试范围不变（[app.js:280-297](../app/js/app.js#L280-L297)）。
 - **真题词频书**：`freqBook()` 把 `frequency.json` 的 `map` 按 `r` 升序取词头、逐个 `lookup` 成词条，缓存为 `{tag:'真题词频', name:'六级真题词频', n, entries, groups:[], frequency:true}`（[library.js:172-179 freqBook](../app/js/library.js#L172-L179)）。`getBook('真题词频')` 走该分支、`listBooks` 把它排在考试书之后（[library.js:344-357](../app/js/library.js#L344-L357)）。**排序即教学顺序**：`SRS.buildQueue` 按词书给定顺序取新词，所以学这本书就是从真题最高频词开始。同官方书一样绕过 CEFR 过滤与 `skipLower`（`真题词频` 不在 `BOOK_RANK`）。
@@ -253,7 +253,7 @@
 
 ## 4. 自定义词书导入规范
 
-入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:155](../app/js/platform.js#L155)）。统一解析器 `Library.parse`（[library.js:621-643](../app/js/library.js#L621-L643)）。**全局已收录的词在解析期即降为纯引用**（`{word, rootFamily}`），导入携带的释义/音标/CEFR/例句副本一律丢弃;全局未收录的词保留用户自带内容作为该词的唯一解释。
+入口：词书与计划页底部常驻导入;接受 `.json .tsv .csv .txt`（[platform.js:147](../app/js/platform.js#L147)）。统一解析器 `Library.parse`（[library.js:621-643](../app/js/library.js#L621-L643)）。**全局已收录的词在解析期即降为纯引用**（`{word, rootFamily}`），导入携带的释义/音标/CEFR/例句副本一律丢弃;全局未收录的词保留用户自带内容作为该词的唯一解释。
 
 ### 4.1 JSON：扁平数组（推荐）
 
@@ -294,12 +294,12 @@
 
 ### 4.4 命名、落库与边界
 
-- 书名 = 文件名去路径去扩展名、trim、截 24 字符，空则「自定义词书」（[app.js:2972-2975](../app/js/app.js#L2972-L2975)）。
-- 与内置书标签/书名或已有自定义书重名 → 追加 `（2）（3）…`（[app.js:2976-2983](../app/js/app.js#L2976-L2983)）。
-- 落库：`Store.data.customBooks[name] = { entries: […] }`，保存后立即切换为当前词书（[app.js:2995-2998](../app/js/app.js#L2995-L2998)）。
+- 书名 = 文件名去路径去扩展名、trim、截 24 字符，空则「自定义词书」（[app.js:3006-3009](../app/js/app.js#L3006-L3009)）。
+- 与内置书标签/书名或已有自定义书重名 → 追加 `（2）（3）…`（[app.js:3010-3017](../app/js/app.js#L3010-L3017)）。
+- 落库：`Store.data.customBooks[name] = { entries: […] }`，保存后立即切换为当前词书（[app.js:3029-3032](../app/js/app.js#L3029-L3032)）。
 - 0 词条或解析异常 → alert 拒绝，不写库。
-- entries 落盘为**引用**（全局已收录词）或用户自带内容（未收录词）;读取时经 `Library.customBook` 富化：已收录词与内置书完全同源（义项分组/助记钩子齐全），未收录词回退整条用户释义。旧版落盘的副本在启动时一次性迁移删除（[library.js:639-652 migrateCustomBooks](../app/js/library.js#L639-L652)、[app.js:3531](../app/js/app.js#L3531)），迁移幂等。无阶梯归属，「跳过低阶重复词」对其 no-op。
-- 删除自定义书时若为当前书 → 回退「六级」（[app.js:2931](../app/js/app.js#L2931)）。
+- entries 落盘为**引用**（全局已收录词）或用户自带内容（未收录词）;读取时经 `Library.customBook` 富化：已收录词与内置书完全同源（义项分组/助记钩子齐全），未收录词回退整条用户释义。旧版落盘的副本在启动时一次性迁移删除（[library.js:639-652 migrateCustomBooks](../app/js/library.js#L639-L652)、[app.js:3565](../app/js/app.js#L3565)），迁移幂等。无阶梯归属，「跳过低阶重复词」对其 no-op。
+- 删除自定义书时若为当前书 → 回退「六级」（[app.js:2965](../app/js/app.js#L2965)）。
 
 ## 5. 本地存储规范（用户状态）
 
@@ -382,11 +382,11 @@
 | FSRS 优化频率 | 每 200 次复习 | [store.js:179](../app/js/store.js#L179) |
 | 测试按词历史 | 2000 词（超出删最旧） | [store.js:334](../app/js/store.js#L334) |
 | AI 空间缓存 | report 14 天 / clinic 300 词 / qa 100 词、每词 turns ≤8、text ≤4000;tutor 60 条（plan/session/按步讲解），session steps ≤12、随步 qa ≤8 | [store.js normalizeSpace / SPACE_CAPS](../app/js/store.js) |
-| 昵称 / 书名 | 16 / 24 字符 | [store.js:62](../app/js/store.js#L62)、[app.js:2913](../app/js/app.js#L2913) |
+| 昵称 / 书名 | 16 / 24 字符 | [store.js:62](../app/js/store.js#L62)、[app.js:2947](../app/js/app.js#L2947) |
 
 ### 5.4 存储位置与持久化（卸载不丢数据）
 
-目标：**默认路径固定可查**、**可改任意目录长期保存**、**卸载应用后数据仍在**（除非人工删除）。设置 → 数据 → 「存储位置」面板展示当前路径与操作（[app.js:2872-2909](../app/js/app.js#L2872-L2909)）。三平台策略不同：
+目标：**默认路径固定可查**、**可改任意目录长期保存**、**卸载应用后数据仍在**（除非人工删除）。设置 → 数据 → 「存储位置」面板展示当前路径与操作（[app.js:2906-2943](../app/js/app.js#L2906-L2943)）。三平台策略不同：
 
 | 平台 | 主存储 | 持久化备份 | 卸载后 |
 |---|---|---|---|
@@ -408,11 +408,11 @@
 - 默认目标 `Documents/Glance/Glance-learning-data.json`：API ≥ 29 走 MediaStore（**无需任何权限**，[GlanceStorage.java:160-221](../android/app/src/main/java/com/glance/app/GlanceStorage.java#L160-L221)）;API ≤ 28 走传统 File + `WRITE/READ_EXTERNAL_STORAGE`（manifest 以 `maxSdkVersion="28"` 限定）。
 - 可选 SAF 自定义目录树（`pickFolder` → `ACTION_OPEN_DOCUMENT_TREE`，持久化 URI 权限）;`clearFolder` 清除自定义树回退默认。
 - 镜像内容 = `Store.exportData()`（§6.1 信封），**不含 API Key 与壁纸原图**。
-- 触发：flush hook → 60 s 节流镜像（`scheduleMirror`，[app.js:3074-3077](../app/js/app.js#L3074-L3077)）;页面 `visibilitychange` 隐藏时立即镜像（[app.js:3726](../app/js/app.js#L3726)）;面板「立即备份」手动触发。
-- 恢复：首启检测到私有存储为空（无 srs/logs/customBooks/favorites）→ `readMirror` → 弹确认（展示路径与更新时间）→ `importData(payload, 'replace')`（[app.js:3078-3087](../app/js/app.js#L3078-L3087)）。
+- 触发：flush hook → 60 s 节流镜像（`scheduleMirror`，[app.js:3108-3111](../app/js/app.js#L3108-L3111)）;页面 `visibilitychange` 隐藏时立即镜像（[app.js:3760](../app/js/app.js#L3760)）;面板「立即备份」手动触发。
+- 恢复：首启检测到私有存储为空（无 srs/logs/customBooks/favorites）→ `readMirror` → 弹确认（展示路径与更新时间）→ `importData(payload, 'replace')`（[app.js:3112-3121](../app/js/app.js#L3112-L3121)）。
 - 插件 `info()` 返回 `{sdk, defaultPath, custom, hasCustom, customTs, hasDefault, defaultTs}`，供 UI 展示路径与最近备份时间。
 
-**Web 适配层**：`Platform.storageInfo/SetDir/ResetDir/OpenDir/PickFolder/WriteMirror/ReadMirror` 按平台分发（Electron IPC / Android 插件 / 浏览器 no-op）（[platform.js:258-293](../app/js/platform.js#L258-L293)）。
+**Web 适配层**：`Platform.storageInfo/SetDir/ResetDir/OpenDir/PickFolder/WriteMirror/ReadMirror` 按平台分发（Electron IPC / Android 插件 / 浏览器 no-op）（[platform.js:250-285](../app/js/platform.js#L250-L285)）。
 
 ### 5.5 敏感数据安全（API Key 加密）
 
@@ -502,5 +502,5 @@
 9. **改真题词频 / 选词填空数据**：源 CSV 与选项库 JSON 在 `assets/words/`，改数据改构建脚本后**按序**重跑 `npm run data:frequency && npm run data:cloze`（§2.6）。
    - 改词形归并口径只改 [scripts/lib/lemma.js](../scripts/lib/lemma.js)（两条管线共用），改完须复核 `stats` 的 `unmatched` 是否异常上升，并抽查 `.scratch/frequency-forms.json` 的归属;**放宽后缀规则务必带词性闸门**，否则会把无关词头的频次算进来。
    - 改词性判定只改 `formPos`（§2.9）;改牌组定义须同步 `POS_GROUPS` / `decks` 与 [FEATURES.md §3.4](FEATURES.md)，牌组 id 会直接变成主题 id `cloze_<id>`。
-   - **新增内置 JSON 必须同时改三处加载点**：[platform.js:129](../app/js/platform.js#L129) 的 `names`、[main.js:342-354](../main.js#L342-L354) 的 `get-dataset`、以及本文档 §2.1 清单;漏改会让该平台静默拿到 `null`。真题分片（§2.10）走独立的 `loadExamShard` / `get-exam-shard` 懒加载通道，manifest 进启动加载、分片不进。study.json（§2.11）同走独立懒加载通道 `loadStudy` / `get-study`，**不进启动 names 名单**。
+   - **新增内置 JSON 必须同时改三处加载点**：[platform.js:123](../app/js/platform.js#L123) 的 `names`、[main.js:342-352](../main.js#L342-L352) 的 `get-dataset`、以及本文档 §2.1 清单;漏改会让该平台静默拿到 `null`。真题分片（§2.10）走独立的 `loadExamShard` / `get-exam-shard` 懒加载通道，manifest 进启动加载、分片不进。study.json（§2.11）同走独立懒加载通道 `loadStudy` / `get-study`，**不进启动 names 名单**。
    - 运行时**不得**用词库通用 `fr` 重排真题牌组或词频书（会破坏「高频优先」的教学顺序）;词卡上 `examFreq` 的归并值与词形自身值必须分开表述。

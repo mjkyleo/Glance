@@ -118,24 +118,16 @@
       return res.text();
     },
 
-    async loadDataset(onProgress) {
-      const report = n => { if (onProgress) { try { onProgress(n); } catch {} } };
-      if (isElectron) {
-        const listener = (_e, name) => report(name);
-        ipc.on('dataset-progress', listener);
-        try { return await ipc.invoke('get-dataset'); }
-        finally { ipc.removeListener('dataset-progress', listener); }
-      }
+    async loadDataset() {
+      if (isElectron) return ipc.invoke('get-dataset');
       const names = ['meta', 'exams', 'roots', 'roottrees', 'words', 'affixes', 'official', 'frequency', 'cloze'];
       const out = {};
       await Promise.all(names.map(async n => {
         try { const r = await fetch('data/' + n + '.json'); out[n] = r.ok ? await r.json() : null; }
         catch { out[n] = null; }
-        report(n);
       }));
       try { const r = await fetch('data/exams/manifest.json'); out.examManifest = r.ok ? await r.json() : null; }
       catch { out.examManifest = null; }
-      report('examManifest');
       return out;
     },
 
