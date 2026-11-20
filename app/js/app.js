@@ -3788,6 +3788,7 @@
   let examRunQuestions = [];
   let examRetryMode = false;
   let examRestoreKey = '';
+  const examOpenYears = new Set();
 
   function examShowPane(name) {
     examPane = name;
@@ -3815,42 +3816,68 @@
     box.innerHTML = '';
     const exams = Exams.list();
     if (!exams.length) { box.appendChild(el('p', 'field-hint', '真题数据未加载（app/data/exams/manifest.json）。')); return; }
-    let year = 0, grid = null;
+    const years = [];
     exams.forEach(m => {
-      if (m.year !== year) {
-        year = m.year;
-        const head = el('div', 'exam-year-head');
-        head.appendChild(el('h3', 'exam-year', year + ' 年'));
-        head.appendChild(el('span', 'exam-year-count', exams.filter(x => x.year === year).length + ' 套'));
-        box.appendChild(head);
-        grid = el('div', 'exam-grid');
-        box.appendChild(grid);
-      }
-      const p = Store.examProgress(m.examId);
-      const answered = p ? Object.keys(p.a).length : 0;
-      const card = el('button', 'exam-card');
-      card.type = 'button';
-      card.dataset.exam = m.examId;
-      const top = el('div', 'exam-card-top');
-      top.appendChild(el('span', 'exam-card-title', m.month + '月 · 第' + m.set + '套'));
-      if (m.hasAnswers) top.appendChild(el('span', 'exam-badge green', m.answersComplete ? '含答案' : '答案 ' + Math.round((m.answersCoverage || 0) * 100) + '%'));
-      if (m.needsReview) top.appendChild(el('span', 'exam-badge amber', '残缺'));
-      card.appendChild(top);
-      const types = (m.types || []).filter(t => ['reading', 'matching'].includes(t)).map(t => EXAM_TYPE_NAME[t]);
-      if (m.writing) types.push('写作');
-      if (m.translation) types.push('翻译');
-      card.appendChild(el('div', 'exam-card-sub', m.questionCount + ' 题 · ' + (types.join(' / ') || '写作 / 翻译')));
-      const bar = el('div', 'exam-card-bar');
-      const fill = el('span', 'exam-card-fill');
-      fill.style.width = (m.questionCount ? Math.min(100, Math.round(answered / m.questionCount * 100)) : 0) + '%';
-      bar.appendChild(fill);
-      card.appendChild(bar);
-      card.appendChild(el('div', 'exam-card-foot', answered ? '已练 ' + answered + ' / ' + m.questionCount + ' 题' : '未开始'));
-      grid.appendChild(card);
+      let y = years[years.length - 1];
+      if (!y || y.year !== m.year) { y = { year: m.year, items: [] }; years.push(y); }
+      y.items.push(m);
+    });
+    years.forEach(y => {
+      const group = el('div', 'exam-year-group');
+      const head = el('button', 'exam-year-head'); head.type = 'button';
+      head.appendChild(el('span', 'exam-year', y.year + ' 年'));
+      let answered = 0, total = 0;
+      y.items.forEach(m => {
+        total += m.questionCount || 0;
+        const p = Store.examProgress(m.examId);
+        answered += p ? Object.keys(p.a).length : 0;
+      });
+      head.appendChild(el('span', 'exam-year-count', y.items.length + ' 套' + (answered ? ' · 已练 ' + answered + '/' + total + ' 题' : '')));
+      head.appendChild(el('span', 'cmp-caret', '▾'));
+      const body = el('div', 'exam-year-body');
+      const grid = el('div', 'exam-grid');
+      y.items.forEach(m => {
+        const p = Store.examProgress(m.examId);
+        const answeredN = p ? Object.keys(p.a).length : 0;
+        const card = el('button', 'exam-card');
+        card.type = 'button';
+        card.dataset.exam = m.examId;
+        const top = el('div', 'exam-card-top');
+        top.appendChild(el('span', 'exam-card-title', m.month + '月 · 第' + m.set + '套'));
+        if (m.hasAnswers) top.appendChild(el('span', 'exam-badge green', m.answersComplete ? '含答案' : '答案 ' + Math.round((m.answersCoverage || 0) * 100) + '%'));
+        if (m.needsReview) top.appendChild(el('span', 'exam-badge amber', '残缺'));
+        card.appendChild(top);
+        const types = (m.types || []).filter(t => ['reading', 'matching', 'cloze'].includes(t)).map(t => EXAM_TYPE_NAME[t]);
+        if (m.writing) types.push('写作');
+        if (m.translation) types.push('翻译');
+        card.appendChild(el('div', 'exam-card-sub', m.questionCount + ' 题 · ' + (types.join(' / ') || '写作 / 翻译')));
+        const bar = el('div', 'exam-card-bar');
+        const fill = el('span', 'exam-card-fill');
+        fill.style.width = (m.questionCount ? Math.min(100, Math.round(answeredN / m.questionCount * 100)) : 0) + '%';
+        bar.appendChild(fill);
+        card.appendChild(bar);
+        card.appendChild(el('div', 'exam-card-foot', answeredN ? '已练 ' + answeredN + ' / ' + m.questionCount + ' 题' : '未开始'));
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+      const open = examOpenYears.has(y.year);
+      body.hidden = !open;
+      head.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', String(open));
+      head.addEventListener('click', () => {
+        body.hidden = !body.hidden;
+        head.classList.toggle('open', !body.hidden);
+        head.setAttribute('aria-expanded', String(!body.hidden));
+        if (body.hidden) examOpenYears.delete(y.year); else examOpenYears.add(y.year);
+      });
+      group.appendChild(head); group.appendChild(body);
+      box.appendChild(group);
     });
   }
 
   async function openExam(examId) {
+    const m = Exams.meta(examId);
+    if (m) examOpenYears.add(m.year);
     examShowPane('detail');
     $('exams-detail-pane').innerHTML = '<p class="field-hint">正在加载试卷…</p>';
     const ex = await Exams.load(examId);
@@ -3862,6 +3889,7 @@
   function renderExamDetail() {
     examCrumbs();
     const ex = examCur;
+    if (ex) $('exams-title').textContent = ex.year + '年' + ex.month + '月 · 第' + ex.set + '套';
     const pane = $('exams-detail-pane');
     pane.innerHTML = '';
     if (ex.quality && ex.quality.needsReview) {
@@ -3874,7 +3902,7 @@
       const qs = examTypeQuestions(type);
       const st = Exams.typeStats(ex.examId, type, qs);
       const card = el('div', 'exam-type-card');
-      const desc = type === 'reading' ? '一段材料 + 一组选择题，逐题推进' : type === 'matching' ? '段落 ↔ 陈述句匹配' : type === 'writing' ? '真题作文题，写作后可 AI 批改或自评' : '真题汉译英，完成后 AI 批改或自评';
+      const desc = type === 'reading' ? '一段材料 + 一组选择题，逐题推进' : type === 'matching' ? '段落 ↔ 陈述句匹配' : type === 'cloze' ? '一篇短文十个空，从 A–O 词库选词，每词限用一次' : type === 'writing' ? '真题作文题，写作后可 AI 批改或自评' : '真题汉译英，完成后 AI 批改或自评';
       card.innerHTML =
         '<div class="exam-type-head"><span class="exam-type-name">' + EXAM_TYPE_NAME[type] + '</span>' +
         '<span class="exam-type-stat">' + (st.answered ? '已练 ' + st.answered + '/' + st.total + (st.correct ? ' · 对 ' + st.correct : '') : st.total + ' 题') + (st.done ? ' · 已完成' : '') + '</span></div>' +
@@ -3895,7 +3923,7 @@
       card.appendChild(btn);
       pane.appendChild(card);
     }
-    [['listening', '暂无音频与听力原文，数据已入库，开刷待后续'], ['cloze', '选词填空请用「专项」里的真题选词牌组']].forEach(([type, note]) => {
+    [['listening', '暂无音频与听力原文，数据已入库，开刷待后续']].forEach(([type, note]) => {
       if (!(ex.sections || []).some(s => s.type === type)) return;
       const card = el('div', 'exam-type-card exam-type-disabled');
       card.innerHTML = '<div class="exam-type-head"><span class="exam-type-name">' + EXAM_TYPE_NAME[type] + '</span><span class="exam-type-stat">暂不开刷</span></div><p class="exam-type-desc">' + note + '</p>';
@@ -3929,10 +3957,10 @@
     const byGroup = new Map();
     wrong.forEach(w => {
       const key = w.section.type + '|' + (w.group.range || '') + '|' + w.group.passage.slice(0, 40);
-      if (!byGroup.has(key)) byGroup.set(key, { type: w.section.type, passage: w.group.passage || '', prompt: w.group.prompt || '', paragraphs: w.section.type === 'matching' ? Exams.paragraphsOf(w.group) : undefined, questions: [] });
+      if (!byGroup.has(key)) byGroup.set(key, { type: w.section.type, passage: w.group.passage || '', prompt: w.group.prompt || '', paragraphs: w.section.type === 'matching' ? Exams.paragraphsOf(w.group) : undefined, bank: w.section.type === 'cloze' ? w.group.bank : undefined, questions: [] });
       byGroup.get(key).questions.push(w.q);
     });
-    examSessions = [...byGroup.values()].filter(s => s.type === 'reading' || s.type === 'matching');
+    examSessions = [...byGroup.values()].filter(s => s.type === 'reading' || s.type === 'matching' || s.type === 'cloze');
     const wt = wrong.filter(w => w.q.type === 'writing' || w.q.type === 'translation');
     wt.forEach(w => examSessions.push({ type: w.q.type, directions: (w.q.type === 'writing' ? examCur.writing : examCur.translation).directions || '', prompt: (examCur.writing || {}).prompt || '', passage: (examCur.translation || {}).passage || '' }));
     examSIdx = 0; examQIdx = 0;
@@ -3970,7 +3998,11 @@
     const isWriting = q.type === 'writing' || q.type === 'translation';
     if (isWriting ? !examDraft.trim() : !examPick) return '';
     const auto = Exams.judge(examCur, q, examPick);
-    if (auto) return '<div class="exam-feedback ' + (auto.ok ? 'ok' : 'bad') + '">' + (auto.ok ? '回答正确' : '回答错误，正确答案：' + esc(auto.key)) + '（官方答案）</div>';
+    if (auto) {
+      const s = examCurSession();
+      const word = q.type === 'cloze' && s && s.bank && s.bank[auto.key] ? ' · ' + esc(s.bank[auto.key]) : '';
+      return '<div class="exam-feedback ' + (auto.ok ? 'ok' : 'bad') + '">' + (auto.ok ? '回答正确' : '回答错误，正确答案：' + esc(auto.key) + word) + '（官方答案）</div>';
+    }
     if (!examMarked) return '';
     const p = Store.examProgress(examCur.examId);
     const r = p && p.a[examNoOf(q)];
@@ -4018,6 +4050,13 @@
     } else if (s.type === 'matching') {
       h += '<div class="exam-passage exam-paras" tabindex="0" aria-label="匹配段落">' + s.paragraphs.map(p => '<div class="exam-para"><span class="exam-para-letter">' + esc(p.letter) + '</span><span>' + esc(p.text) + '</span></div>').join('') + '</div>';
       h += examQuestionCardHtml(q, true);
+    } else if (s.type === 'cloze') {
+      h += examClozePassageHtml(s);
+      h += examClozeStripHtml(s);
+      h += '<div class="exam-qcard"><div class="exam-qno">Q' + q.no + ' · 从词库选一词填入本空</div>';
+      h += examBankHtml(s);
+      h += '<div id="exam-ai-box"></div>';
+      h += examFeedbackHtml() + examActionBarHtml() + examNavHtml() + '</div>';
     } else {
       if (s.type === 'writing') h += '<div class="exam-passage">' + esc(s.prompt || s.directions || '（本套写作题干缺失）') + '</div>';
       if (s.type === 'translation' && s.passage) h += '<div class="exam-passage">' + esc(s.passage).replace(/\n/g, '<br>') + '</div>';
@@ -4052,6 +4091,54 @@
     h += '<div id="exam-ai-box"></div>';
     h += examFeedbackHtml() + examActionBarHtml() + examNavHtml() + '</div>';
     return h;
+  }
+
+  function examClozeState(s) {
+    const p = Store.examProgress(examCur.examId);
+    const map = {};
+    (s.questions || []).forEach(q => { const r = p && p.a[q.no]; if (r && r.p) map[q.no] = { letter: r.p, ok: r.ok }; });
+    const cur = examCurQuestion();
+    if (cur && examPick) {
+      const auto = Exams.judge(examCur, cur, examPick);
+      const r = p && p.a[cur.no];
+      map[cur.no] = { letter: examPick, ok: auto ? auto.ok : (examMarked && r ? r.ok : -1) };
+    }
+    return map;
+  }
+  function examClozeBlankHtml(s, no, state) {
+    const cur = examCurQuestion();
+    const st = state[no];
+    const cls = 'exam-blank' + (cur && cur.no === no ? ' current' : '') + (st ? ' filled' : '') + (st && st.ok === 1 ? ' ok' : st && st.ok === 0 ? ' bad' : '');
+    return '<button class="' + cls + '" type="button" data-blank="' + no + '" aria-label="第' + no + '空">' + (st ? esc(st.letter) : no) + '</button>';
+  }
+  function examClozePassageHtml(s) {
+    const state = examClozeState(s);
+    const nos = new Set((s.questions || []).map(q => q.no));
+    const html = esc(s.passage || '').replace(/__(\d+)__|\b(\d+)\b/g, (m, a, b) => {
+      const n = +(a || b);
+      return nos.has(n) ? examClozeBlankHtml(s, n, state) : m;
+    });
+    return '<div class="exam-passage exam-cloze-passage" tabindex="0" aria-label="选词填空短文">' + html.replace(/\n/g, '<br>') + '</div>';
+  }
+  function examClozeStripHtml(s) {
+    const state = examClozeState(s);
+    const cur = examCurQuestion();
+    return '<div class="exam-blanks" role="group" aria-label="空位导航">' + (s.questions || []).map(q => {
+      const st = state[q.no];
+      const cls = 'exam-blank-chip' + (cur && cur.no === q.no ? ' current' : '') + (st && st.ok === 1 ? ' ok' : st && st.ok === 0 ? ' bad' : '');
+      return '<button class="' + cls + '" type="button" data-blank="' + q.no + '"><i>' + q.no + '</i>' + (st ? esc(st.letter) : '–') + '</button>';
+    }).join('') + '</div>';
+  }
+  function examBankHtml(s) {
+    const state = examClozeState(s);
+    const cur = examCurQuestion();
+    const used = {};
+    Object.keys(state).forEach(no => { const st = state[no]; if (st && (!cur || +no !== cur.no)) used[st.letter] = no; });
+    const letters = Object.keys(s.bank || {}).sort();
+    return '<div class="exam-bank" role="group" aria-label="词库">' + letters.map(L => {
+      const cls = 'exam-bank-item' + (examPick === L ? ' selected' : '') + (used[L] ? ' used' : '');
+      return '<button class="' + cls + '" type="button" data-opt="' + L + '"' + (used[L] ? ' title="已用于 Q' + used[L] + '"' : '') + '><span class="exam-opt-letter">' + L + '</span><span class="exam-bank-word">' + esc(s.bank[L]) + '</span>' + (used[L] ? '<sup class="exam-bank-used">Q' + used[L] + '</sup>' : '') + '</button>';
+    }).join('') + '</div>';
   }
 
   function examWritingActionsHtml() {
@@ -4089,7 +4176,7 @@
       res = await Exams.analyzeWriting(examCur, s.type, examDraft);
     } else {
       if (!examPick) { btn.disabled = false; btn.textContent = old; announce('请先选择一个选项'); return; }
-      res = await Exams.analyzeQuestion(examCur, q, examPick, s.passage || (s.paragraphs || []).map(p => '[' + p.letter + '] ' + p.text).join('\n'));
+      res = await Exams.analyzeQuestion(examCur, q, examPick, s.passage || (s.paragraphs || []).map(p => '[' + p.letter + '] ' + p.text).join('\n'), s.bank);
     }
     btn.disabled = false;
     btn.textContent = old;
@@ -4153,7 +4240,7 @@
   }
 
   function examClick(e) {
-    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list]');
+    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list]');
     if (!t) return;
     if (t.dataset.exam) { openExam(t.dataset.exam); return; }
     if (t.dataset.start) { startExamType(t.dataset.start); return; }
@@ -4161,6 +4248,14 @@
     if (t.dataset.backList) { examCur = null; examShowPane('list'); renderExamsList(); return; }
     if (t.dataset.detail) { renderExamDetail(); examShowPane('detail'); return; }
     if (t.dataset.list) { examCur = null; examShowPane('list'); renderExamsList(); return; }
+    if (t.dataset.blank) {
+      const s = examCurSession();
+      if (s && s.questions) {
+        const i = s.questions.findIndex(q => String(q.no) === t.dataset.blank);
+        if (i >= 0 && i !== examQIdx) { examQIdx = i; examDraft = ''; renderExamSession(); }
+      }
+      return;
+    }
     if (t.dataset.opt) {
       examPick = t.dataset.opt;
       const q = examCurQuestion();
@@ -4173,7 +4268,7 @@
       const ok = t.dataset.mark === '1' ? 1 : 0;
       const s = examCurSession();
       if (s && (s.type === 'writing' || s.type === 'translation') && !examDraft.trim()) { announce('请先写下你的作答再自评'); return; }
-      if (!examPick && s && (s.type === 'reading' || s.type === 'matching')) { announce('请先选择一个选项'); return; }
+      if (!examPick && s && (s.type === 'reading' || s.type === 'matching' || s.type === 'cloze')) { announce('请先选择一个选项'); return; }
       examRecord(ok, 'self');
       announce(ok ? '已记录：答对' : '已记录：答错，已加入错题');
       renderExamSession();
@@ -4220,7 +4315,7 @@
     if (window.Exams) {
       Exams.init(ds && ds.examManifest);
       const n = Exams.list().length;
-      if (n) $('exams-entry-sub').textContent = n + ' 套六级真题 · 阅读 / 匹配 / 写译';
+      if (n) $('exams-entry-sub').textContent = n + ' 套六级真题 · 阅读 / 选词 / 匹配 / 写译';
     }
     if (!Library.hasData()) {
       $('loading').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3)">词库加载失败。<br>请确认 app/data 数据文件存在。</div>';

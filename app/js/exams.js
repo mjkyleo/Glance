@@ -1,5 +1,5 @@
 // Glance 真题刷题引擎：manifest/分片懒加载、按题型组卷、三级判分（答案自动 → AI 分析 → 自评）。
-// schema2 语料：少数套卷含官方答案（answers map，自动判分），其余 answers:null 留位；听力无音频暂不开刷；选词填空复用现有专项牌组。
+// schema2 语料：少数套卷含官方答案（answers map，自动判分），其余 answers:null 留位；听力无音频暂不开刷；选词填空按「短文 + A–O 词库」开刷。
 (function () {
   let manifest = null;
   const shards = new Map();
@@ -35,18 +35,19 @@
     return out;
   }
 
-  // 可刷题型：听力（无音频）与选词填空（复用专项）不在此开刷
+  // 可刷题型：听力（无音频）不在此开刷；选词填空需词库与空位齐全
   function availableTypes(exam) {
     const out = [];
     const secs = exam.sections || [];
     if (secs.some(s => s.type === 'reading' && s.groups.some(g => g.questions.some(q => Object.keys(q.options).length >= 2)))) out.push('reading');
     if (secs.some(s => s.type === 'matching' && s.groups.some(g => g.questions.length && paragraphsOf(g).length))) out.push('matching');
+    if (secs.some(s => s.type === 'cloze' && s.groups.some(g => g.questions.length && g.bank && Object.keys(g.bank).length >= 2))) out.push('cloze');
     if (exam.writing && (exam.writing.prompt || exam.writing.directions)) out.push('writing');
     if (exam.translation && exam.translation.passage) out.push('translation');
     return out;
   }
 
-  // 组卷：阅读按「一段材料 + 一组题」为单位，匹配整组，写译单题——不整卷塞满
+  // 组卷：阅读按「一段材料 + 一组题」为单位，匹配整组，选词整篇，写译单题——不整卷塞满
   function sessions(exam, type) {
     const out = [];
     for (const s of exam.sections || []) {
@@ -58,6 +59,8 @@
         } else if (type === 'matching') {
           const paras = paragraphsOf(g);
           if (g.questions.length && paras.length) out.push({ type, paragraphs: paras, directions: s.directions || '', questions: g.questions.slice() });
+        } else if (type === 'cloze') {
+          if (g.questions.length && g.bank && Object.keys(g.bank).length >= 2) out.push({ type, passage: g.passage || '', bank: g.bank, directions: s.directions || '', questions: g.questions.slice() });
         }
       }
     }
@@ -101,18 +104,21 @@
   function questionCacheKey(examId, no) { return examId + ':' + no; }
   function writingCacheKey(examId, kind) { return examId + ':' + (kind === 'translation' ? 't' : 'w'); }
 
-  async function analyzeQuestion(exam, q, pick, passage) {
+  async function analyzeQuestion(exam, q, pick, passage, bank) {
     const key = questionCacheKey(exam.examId, q.no);
     const cached = Store.examAi(key);
     if (cached) return { ok: true, text: cached.text, cached: true };
     const opts = Object.entries(q.options || {}).map(([L, t]) => L + '. ' + t).join('\n');
+    const bankText = bank ? Object.keys(bank).sort().map(L => L + '. ' + bank[L]).join('\n') : '';
+    const pickWord = bank && pick && bank[pick] ? pick + '（' + bank[pick] + '）' : (pick || '（未作答）');
     const user = [
-      '题型：' + (q.type === 'reading' ? '仔细阅读' : q.type === 'matching' ? '信息匹配' : q.type),
+      '题型：' + (q.type === 'reading' ? '仔细阅读' : q.type === 'matching' ? '信息匹配' : q.type === 'cloze' ? '选词填空' : q.type),
       q.type === 'matching' ? '题目：把陈述句匹配到段落（选项为段落字母）' : '',
+      q.type === 'cloze' ? '题目：短文第 ' + q.no + ' 空，从词库选一词填入（每词限用一次）' : '',
       passage ? '材料节选：\n' + String(passage).slice(0, 1500) : '',
-      '题干：' + (q.stem || '（听力/匹配题，题干见上）'),
-      opts ? '选项：\n' + opts : '',
-      '用户作答：' + (pick || '（未作答）')
+      q.type === 'cloze' ? (bankText ? '词库：\n' + bankText : '') : ('题干：' + (q.stem || '（听力/匹配题，题干见上）')),
+      q.type === 'cloze' ? '' : (opts ? '选项：\n' + opts : ''),
+      '用户作答：' + pickWord
     ].filter(Boolean).join('\n\n');
     const res = await chat(SYS_QUESTION, user);
     if (res.ok) Store.saveExamAi(key, res.text, res.provider, res.model);
