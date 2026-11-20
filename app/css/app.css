@@ -17,6 +17,9 @@
   --green-fg: #3f8a5f;
   --purple: #a08ad0;
   --orange: #e6a95c;
+  --morph-prefix: #3d7bfd;
+  --morph-root: #c9761d;
+  --morph-suffix: #c653a8;
   --orange-fg: #b07a30;
   --red: #e0806d;
   --red-fg: #c05a48;
@@ -403,6 +406,9 @@ html[data-theme="violet"] {
     --green-fg: #8fd0a8;
     --purple: #bda6e6;
     --orange: #e6b87f;
+    --morph-prefix: #7fa8ff;
+    --morph-root: #f0b269;
+    --morph-suffix: #e58fd0;
     --orange-fg: #e6b87f;
     --red: #e89a88;
     --red-fg: #e89a88;
@@ -596,6 +602,10 @@ body.has-bg { background-color: transparent; background-image: none; }
 .speak-btn:hover { background: var(--fill-2); }
 .speak-btn:active { transform: scale(var(--press-scale)); opacity: var(--press-opacity); }
 .phonetic { margin-top: 10px; font-size: 15px; color: var(--text-3); letter-spacing: 0.2px; min-height: 18px; }
+.word-sub { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; text-align: var(--word-align); }
+.word-sub[hidden] { display: none; }
+.word-sub .phonetic { margin-top: 0; min-height: 0; }
+.word-sub .morph-line { justify-content: var(--word-justify); }
 
 
 /* ---------- small row ops (settings lists) ---------- */
@@ -1289,12 +1299,36 @@ button:disabled { opacity: 0.45; cursor: default; }
 .ai-pos { flex: 0 0 auto; font-family: var(--font-en); font-size: 13px; font-weight: 700; color: var(--purple); font-style: italic; }
 .ai-meaning-text { color: var(--text); }
 .ai-meaning-en { font-family: var(--font-en); font-size: 15px; line-height: 1.55; color: var(--text); }
-.ai-morphemes { display: flex; flex-direction: column; gap: 6px; }
-.ai-morph { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
-.ai-morph-part { border: none; background: none; padding: 0; font-weight: 700; color: var(--text); font-family: var(--font-mono); font-size: 13px; cursor: pointer; }
-.ai-morph-part:hover { color: var(--accent); text-decoration: underline; }
-.ai-morph-type { flex: 0 0 auto; font-size: 11px; color: var(--accent-fg); background: var(--accent); padding: 1px 7px; border-radius: var(--r-chip); }
-.ai-morph-gloss { color: var(--text-2); }
+.morph-line { display: flex; align-items: flex-start; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; scrollbar-color: var(--fill-2) transparent; }
+.morph-line::-webkit-scrollbar { height: 4px; }
+.morph-line::-webkit-scrollbar-track { background: transparent; }
+.morph-line::-webkit-scrollbar-thumb { background: var(--fill-2); border-radius: 2px; }
+.morph-line::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+.morph-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 0 auto; max-width: 132px; }
+.morph-part { border: none; background: none; padding: 0 2px; font-family: var(--font-en); font-size: 20px; font-weight: 700; line-height: 1.2; color: var(--text); cursor: pointer; transition: transform var(--dur-ui) var(--ease-ui); }
+.morph-part:hover { text-decoration: underline; text-underline-offset: 3px; }
+.morph-part:active { transform: scale(var(--press-scale)); }
+.morph-prefix .morph-part { color: var(--morph-prefix); }
+.morph-root .morph-part { color: var(--morph-root); }
+.morph-suffix .morph-part { color: var(--morph-suffix); }
+.morph-type { font-size: 10.5px; font-weight: 600; letter-spacing: .3px; padding: 1px 8px; border-radius: var(--r-chip); }
+.morph-prefix .morph-type { color: var(--morph-prefix); background: color-mix(in srgb, var(--morph-prefix) 13%, transparent); }
+.morph-root .morph-type { color: var(--morph-root); background: color-mix(in srgb, var(--morph-root) 15%, transparent); }
+.morph-suffix .morph-type { color: var(--morph-suffix); background: color-mix(in srgb, var(--morph-suffix) 13%, transparent); }
+.morph-gloss { font-size: 11.5px; line-height: 1.4; color: var(--text-2); text-align: center; }
+.morph-gloss:empty { display: none; }
+.morph-join { flex: 0 0 auto; font-size: 16px; font-weight: 600; color: var(--text-3); line-height: var(--morph-part-h, 24px); }
+.roots-opts { margin-top: -4px; }
+.roots-opts .chip { font-size: 11.5px; }
+
+/* ---------- AI space impression article ---------- */
+.art-words .chip { font-size: 11.5px; }
+.art-body { display: flex; flex-direction: column; gap: 12px; }
+.art-p { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; border-left: 2px solid var(--fill-2); }
+.art-en { font-family: var(--font-en); font-size: 15px; line-height: 1.75; color: var(--text); }
+.art-zh { font-size: 13px; line-height: 1.6; color: var(--text-3); }
+.art-word { border: none; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font: inherit; font-weight: 700; padding: 0 3px; border-radius: 4px; cursor: pointer; }
+.art-word:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); text-decoration: underline; }
 .ai-examples { display: flex; flex-direction: column; gap: 8px; }
 .ai-example { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; border-left: 2px solid var(--fill-2); }
 .ai-ex-en { font-family: var(--font-en); font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.55; }

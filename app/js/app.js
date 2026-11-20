@@ -492,7 +492,7 @@
     else if (SRS.isKnown(st)) { badge.textContent = '已掌握'; badge.className = 'word-badge known'; }
     else { badge.textContent = '复习'; badge.className = 'word-badge review'; }
     $('word-due').textContent = item.kind === 'new' ? '' : SRS.nextDueLabel(st, Date.now());
-    renderWordBlocks(e, $('word-blocks'));
+    renderWordBlocks(e, $('word-blocks'), $('word-sub'));
     updatePlanBar();
     const panel = $('study-panel');
     panel.classList.remove('anim'); void panel.offsetWidth; panel.classList.add('anim');
@@ -518,9 +518,10 @@
 
   // 唯一的信息块渲染器：学习页内联与词卡弹层都走这里，顺序/开关只有一套。
   // 资源来源不同（全局词库 / 真题语料 / 外部词典 / AI 缓存），显示与配置统一。
-  function renderWordBlocks(e, host) {
+  function renderWordBlocks(e, host, head) {
     if (!host) return;
     host.innerHTML = '';
+    if (head) { head.innerHTML = ''; head.hidden = true; }
     const sp = Store.data.studyPanel || {};
     const on = k => sp[k] !== false;
 
@@ -552,12 +553,16 @@
         if (!on('phonetic')) return null;
         const text = e.phonetic ? '/' + e.phonetic + '/' + (e.cefr ? '  ·  ' + e.cefr : '') : (e.cefr || '');
         if (!text) return null;
-        return el('div', 'phonetic', text);
+        const node = el('div', 'phonetic', text);
+        if (head) { head.appendChild(node); head.hidden = false; return null; }
+        return node;
       },
       morphemes() {
         if (!on('morphemes')) return null;
-        const m = buildMorphemes(e);
-        return m ? row('构词', m) : null;
+        const m = buildMorphLine(e.morphemes || [], e.root);
+        if (!m) return null;
+        if (head) { head.appendChild(m); head.hidden = false; return null; }
+        return row('构词', m);
       },
       mnemonic() {
         if (!on('mnemonic')) return null;
@@ -663,6 +668,10 @@
       if (node) host.appendChild(node);
     });
     host.hidden = !host.childNodes.length;
+    const lines = [];
+    if (head) head.querySelectorAll('.morph-line').forEach(l => lines.push(l));
+    host.querySelectorAll('.morph-line').forEach(l => lines.push(l));
+    if (lines.length) requestAnimationFrame(() => lines.forEach(fitMorphLine));
   }
 
   function renderEmpty() {
@@ -706,26 +715,53 @@
   }
 
   // ===================== morphemes =====================
-  function buildMorphemes(e) {
-    const chips = e.morphemes || [];
-    if (!chips.length) return null;
-    const wrap = el('div', 'ai-morphemes');
-    chips.forEach(c => {
-      const line = el('div', 'ai-morph');
-      const part = el('button', 'ai-morph-part');
+  const MORPH_TYPE = { prefix: '前缀', root: '词根', suffix: '后缀' };
+  function morphGlossOf(c, rootWord) {
+    if (c.gloss) return c.gloss;
+    const base = String(c.text || '').replace(/^-+|-+$/g, '');
+    if (c.type === 'root' && rootWord) { const f = Library.getFamily(rootWord); if (f && f.zh) return f.zh; }
+    const id = c.type === 'prefix' ? base + '-' : c.type === 'suffix' ? '-' + base : base;
+    const a = Library.getAffixes().find(x => x.id === id);
+    if (a && (a.zh || a.en)) return a.zh || a.en;
+    const r = Library.listRoots().find(x => x.root === base);
+    return (r && (r.zh || r.g)) || '';
+  }
+  // 构词合并为一行：词素大字按类型配色，类型徽标与释义在各自列下方对齐。
+  function buildMorphLine(chips, rootWord) {
+    if (!chips || !chips.length) return null;
+    const line = el('div', 'morph-line');
+    chips.forEach((c, i) => {
+      if (!c || !c.text) return;
+      if (line.childNodes.length) line.appendChild(el('span', 'morph-join', '+'));
+      const type = ['prefix', 'root', 'suffix'].includes(c.type) ? c.type : 'root';
+      const gloss = morphGlossOf(c, rootWord);
+      const col = el('div', 'morph-col morph-' + type);
+      const part = el('button', 'morph-part');
       part.type = 'button';
       part.textContent = c.text;
-      part.title = ({ prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '') + (c.gloss ? ' · ' + c.gloss : '');
+      part.title = (MORPH_TYPE[c.type] || '词素') + (gloss ? ' · ' + gloss : '');
       part.addEventListener('click', () => {
-        if (c.type === 'root' && e.root) openFamily(e.root);
-        else openAffixByChip(c.text, c.type);
+        if (c.type === 'root' && rootWord) openFamily(rootWord);
+        else openAffixByChip(c.text.replace(/^-+|-+$/g, ''), c.type);
       });
-      line.appendChild(part);
-      line.appendChild(el('span', 'ai-morph-type', { prefix: '前缀', root: '词根', suffix: '后缀' }[c.type] || '词素'));
-      if (c.gloss) line.appendChild(el('span', 'ai-morph-gloss', c.gloss));
-      wrap.appendChild(line);
+      col.appendChild(part);
+      col.appendChild(el('span', 'morph-type', MORPH_TYPE[c.type] || '词素'));
+      col.appendChild(el('span', 'morph-gloss', gloss));
+      line.appendChild(col);
     });
-    return wrap;
+    return line.childNodes.length ? line : null;
+  }
+  function fitMorphLine(line) {
+    if (!line || !line.isConnected) return;
+    const parts = line.querySelectorAll('.morph-part');
+    if (!parts.length) return;
+    let size = 20;
+    const apply = () => {
+      parts.forEach(p => { p.style.fontSize = size + 'px'; });
+      line.style.setProperty('--morph-part-h', Math.round(size * 1.2) + 'px');
+    };
+    apply();
+    while (size > 13 && line.scrollWidth > line.clientWidth + 1) { size -= 1; apply(); }
   }
 
   // ===================== quiz =====================
@@ -1378,10 +1414,20 @@
   }
 
   function renderRoots() {
+    const rv = Store.data.rootsView || { sort: 'size', hideSmall: true };
     const raw = $('roots-search').value.trim();
     const q = raw.toLowerCase();
     let base = Library.listRoots();
     if (q) base = base.filter(r => r.root.toLowerCase().includes(q) || (r.zh || '').includes(raw));
+    else if (rv.hideSmall) base = base.filter(r => (r.size || 0) >= 3);
+    const opts = $('roots-opts');
+    opts.innerHTML = '';
+    [['sort-size', '词数降序', rv.sort === 'size'], ['sort-alpha', '字母序', rv.sort === 'alpha'], ['small', rv.hideSmall ? '已隐藏 <3 词家族' : '显示全部家族', rv.hideSmall]].forEach(([act, label, active]) => {
+      const b = el('button', 'chip' + (active ? ' active' : ''), label);
+      b.type = 'button';
+      b.dataset.rootsOpt = act;
+      opts.appendChild(b);
+    });
     const infos = new Map();
     base.forEach(r => infos.set(r.root, rootInfo(r)));
     const cats = $('roots-cats');
@@ -1395,26 +1441,34 @@
     });
     let roots = rootsFilter === 'all' ? base : base.filter(r => catOf(infos.get(r.root)) === rootsFilter);
     roots = roots.slice().sort((a, b) => {
+      if (rv.sort === 'size') return (b.size || 0) - (a.size || 0) || a.root.localeCompare(b.root);
       const na = /[a-z]/i.test(a.root[0] || '') ? 0 : 1, nb = /[a-z]/i.test(b.root[0] || '') ? 0 : 1;
       return na - nb || a.root.localeCompare(b.root);
     });
     const list = $('roots-list');
     if (rootsBatch.io) { rootsBatch.io.disconnect(); rootsBatch.io = null; }
     list.innerHTML = '';
+    list.scrollTop = 0;
     const rail = $('roots-rail');
     rail.innerHTML = '';
+    rail.hidden = rv.sort === 'size';
     if (!roots.length) { list.appendChild(el('div', 'empty-hint', '没有匹配的词根')); return; }
     const groups = [];
-    roots.forEach(r => {
-      const ch = (r.root[0] || '#').toUpperCase();
-      const letter = /[A-Z]/.test(ch) ? ch : '#';
-      let g = groups[groups.length - 1];
-      if (!g || g.letter !== letter) { g = { letter, items: [] }; groups.push(g); }
-      g.items.push(r);
-    });
+    if (rv.sort === 'size') {
+      groups.push({ letter: '', items: roots });
+    } else {
+      roots.forEach(r => {
+        const ch = (r.root[0] || '#').toUpperCase();
+        const letter = /[A-Z]/.test(ch) ? ch : '#';
+        let g = groups[groups.length - 1];
+        if (!g || g.letter !== letter) { g = { letter, items: [] }; groups.push(g); }
+        g.items.push(r);
+      });
+    }
     const wrap = el('div', 'list-gap compact-gap');
     list.appendChild(wrap);
     groups.forEach(g => {
+      if (!g.letter) return;
       const b = el('button', null, g.letter);
       b.type = 'button';
       b.dataset.letter = g.letter;
@@ -1431,9 +1485,11 @@
       const g = b.groups[b.gi];
       if (b.ri === 0) {
         b.cur = el('div', 'letter-group');
-        const h = el('div', 'letter-head', g.letter);
-        h.dataset.letter = g.letter;
-        b.cur.appendChild(h);
+        if (g.letter) {
+          const h = el('div', 'letter-head', g.letter);
+          h.dataset.letter = g.letter;
+          b.cur.appendChild(h);
+        }
         b.wrap.appendChild(b.cur);
       }
       b.cur.appendChild(rootRow(g.items[b.ri], b.infos.get(g.items[b.ri].root)));
@@ -1449,7 +1505,8 @@
     main.appendChild(el('div', 'row-sub', r.zh || r.g || ''));
     const done = attachRowProgress(row, main, info);
     row.appendChild(main);
-    if (info && Store.data.progressBars && info.total) {
+    const sizeMode = (Store.data.rootsView || {}).sort === 'size';
+    if (!sizeMode && info && Store.data.progressBars && info.total) {
       row.appendChild(el('span', 'row-badge' + (done ? ' green' : ''), info.learned + '/' + info.total));
     } else {
       row.appendChild(el('span', 'row-badge', r.size + ' 词'));
@@ -2238,7 +2295,7 @@
   function findEntry(word) {
     return activeBook().entries.find(e => e.word === word) || Library.lookup(word) || null;
   }
-  function openWordSheet(word, fromSearch, trail) {
+  function openWordSheet(word, fromSearch, trail, nested) {
     const e = findEntry(word);
     sheetWord = word;
     setCrumbs('crumbs-word', (trail || []).concat([{ label: word }]));
@@ -2247,6 +2304,7 @@
     $('word-sheet-title').textContent = word;
     if (!e) {
       $('word-sheet-sub').textContent = '';
+      $('word-sheet-sub').hidden = true;
       const body = $('word-sheet-body');
       body.innerHTML = '<div class="empty-hint">词库中暂无该词，可尝试外部词典查询。</div>';
       if (window.Dictionary) {
@@ -2255,11 +2313,15 @@
         body.appendChild(blocks);
       }
       $('word-study-btn').disabled = true;
-      openSheet('word-sheet');
+      if (nested) openNestedSheet('word-sheet'); else openSheet('word-sheet');
       return;
     }
     $('word-study-btn').disabled = false;
-    $('word-sheet-sub').textContent = (e.phonetic ? '/' + e.phonetic + '/  ' : '') + (e.cefr || '') + (e.root ? '  ·  词根 ' + e.root : '');
+    const subBits = [];
+    if ((Store.data.studyPanel || {}).phonetic === false && e.cefr) subBits.push(e.cefr);
+    if (e.root) subBits.push('词根 ' + e.root);
+    $('word-sheet-sub').textContent = subBits.join(' · ');
+    $('word-sheet-sub').hidden = !subBits.length;
     const body = $('word-sheet-body');
     body.innerHTML = '';
     const metaRow = el('div', 'exam-tags');
@@ -2270,11 +2332,13 @@
     const speakRow = el('button', 'btn-ghost', '🔊 朗读');
     speakRow.addEventListener('click', () => speak(word, e.audio));
     body.appendChild(speakRow);
+    const head = el('div', 'word-sub');
+    body.appendChild(head);
     const blocks = el('div', 'study-info word-blocks');
-    renderWordBlocks(e, blocks);
+    renderWordBlocks(e, blocks, head);
     body.appendChild(blocks);
     updateFavToggle();
-    openSheet('word-sheet');
+    if (nested) openNestedSheet('word-sheet'); else openSheet('word-sheet');
   }
   function updateFavToggle() {
     const fav = Store.isFavorite(sheetWord);
@@ -2282,7 +2346,6 @@
   }
 
   // ===================== AI explanations =====================
-  const AI_TYPE = { prefix: '前缀', root: '词根', suffix: '后缀' };
   function renderAiExplanation(container, data) {
     container.innerHTML = '';
     const block = (title, node) => { const s = el('div', 'ai-block'); if (title) s.appendChild(el('div', 'ai-block-title', title)); s.appendChild(node); container.appendChild(s); };
@@ -2293,9 +2356,9 @@
       block('释义', wrap);
     }
     if (Array.isArray(data.morphemes) && data.morphemes.length) {
-      const wrap = el('div', 'ai-morphemes');
-      data.morphemes.forEach(m => { const chip = el('div', 'ai-morph'); chip.appendChild(el('span', 'ai-morph-part', m.part || '')); chip.appendChild(el('span', 'ai-morph-type', AI_TYPE[m.type] || '词素')); chip.appendChild(el('span', 'ai-morph-gloss', (m.gloss_zh || m.gloss_en || '') + (m.note ? ' · ' + m.note : ''))); wrap.appendChild(chip); });
-      block('构词', wrap);
+      const chips = data.morphemes.map(m => ({ text: m.part || '', type: m.type, gloss: (m.gloss_zh || m.gloss_en || '') + (m.note ? ' · ' + m.note : '') }));
+      const line = buildMorphLine(chips, null);
+      if (line) block('构词', line);
     }
     if (data.memoryTip) block('巧记', text(data.memoryTip));
     if (Array.isArray(data.examples) && data.examples.length) {
@@ -2312,6 +2375,7 @@
       block('易混词', wrap);
     }
     if (data.etymology) block('词源', text(data.etymology));
+    requestAnimationFrame(() => container.querySelectorAll('.morph-line').forEach(fitMorphLine));
   }
 
   function aiConfigPrompt(content, actions) {
@@ -3258,7 +3322,7 @@
     const sh = $('word-sheet');
     if (sh && !sh.hidden && sheetWord) {
       const se = findEntry(sheetWord);
-      if (se) renderWordBlocks(se, sh.querySelector('.word-blocks'));
+      if (se) renderWordBlocks(se, sh.querySelector('.word-blocks'), sh.querySelector('.word-sub'));
     }
   }
   function savePanelOrder(ids) {
@@ -3592,7 +3656,10 @@
       AppPlugin.addListener('backButton', () => { if (!handleBack()) AppPlugin.exitApp(); });
     }
     $('sheet-backdrop').addEventListener('click', () => closeSheet());
-    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSheet()));
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
+      if (nestedSheetEl && b.closest('.sheet') === nestedSheetEl) closeNestedSheet();
+      else closeSheet();
+    }));
 
     document.querySelectorAll('[data-settings-pane]').forEach(b => b.addEventListener('click', () => openSettings(b.dataset.settingsPane)));
     document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
@@ -3693,9 +3760,19 @@
       openSheet('quiz-settings-sheet');
     });
 
-    $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-cats').hidden = false; $('roots-rail').hidden = false; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
-    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-cats').hidden = true; $('roots-rail').hidden = true; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
+    $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-cats').hidden = false; $('roots-opts').hidden = false; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
+    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-cats').hidden = true; $('roots-opts').hidden = true; $('roots-rail').hidden = true; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
     $('roots-search').addEventListener('input', () => rootsTab === 'roots' ? renderRoots() : renderAffixes());
+    $('roots-opts').addEventListener('click', ev => {
+      const b = ev.target.closest('[data-roots-opt]'); if (!b) return;
+      const rv = Store.data.rootsView;
+      const act = b.dataset.rootsOpt;
+      if (act === 'sort-size') rv.sort = 'size';
+      else if (act === 'sort-alpha') rv.sort = 'alpha';
+      else if (act === 'small') rv.hideSmall = !rv.hideSmall;
+      Store.save();
+      renderRoots();
+    });
     $('roots-cats').addEventListener('click', ev => {
       const b = ev.target.closest('.chip'); if (!b) return;
       rootsFilter = b.dataset.cat;
@@ -3706,7 +3783,15 @@
       const sel = '#roots-list .letter-head[data-letter="' + b.dataset.letter + '"]';
       let h = document.querySelector(sel), guard = 0;
       while (!h && rootsBatch.gi < rootsBatch.groups.length && guard++ < 200) { loadRootsBatch(); h = document.querySelector(sel); }
-      if (h) h.scrollIntoView({ block: 'start' });
+      // sticky heads make scrollIntoView land short; scroll the group box instead.
+      if (h) {
+        const l = $('roots-list');
+        const g = h.closest('.letter-group') || h;
+        const want = l.scrollTop + g.getBoundingClientRect().top - l.getBoundingClientRect().top;
+        let ahead = 0;
+        while (l.scrollHeight < want + l.clientHeight && rootsBatch.gi < rootsBatch.groups.length && ahead++ < 200) loadRootsBatch();
+        l.scrollTop = want;
+      }
     });
     $('affix-filter').addEventListener('click', ev => {
       const b = ev.target.closest('.chip'); if (!b) return;
@@ -4003,7 +4088,7 @@
       }
     });
 
-    window.addEventListener('resize', () => { placeTabIndicator(); });
+    window.addEventListener('resize', () => { placeTabIndicator(); document.querySelectorAll('.morph-line').forEach(fitMorphLine); });
     window.matchMedia('(min-width: 960px)').addEventListener('change', () => {
       if (openSheetEl || nestedSheetEl) setAppInert(true);
       placeTabIndicator();
@@ -4573,10 +4658,10 @@
   };
 
   function aiReady() { const cfg = Store.data.ai || {}; return !!(cfg.enabled && window.AI && AI.effectiveKey(cfg)); }
-  async function aiSpaceChat(system, user) {
+  async function aiSpaceChat(system, user, opts) {
     const rc = AI.resolveConfig(Store.data.ai || {});
     if (!rc.key || !rc.base || !rc.model) return { ok: false, error: 'AI 未配置（服务商 / Key / 模型）' };
-    const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.4, jsonMode: false, anthropic: rc.anthropic, noThink: rc.noThink });
+    const res = await Platform.llmChat({ base: rc.base, key: rc.key, model: rc.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: opts && opts.temperature != null ? opts.temperature : 0.4, jsonMode: !!(opts && opts.jsonMode), anthropic: rc.anthropic, noThink: rc.noThink });
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true, text: String(res.content || '').trim(), provider: rc.provider && rc.provider.id, model: rc.model };
   }
@@ -4718,7 +4803,7 @@
     else if (aiStage === 'done') renderAiDone(body);
     else renderAiReportView(body);
     if (!openSheetEl || openSheetEl.id !== 'ai-space-sheet') openSheet('ai-space-sheet');
-    body.scrollTop = aiStage === 'session' ? sc : 0;
+    body.scrollTop = (aiStage === 'session' || aiBusy) ? sc : 0;
   }
 
   function aiStatRow(pairs) {
@@ -4776,6 +4861,7 @@
     hero.appendChild(start);
     if (!aiReady()) hero.appendChild(el('p', 'field-hint', '接入 AI 后即可开始；计划与进度会保存在本机。'));
     body.appendChild(hero);
+    aiArticleCard(body);
     const reports = Object.keys(Store.data.space.report || {}).sort().reverse();
     const card = el('div', 'ai-card');
     card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">每日报告</span><span class="exam-badge gray">' + reports.length + ' 份</span></div>' +
@@ -4945,6 +5031,7 @@
     acts.appendChild(back);
     rep.appendChild(acts);
     body.appendChild(rep);
+    aiArticleCard(body);
     const more = el('button', 'link-btn', '查看历史报告'); more.type = 'button';
     more.dataset.aiAct = 'to-confirm';
     body.appendChild(more);
@@ -4989,6 +5076,98 @@
     aiBusy = '';
     if (res.ok) { Store.spaceSet('report', Store.today(), { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('今日报告已生成'); }
     else aiTeachErr = res.error;
+    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+  }
+
+  // ---- 印象文章：把学过的词串成短文，按天 + 字数范围缓存 ----
+  const AI_ARTICLE_RANGES = { s: [60, 100], m: [120, 180], l: [250, 350] };
+  const AI_ARTICLE_NAME = { s: '短篇 60–100 词', m: '中篇 120–180 词', l: '长篇 250–350 词' };
+  function aiArticleRange() {
+    const p = Store.spaceGet('article', 'prefs');
+    return p && AI_ARTICLE_RANGES[p.range] ? p.range : 'm';
+  }
+  function aiArticleWords() {
+    const set = new Set();
+    if (aiSession) aiSession.steps.forEach(s => (s.words || []).forEach(w => set.add(w)));
+    const log = Store.data.logs[Store.today()] || {};
+    (log.newWords || []).concat(log.reviewWords || []).forEach(w => set.add(w));
+    if (!set.size) aiDueWords(8).forEach(w => set.add(w));
+    if (!set.size) aiNewWords(8).forEach(w => set.add(w));
+    return Array.from(set).slice(0, 12);
+  }
+  function aiArticleCard(body) {
+    const words = aiArticleWords();
+    const range = aiArticleRange();
+    const rec = Store.spaceGet('article', Store.today() + ':' + range);
+    const shown = rec && rec.words.length ? rec.words : words;
+    const card = el('div', 'ai-card');
+    card.innerHTML = '<div class="ai-card-head"><span class="ai-card-title">印象文章</span><span class="exam-badge gray">' + shown.length + ' 词</span></div>' +
+      '<p class="field-hint">把今天学过的词串成一篇英文短文，在语境里再过一遍。目标词高亮，点词看详解；中文译文在每段下方。</p>';
+    if (shown.length) {
+      const chips = el('div', 'chip-row wrap art-words');
+      shown.forEach(w => chips.appendChild(el('span', 'chip static', w)));
+      card.appendChild(chips);
+    }
+    card.appendChild(aiCfgChips('文章字数', 'art-range', Object.keys(AI_ARTICLE_RANGES).map(k => [k, AI_ARTICLE_NAME[k]]), range));
+    if (!words.length) {
+      card.appendChild(el('p', 'field-hint', '今天还没有学习记录。先去学习页学几个词，再来生成文章。'));
+    } else if (aiBusy === 'article') {
+      card.appendChild(el('p', 'ai-placeholder ai-thinking', 'AI 正在把今天的词写进文章…'));
+    } else if (rec) {
+      const art = el('div', 'art-body');
+      const re = rec.words.length ? new RegExp('\\b(' + rec.words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?:s|es|ed|ing|d)?\\b', 'gi') : null;
+      rec.paras.forEach(p => {
+        const d = el('div', 'art-p');
+        const en = el('div', 'art-en');
+        const safe = esc(p.en);
+        en.innerHTML = re ? safe.replace(re, (m, base) => '<button class="art-word" type="button" data-w="' + esc(String(base).toLowerCase()) + '">' + m + '</button>') : safe;
+        d.appendChild(en);
+        if (p.zh) d.appendChild(el('div', 'art-zh', p.zh));
+        art.appendChild(d);
+      });
+      card.appendChild(art);
+      card.insertAdjacentHTML('beforeend', aiNoteHtml(rec));
+    } else if (aiTeachErr) {
+      card.insertAdjacentHTML('beforeend', aiFailHtml(aiTeachErr));
+    }
+    const acts = el('div', 'exam-actions');
+    const gen = el('button', 'btn-primary', rec ? '重新生成' : '生成文章'); gen.type = 'button';
+    gen.dataset.aiAct = 'art-gen';
+    gen.disabled = aiBusy === 'article' || !aiReady() || !words.length;
+    acts.appendChild(gen);
+    if (rec) {
+      const del = el('button', 'btn-ghost', '删除本篇'); del.type = 'button';
+      del.dataset.aiAct = 'art-del'; del.disabled = aiBusy === 'article';
+      acts.appendChild(del);
+    }
+    card.appendChild(acts);
+    if (!aiReady()) card.appendChild(el('p', 'field-hint', '接入 AI 后即可生成；文章按天与字数缓存，导出备份会一并带上。'));
+    body.appendChild(card);
+  }
+  const AI_SYS_ARTICLE = '你是大学英语六级词汇教练。把用户给出的目标词全部自然嵌入一篇连贯有趣的英文短文（校园、科技或生活题材），每个目标词至少出现一次，允许时态/复数变形。难度适中，帮助记忆。只输出 JSON，格式 {"paras":[{"en":"英文段落","zh":"对应中文翻译"}]}，2–4 段，不要输出 JSON 以外的任何内容。';
+  async function aiGenArticle() {
+    if (aiBusy || !aiReady()) return;
+    const words = aiArticleWords();
+    if (!words.length) return;
+    const range = aiArticleRange();
+    const lo = AI_ARTICLE_RANGES[range][0], hi = AI_ARTICLE_RANGES[range][1];
+    aiBusy = 'article'; aiTeachErr = ''; renderAiSpace();
+    const user = '目标词（括号内为释义，供把握语义）：' + words.map(w => w + '（' + aiGloss(w) + '）').join('、') +
+      '\n文章长度：' + lo + '–' + hi + ' 个英文单词。请输出 JSON。';
+    const res = await aiSpaceChat(AI_SYS_ARTICLE, user, { jsonMode: true, temperature: 0.7 });
+    aiBusy = '';
+    if (res.ok) {
+      const txt = res.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      let obj = null;
+      try { obj = JSON.parse(txt); } catch (e) { /* fallthrough */ }
+      const paras = obj && Array.isArray(obj.paras)
+        ? obj.paras.filter(p => p && typeof p.en === 'string' && p.en.trim()).slice(0, 4).map(p => ({ en: p.en.trim(), zh: String(p.zh || '').trim() }))
+        : [];
+      if (paras.length) {
+        Store.spaceSet('article', Store.today() + ':' + range, { paras, words, range, t: Date.now(), provider: res.provider, model: res.model });
+        announce('印象文章已生成');
+      } else aiTeachErr = 'AI 返回格式异常，请重试';
+    } else aiTeachErr = res.error;
     if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
   }
 
@@ -5046,7 +5225,7 @@
     const res = await aiSpaceChat(AI_SYS_ASK, [ctx, prev ? '此前问答：\n' + prev : '', '当前问题：' + q].filter(Boolean).join('\n\n'));
     aiBusy = '';
     if (res.ok) {
-      aiSession.qa = aiSession.qa.concat([{ q, a: res.text, t: Date.now() }]).slice(-8);
+      aiSession.qa = aiSession.qa.concat([{ q, a: res.text, t: Date.now() }]).slice(-40);
       aiSaveSession();
       announce('回答已生成');
     } else announce('提问失败：' + res.error);
@@ -5054,6 +5233,8 @@
   }
 
   function aiSpaceClick(e) {
+    const aw = e.target.closest('.art-word');
+    if (aw) { openWordSheet(aw.dataset.w, false, [], true); return; }
     const t = e.target.closest('[data-ai-act]');
     if (!t) return;
     const act = t.dataset.aiAct;
@@ -5061,6 +5242,9 @@
     else if (act === 'cfg-min') { aiSaveCfg({ minutes: +t.dataset.v }); renderAiSpace(); }
     else if (act === 'cfg-focus') { aiSaveCfg({ focus: t.dataset.v }); renderAiSpace(); }
     else if (act === 'cfg-strategy') { aiSaveCfg({ strategy: t.dataset.v }); renderAiSpace(); }
+    else if (act === 'art-range') { Store.spaceSet('article', 'prefs', { range: t.dataset.v, t: Date.now() }); renderAiSpace(); }
+    else if (act === 'art-gen') aiGenArticle();
+    else if (act === 'art-del') { Store.spaceDel('article', Store.today() + ':' + aiArticleRange()); renderAiSpace(); }
     else if (act === 'start') aiStart();
     else if (act === 'teach-retry') { aiTeachErr = ''; aiFetchTeach(); }
     else if (act === 'pick') aiPick(t.dataset.word, t.dataset.opt);

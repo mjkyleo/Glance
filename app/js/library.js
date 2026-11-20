@@ -47,7 +47,7 @@
     if (idx >= 0) {
       const pre = word.slice(0, idx), suf = word.slice(idx + root.length);
       if (pre) chips.push({ text: pre, type: 'prefix', gloss: affixGloss(pre, 'prefix') });
-      chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || '' });
+      chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || rootGloss(root) });
       if (suf) chips.push({ text: suf, type: 'suffix', gloss: affixGloss(suf, 'suffix') });
     } else {
       // Root allomorph (e.g. introduce → duc vs duct): split off known affixes, keep canonical root.
@@ -56,10 +56,14 @@
       for (const p of FB_PREFIX) if (p.length >= 2 && lw.startsWith(p)) { pre = p; break; }
       for (const s of FB_SUFFIX) if (s.length >= 2 && lw.endsWith(s) && word.length - s.length > pre.length) { suf = s; break; }
       if (pre) chips.push({ text: pre, type: 'prefix', gloss: affixGloss(pre, 'prefix') });
-      chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || '' });
+      chips.push({ text: root, type: 'root', gloss: fam.rootZh || fam.rootEn || rootGloss(root) });
       if (suf) chips.push({ text: suf, type: 'suffix', gloss: affixGloss(suf, 'suffix') });
     }
     return chips;
+  }
+  function rootGloss(root) {
+    const f = getFamily(root);
+    return (f && f.zh) || '';
   }
 
   // Part-of-speech labels: the dataset stores POS as abbreviations inside the zh string

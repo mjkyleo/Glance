@@ -33,7 +33,8 @@
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
     ai: { provider: 'qwenmaas', key: '', model: '', base: '', enabled: true },
     aiCache: {},
-    space: { report: {}, clinic: {}, qa: {}, tutor: {} },
+    space: { report: {}, clinic: {}, qa: {}, tutor: {}, article: {} },
+    rootsView: { sort: 'size', hideSmall: true },
     dict: { provider: 'freezh', enabled: ['freezh'], merge: true, custom: [], keys: {} },
     dictCache: {},
     quiz: {
@@ -150,6 +151,8 @@
     delete d.ai.autoExplain;
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     d.space = normalizeSpace(d.space);
+    if (!d.rootsView || typeof d.rootsView !== 'object' || Array.isArray(d.rootsView)) d.rootsView = { sort: 'size', hideSmall: true };
+    else d.rootsView = { sort: d.rootsView.sort === 'alpha' ? 'alpha' : 'size', hideSmall: d.rootsView.hideSmall !== false };
     d.dict = normalizeDict(d.dict);
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
@@ -384,14 +387,15 @@
 
   // ===================== exam practice（真题刷题） =====================
   const EXAM_ID_RE = /^\d{4}-\d{2}[-_]\d{2}$/;
-  const SPACE_KINDS = ['report', 'clinic', 'qa', 'tutor'];
-  const SPACE_CAPS = { report: 14, clinic: 300, qa: 100, tutor: 60 };
+  const SPACE_KINDS = ['report', 'clinic', 'qa', 'tutor', 'article'];
+  const SPACE_CAPS = { report: 14, clinic: 300, qa: 100, tutor: 60, article: 30 };
+  const ARTICLE_RANGES = ['s', 'm', 'l'];
   const TUTOR_MINUTES = [10, 15, 20, 30];
   const TUTOR_FOCUS = ['auto', 'due', 'errors', 'study'];
   const TUTOR_STRATEGY = ['teach', 'guide', 'recite'];
   function normalizeTutorSession(v) {
     if (!v || typeof v.date !== 'string' || !Array.isArray(v.steps)) return null;
-    const steps = v.steps.slice(0, 12).map(s => {
+    const steps = v.steps.slice(0, 24).map(s => {
       if (!s || !['review', 'clinic', 'study'].includes(s.kind)) return null;
       const words = Array.isArray(s.words) ? s.words.filter(w => typeof w === 'string' && w).slice(0, 12) : [];
       if (s.kind !== 'study' && !words.length) return null;
@@ -400,10 +404,10 @@
     }).filter(Boolean);
     if (!steps.length) return null;
     const picks = {};
-    if (v.picks && typeof v.picks === 'object') Object.keys(v.picks).slice(0, 200).forEach(k => { if (typeof v.picks[k] === 'string') picks[k] = v.picks[k].slice(0, 200); });
+    if (v.picks && typeof v.picks === 'object') Object.keys(v.picks).slice(0, 400).forEach(k => { if (typeof v.picks[k] === 'string') picks[k] = v.picks[k].slice(0, 200); });
     const revealed = {};
-    if (v.revealed && typeof v.revealed === 'object') Object.keys(v.revealed).slice(0, 20).forEach(k => { revealed[k] = !!v.revealed[k]; });
-    const qa = Array.isArray(v.qa) ? v.qa.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-8) : [];
+    if (v.revealed && typeof v.revealed === 'object') Object.keys(v.revealed).slice(0, 40).forEach(k => { revealed[k] = !!v.revealed[k]; });
+    const qa = Array.isArray(v.qa) ? v.qa.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-40) : [];
     return {
       date: v.date.slice(0, 10), steps, idx: Math.min(Math.max(+v.idx || 0, 0), steps.length),
       picks, revealed, qa,
@@ -414,14 +418,14 @@
   }
   function normalizeSpace(raw) {
     const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-    const out = { report: {}, clinic: {}, qa: {}, tutor: {} };
+    const out = { report: {}, clinic: {}, qa: {}, tutor: {}, article: {} };
     SPACE_KINDS.forEach(kind => {
       const bag = src[kind] && typeof src[kind] === 'object' ? src[kind] : {};
       Object.keys(bag).forEach(k => {
         const v = bag[k];
         if (!v || typeof v !== 'object') return;
         if (kind === 'qa') {
-          const turns = Array.isArray(v.turns) ? v.turns.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-8) : [];
+          const turns = Array.isArray(v.turns) ? v.turns.filter(x => x && typeof x.q === 'string' && typeof x.a === 'string').slice(-40) : [];
           if (!turns.length) return;
           out.qa[k] = { turns, t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
         } else if (kind === 'tutor' && k === 'plan') {
@@ -434,13 +438,26 @@
         } else if (kind === 'tutor' && k === 'session') {
           const s = normalizeTutorSession(v);
           if (s) out.tutor[k] = s;
+        } else if (kind === 'article' && k === 'prefs') {
+          out.article[k] = { range: ARTICLE_RANGES.includes(v.range) ? v.range : 'm', t: +v.t || 0 };
+        } else if (kind === 'article') {
+          const paras = Array.isArray(v.paras) ? v.paras.filter(p => p && typeof p.en === 'string' && p.en.trim()).slice(0, 8).map(p => ({ en: p.en.slice(0, 2000), zh: String(p.zh || '').slice(0, 2000) })) : [];
+          if (!paras.length) return;
+          out.article[k] = {
+            paras,
+            words: Array.isArray(v.words) ? v.words.filter(w => typeof w === 'string' && w).slice(0, 20) : [],
+            range: ARTICLE_RANGES.includes(v.range) ? v.range : 'm',
+            t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '')
+          };
         } else {
           if (typeof v.text !== 'string' || !v.text.trim()) return;
           out[kind][k] = { text: v.text.slice(0, 4000), t: +v.t || 0, provider: String(v.provider || ''), model: String(v.model || '') };
         }
       });
       const keys = Object.keys(out[kind]).sort((a, b) => (out[kind][b].t || 0) - (out[kind][a].t || 0));
-      keys.slice(SPACE_CAPS[kind]).forEach(k => { delete out[kind][k]; });
+      // tutor plan/session are the live learning record: never evict them by cache cap.
+      const evictable = kind === 'tutor' ? keys.filter(k => k !== 'plan' && k !== 'session') : keys;
+      evictable.slice(SPACE_CAPS[kind]).forEach(k => { delete out[kind][k]; });
     });
     return out;
   }
@@ -448,6 +465,11 @@
   function spaceSet(kind, key, rec) {
     if (!SPACE_KINDS.includes(kind) || typeof key !== 'string' || !key) return;
     data.space = normalizeSpace(Object.assign({}, data.space, { [kind]: Object.assign({}, data.space[kind], { [key]: rec }) }));
+    save();
+  }
+  function spaceDel(kind, key) {
+    if (!SPACE_KINDS.includes(kind) || !data.space[kind] || !(key in data.space[kind])) return;
+    delete data.space[kind][key];
     save();
   }
 
@@ -741,7 +763,7 @@
         srs: clone(srs), logs: clone(data.logs || {}), views: clone(views), favorites: clone(fav),
         favGroups: (data.favGroups || []).slice(), history: clone(data.history || []), errors: clone(errs),
         fsrs: clone(data.fsrs || {}), aiCache: clone(data.aiCache || {}), dictCache: clone(data.dictCache || {}),
-        space: clone(data.space || { report: {}, clinic: {}, qa: {}, tutor: {} }),
+        space: clone(data.space || { report: {}, clinic: {}, qa: {}, tutor: {}, article: {} }),
         customBooks: clone(data.customBooks || {}),
         customThemes: clone(data.customThemes || []),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
@@ -749,6 +771,7 @@
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook,
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
+          rootsView: clone(data.rootsView || { sort: 'size', hideSmall: true }),
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
           profile: { nickname: data.profile.nickname, avatar: data.profile.avatar },
           ai, dict,
@@ -831,7 +854,7 @@
       data.quizExamples = {};
       data.quiz = { config: clone(DEFAULTS.quiz.config), ability: 0.5, answered: 0, correct: 0, streak: 0, history: {} };
       data.exams = { progress: {}, wrong: [], aiCache: {} };
-      data.space = { report: {}, clinic: {}, qa: {}, tutor: {} };
+      data.space = { report: {}, clinic: {}, qa: {}, tutor: {}, article: {} };
     }
 
     if (src) {
@@ -877,7 +900,7 @@
             const v = sp[kind][k], cur = data.space[kind][k];
             if (kind === 'qa' && cur && Array.isArray(cur.turns)) {
               const seen = new Set(cur.turns.map(x => x.q + '|' + x.t));
-              const turns = cur.turns.concat(v.turns.filter(x => !seen.has(x.q + '|' + x.t))).sort((a, b) => (a.t || 0) - (b.t || 0)).slice(-8);
+              const turns = cur.turns.concat(v.turns.filter(x => !seen.has(x.q + '|' + x.t))).sort((a, b) => (a.t || 0) - (b.t || 0)).slice(-40);
               data.space.qa[k] = { turns, t: Math.max(cur.t || 0, v.t || 0), provider: v.provider || cur.provider, model: v.model || cur.model };
             } else if (!cur || (v.t || 0) >= (cur.t || 0)) data.space[kind][k] = v;
           });
@@ -928,6 +951,7 @@
           data.studyPanelOrder = legacy.concat(DEFAULTS.studyPanelOrder.filter(id => !legacy.includes(id)));
         }
         if (['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(s.theme)) data.theme = s.theme;
+        if (isObj(s.rootsView)) data.rootsView = { sort: s.rootsView.sort === 'alpha' ? 'alpha' : 'size', hideSmall: s.rootsView.hideSmall !== false };
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;
         if (typeof s.ttsLang === 'string') data.ttsLang = s.ttsLang;
@@ -979,7 +1003,7 @@
     exportData, importData,
     defaultPanelOrder: () => DEFAULTS.studyPanelOrder.slice(),
     setAiConfig, aiExplanation, saveAiExplanation, deleteAiExplanation, aiWords,
-    spaceGet, spaceSet,
+    spaceGet, spaceSet, spaceDel,
     setDictConfig, dictEntry, saveDictEntry, deleteDictEntry, dictWords,
     dictKey, setDictKey, setDictEnabled, moveDictSource, addDictSource, updateDictSource, removeDictSource,
     setQuizConfig, recordQuizResult, quizExamples, saveQuizExamples, setBackground, setProfile,
