@@ -14,6 +14,10 @@
   let currentView = 'study';
   let rootsTab = 'roots';
   let affixFilter = 'all';
+  let rootsFilter = 'all';
+  const ROOT_CATS = [['all', '全部'], ['new', '未学'], ['learning', '学习中'], ['near', '接近学完']];
+  const rootsBatch = { groups: [], gi: 0, ri: 0, wrap: null, cur: null, io: null, infos: null };
+  const affixBatch = { items: [], i: 0, wrap: null, io: null };
   let favGroup = '';
   let sheetWord = null;
   let sheetFamily = null;
@@ -35,6 +39,7 @@
   const SUB_VIEWS = ['stats', 'books', 'ai', 'exams'];
   let navStack = [];
   function switchView(v, opts) {
+    if (nestedSheetEl || openSheetEl) { closeNestedSheet(); closeSheet(true); }
     const fromBack = !!(opts && opts.fromBack);
     const prev = currentView;
     if (!fromBack && TOP_VIEWS.includes(prev) && TOP_VIEWS.includes(v) && prev !== v) {
@@ -47,6 +52,9 @@
     });
     const tabView = SUB_VIEWS.includes(v) ? (subReturn || 'study') : v;
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === tabView));
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && !fromBack) { activeTab.classList.remove('pop'); void activeTab.offsetWidth; activeTab.classList.add('pop'); }
+    placeTabIndicator();
     if (v === 'study') { updatePlanBar(); updateStudyVisibility(); if (panelDirty && mode === 'study' && currentItem()) renderStudy(); }
     if (v === 'roots') { rootsTab === 'roots' ? renderRoots() : renderAffixes(); }
     if (v === 'themes') renderThemes();
@@ -249,14 +257,26 @@
     s.removeAttribute('aria-modal');
     s.removeAttribute('role');
   }
+  function pagesDesktop() { return window.matchMedia('(min-width: 960px)').matches; }
   function setAppInert(on) {
     const app = document.querySelector('.app');
-    if (app) app.inert = on;
+    if (app) app.inert = on && !pagesDesktop();
+  }
+  function placeTabIndicator() {
+    const bar = $('tabbar'), ind = $('tab-indicator');
+    if (!bar || !ind) return;
+    const act = bar.querySelector('.tab.active');
+    if (!act || bar.hidden) { ind.style.opacity = '0'; return; }
+    ind.style.opacity = '1';
+    ind.style.left = act.offsetLeft + 'px';
+    ind.style.top = act.offsetTop + 'px';
+    ind.style.width = act.offsetWidth + 'px';
+    ind.style.height = act.offsetHeight + 'px';
   }
   function trapSheetFocus(e) {
     if (e.key !== 'Tab') return;
     const s = nestedSheetEl || openSheetEl;
-    if (!s) return;
+    if (!s || pagesDesktop()) return;
     const f = sheetFocusables(s);
     if (!f.length) { e.preventDefault(); return; }
     const first = f[0], last = f[f.length - 1];
@@ -1284,47 +1304,109 @@
   }
 
   function renderRoots() {
-    const q = $('roots-search').value.trim().toLowerCase();
-    let roots = Library.listRoots();
-    if (q) roots = roots.filter(r => r.root.toLowerCase().includes(q) || (r.zh || '').includes($('roots-search').value.trim()));
-    const list = $('roots-list');
-    list.innerHTML = '';
-    if (!roots.length) { list.appendChild(el('div', 'empty-hint', '没有匹配的词根')); return; }
-    const wrap = el('div', 'list-gap compact-gap');
-    roots.slice(0, 200).forEach(r => {
-      const row = el('button', 'row compact'); row.type = 'button';
-      const main = el('div', 'row-main');
-      const title = el('div', 'row-title', r.root);
-      main.appendChild(title);
-      main.appendChild(el('div', 'row-sub', r.zh || r.g || ''));
-      const fam = Library.getFamily(r.root);
-      const info = fam ? learnProgress(fam.family.map(w => w.word)) : null;
-      const done = attachRowProgress(row, main, info);
-      row.appendChild(main);
-      if (info && Store.data.progressBars && info.total) {
-        row.appendChild(el('span', 'row-badge' + (done ? ' green' : ''), info.learned + '/' + info.total));
-      } else {
-        row.appendChild(el('span', 'row-badge', r.size + ' 词'));
-      }
-      row.appendChild(el('span', 'row-arrow', '›'));
-      row.addEventListener('click', () => openFamily(r.root));
-      wrap.appendChild(row);
+    const raw = $('roots-search').value.trim();
+    const q = raw.toLowerCase();
+    let base = Library.listRoots();
+    if (q) base = base.filter(r => r.root.toLowerCase().includes(q) || (r.zh || '').includes(raw));
+    const infos = new Map();
+    base.forEach(r => infos.set(r.root, rootInfo(r)));
+    const cats = $('roots-cats');
+    cats.innerHTML = '';
+    ROOT_CATS.forEach(([id, label]) => {
+      const n = id === 'all' ? base.length : base.filter(r => catOf(infos.get(r.root)) === id).length;
+      const b = el('button', 'chip' + (rootsFilter === id ? ' active' : ''), id === 'all' ? label : label + ' ' + n);
+      b.type = 'button';
+      b.dataset.cat = id;
+      cats.appendChild(b);
     });
+    let roots = rootsFilter === 'all' ? base : base.filter(r => catOf(infos.get(r.root)) === rootsFilter);
+    roots = roots.slice().sort((a, b) => {
+      const na = /[a-z]/i.test(a.root[0] || '') ? 0 : 1, nb = /[a-z]/i.test(b.root[0] || '') ? 0 : 1;
+      return na - nb || a.root.localeCompare(b.root);
+    });
+    const list = $('roots-list');
+    if (rootsBatch.io) { rootsBatch.io.disconnect(); rootsBatch.io = null; }
+    list.innerHTML = '';
+    const rail = $('roots-rail');
+    rail.innerHTML = '';
+    if (!roots.length) { list.appendChild(el('div', 'empty-hint', '没有匹配的词根')); return; }
+    const groups = [];
+    roots.forEach(r => {
+      const ch = (r.root[0] || '#').toUpperCase();
+      const letter = /[A-Z]/.test(ch) ? ch : '#';
+      let g = groups[groups.length - 1];
+      if (!g || g.letter !== letter) { g = { letter, items: [] }; groups.push(g); }
+      g.items.push(r);
+    });
+    const wrap = el('div', 'list-gap compact-gap');
     list.appendChild(wrap);
-    if (roots.length > 200) list.appendChild(el('div', 'empty-hint', '仅显示前 200 个，用搜索查找更多'));
+    groups.forEach(g => {
+      const b = el('button', null, g.letter);
+      b.type = 'button';
+      b.dataset.letter = g.letter;
+      rail.appendChild(b);
+    });
+    Object.assign(rootsBatch, { groups, gi: 0, ri: 0, wrap, infos });
+    loadRootsBatch();
+    rootsBatch.io = makeSentinel(list, loadRootsBatch);
+  }
+  function loadRootsBatch() {
+    const b = rootsBatch;
+    let added = 0;
+    while (added < 80 && b.gi < b.groups.length) {
+      const g = b.groups[b.gi];
+      if (b.ri === 0) {
+        b.cur = el('div', 'letter-group');
+        const h = el('div', 'letter-head', g.letter);
+        h.dataset.letter = g.letter;
+        b.cur.appendChild(h);
+        b.wrap.appendChild(b.cur);
+      }
+      b.cur.appendChild(rootRow(g.items[b.ri], b.infos.get(g.items[b.ri].root)));
+      b.ri++; added++;
+      if (b.ri >= g.items.length) { b.gi++; b.ri = 0; }
+    }
+    if (b.gi >= b.groups.length && b.io) { b.io.disconnect(); b.io = null; }
+  }
+  function rootRow(r, info) {
+    const row = el('button', 'row compact'); row.type = 'button';
+    const main = el('div', 'row-main');
+    main.appendChild(el('div', 'row-title', r.root));
+    main.appendChild(el('div', 'row-sub', r.zh || r.g || ''));
+    const done = attachRowProgress(row, main, info);
+    row.appendChild(main);
+    if (info && Store.data.progressBars && info.total) {
+      row.appendChild(el('span', 'row-badge' + (done ? ' green' : ''), info.learned + '/' + info.total));
+    } else {
+      row.appendChild(el('span', 'row-badge', r.size + ' 词'));
+    }
+    row.appendChild(el('span', 'row-arrow', '›'));
+    row.addEventListener('click', () => openFamily(r.root));
+    return row;
   }
 
   function renderAffixes() {
-    const q = $('roots-search').value.trim().toLowerCase();
+    const raw = $('roots-search').value.trim();
+    const q = raw.toLowerCase();
     let af = Library.getAffixes().slice();
     if (affixFilter !== 'all') af = af.filter(a => a.k === affixFilter);
-    if (q) af = af.filter(a => a.id.toLowerCase().includes(q) || (a.zh || '').includes($('roots-search').value.trim()));
+    if (q) af = af.filter(a => a.id.toLowerCase().includes(q) || (a.zh || '').includes(raw));
     af.sort((a, b) => (b.count || 0) - (a.count || 0));
     const list = $('affix-list');
+    if (affixBatch.io) { affixBatch.io.disconnect(); affixBatch.io = null; }
     list.innerHTML = '';
     if (!af.length) { list.appendChild(el('div', 'empty-hint', '没有匹配的词缀')); return; }
     const wrap = el('div', 'list-gap compact-gap');
-    af.slice(0, 200).forEach(a => {
+    list.appendChild(wrap);
+    Object.assign(affixBatch, { items: af, i: 0, wrap });
+    loadAffixBatch();
+    affixBatch.io = makeSentinel(list, loadAffixBatch);
+  }
+  function loadAffixBatch() {
+    const b = affixBatch;
+    const end = Math.min(b.items.length, b.i + 80);
+    for (; b.i < end; b.i++) {
+      const a = b.items[b.i];
       const row = el('button', 'row compact'); row.type = 'button';
       const main = el('div', 'row-main');
       const title = el('div', 'row-title', a.id);
@@ -1342,10 +1424,24 @@
       }
       row.appendChild(el('span', 'row-arrow', '›'));
       row.addEventListener('click', () => openAffixSheet(a));
-      wrap.appendChild(row);
-    });
-    list.appendChild(wrap);
-    if (af.length > 200) list.appendChild(el('div', 'empty-hint', '仅显示前 200 个，用搜索查找更多'));
+      b.wrap.appendChild(row);
+    }
+    if (b.i >= b.items.length && b.io) { b.io.disconnect(); b.io = null; }
+  }
+  function rootInfo(r) {
+    const fam = Library.getFamily(r.root);
+    return fam ? learnProgress(fam.family.map(w => w.word)) : null;
+  }
+  function catOf(info) {
+    if (!info || !info.total || !info.learned) return 'new';
+    return info.ratio >= 0.85 ? 'near' : 'learning';
+  }
+  function makeSentinel(list, load) {
+    const sen = el('div', 'load-sentinel');
+    list.appendChild(sen);
+    const io = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) load(); }, { root: list, rootMargin: '320px 0px' });
+    io.observe(sen);
+    return io;
   }
 
   function openFamily(root) {
@@ -3240,9 +3336,21 @@
       openSheet('quiz-settings-sheet');
     });
 
-    $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
-    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
+    $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-cats').hidden = false; $('roots-rail').hidden = false; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
+    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-cats').hidden = true; $('roots-rail').hidden = true; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
     $('roots-search').addEventListener('input', () => rootsTab === 'roots' ? renderRoots() : renderAffixes());
+    $('roots-cats').addEventListener('click', ev => {
+      const b = ev.target.closest('.chip'); if (!b) return;
+      rootsFilter = b.dataset.cat;
+      renderRoots();
+    });
+    $('roots-rail').addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if (!b) return;
+      const sel = '#roots-list .letter-head[data-letter="' + b.dataset.letter + '"]';
+      let h = document.querySelector(sel), guard = 0;
+      while (!h && rootsBatch.gi < rootsBatch.groups.length && guard++ < 200) { loadRootsBatch(); h = document.querySelector(sel); }
+      if (h) h.scrollIntoView({ block: 'start' });
+    });
     $('affix-filter').addEventListener('click', ev => {
       const b = ev.target.closest('.chip'); if (!b) return;
       affixFilter = b.dataset.k;
@@ -3533,7 +3641,22 @@
       }
     });
 
-    window.addEventListener('resize', () => { if (currentView === 'study' && mode === 'study') fitMorphemes(); });
+    window.addEventListener('resize', () => { if (currentView === 'study' && mode === 'study') fitMorphemes(); placeTabIndicator(); });
+    window.matchMedia('(min-width: 960px)').addEventListener('change', () => {
+      if (openSheetEl || nestedSheetEl) setAppInert(true);
+      placeTabIndicator();
+    });
+    if (window.ResizeObserver) new ResizeObserver(() => placeTabIndicator()).observe($('tabbar'));
+    document.addEventListener('pointerdown', ev => {
+      const t = ev.target.closest('.tab, .grade-btn');
+      if (!t) return;
+      const r = t.getBoundingClientRect();
+      const sp = el('span', 'ripple');
+      sp.style.left = (ev.clientX - r.left) + 'px';
+      sp.style.top = (ev.clientY - r.top) + 'px';
+      t.appendChild(sp);
+      sp.addEventListener('animationend', () => sp.remove());
+    });
     window.addEventListener('beforeunload', () => Store.flush());
     document.addEventListener('visibilitychange', () => { if (document.hidden) Store.flush(); });
   }

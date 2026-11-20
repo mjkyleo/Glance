@@ -111,16 +111,19 @@
 
 ### 3.1 词根家族导航 ✅
 
-- 词根列表 [app.js:1203 renderRoots](../app/js/app.js#L1203)，家族详情 [app.js:1268 openFamily](../app/js/app.js#L1268)，数据 `getFamily`（[library.js:416](../app/js/library.js#L416)），源 `roots.json` / `roottrees.json`。
+- 词根列表 [app.js:1306 renderRoots](../app/js/app.js#L1306)，家族详情 [app.js:1447 openFamily](../app/js/app.js#L1447)，数据 `getFamily`（[library.js:421](../app/js/library.js#L421)），源 `roots.json` / `roottrees.json`。
 - **紧凑单行排列（2026-11-19）**：词根 + 释义同行 + 词数徽标，行高 44px（触控达标），一屏约 14 条（改造前 8 条）;学习进度改为行底 3px 细线，不额外占高（[app.css .row.compact](../app/css/app.css)）。
+- **学习状态分类 + 字母分组（2026-11-20）**：搜索框下四类筛选芯片「全部 / 未学 / 学习中 / 接近学完」（按家族已学比例 0 / 0–85% / ≥85% 划分，芯片带实时计数，[app.js:18 ROOT_CATS](../app/js/app.js#L18)、[app.js:1435 catOf](../app/js/app.js#L1435)、[app.js:3342 芯片点击](../app/js/app.js#L3342)）;列表按首字母 A–Z 分组（非字母归 `#` 置末），组头 sticky 吸顶且每组独立容器保证吸顶不串组（[app.js:1353 loadRootsBatch](../app/js/app.js#L1353)、[app.css:1609 letter-head](../app/css/app.css#L1609)、[app.css:1610 letter-group](../app/css/app.css#L1610)）。
+- **按需批量加载（2026-11-20，取代「仅显示前 200」）**：首屏 80 行，列表底部 2px 哨兵 + IntersectionObserver（rootMargin 320px）滚动即追加下一批 80 行，直至 8,331 词根全量可达;词缀 3,100 条同机制（[app.js:1439 makeSentinel](../app/js/app.js#L1439)、[app.js:1405 loadAffixBatch](../app/js/app.js#L1405)、[app.css:1611 load-sentinel](../app/css/app.css#L1611)）。
+- **桌面字母跳转轨**：≥960px 列表右缘竖排 A–Z 圆角轨，点击先按需加载到目标组再滚动定位（[index.html:177 roots-rail](../app/index.html#L177)、[app.js:3347 跳转](../app/js/app.js#L3347)、[app.css:1614](../app/css/app.css#L1614)）;移动端隐藏。
 
 ### 3.2 词缀浏览 ✅
 
-- 词缀列表 [app.js:1234 renderAffixes](../app/js/app.js#L1234)，词缀详情 [app.js:1766 openAffixSheet](../app/js/app.js#L1766)，点击词素跳转 [app.js:1761 openAffixByChip](../app/js/app.js#L1761)，源 `affixes.json`（3,100 条）。同样采用紧凑单行排列，前缀/后缀徽标内联在词缀名后。
+- 词缀列表 [app.js:1388 renderAffixes](../app/js/app.js#L1388)，词缀详情 [app.js:1945 openAffixSheet](../app/js/app.js#L1945)，点击词素跳转 [app.js:1940 openAffixByChip](../app/js/app.js#L1940)，源 `affixes.json`（3,100 条）。同样采用紧凑单行排列，前缀/后缀徽标内联在词缀名后;与词根共用按需批量加载（首屏 80、滚动追加），无数量截断。
 
 ### 3.3 词根/词缀学习进度条 ✅
 
-- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1183 learnProgress](../app/js/app.js#L1183)、[app.js:1189 attachRowProgress](../app/js/app.js#L1189)）;紧凑行下进度条绝对定位于行底。
+- 按已学比例显示绿色进度条与「已学/总数」，接近学完整行变绿，可在设置开关（[app.js:1286 learnProgress](../app/js/app.js#L1286)、[app.js:1292 attachRowProgress](../app/js/app.js#L1292)）;紧凑行下进度条绝对定位于行底。
 
 ### 3.4 专项主题分类 ✅
 
@@ -297,12 +300,18 @@
 
 ### 9.2 设置中心 ✅
 
-- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2799 SETTINGS_PANES](../app/js/app.js#L2799)、[app.js:2920 showSettingsPane](../app/js/app.js#L2920)、[app.js:2929 openSettings](../app/js/app.js#L2929)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
+- 设置并入「我的」，**四个设置入口**（2026-11-19 合并）：学习与测试 / 外观与发音 / 词典与 AI / 数据与存储;「AI 解释缓存」（原 AI 解释库）作为内容浏览入口紧随词典与 AI;「关于」移至页脚（[app.js:2895 SETTINGS_PANES](../app/js/app.js#L2895)、[app.js:3016 showSettingsPane](../app/js/app.js#L3016)、[app.js:3025 openSettings](../app/js/app.js#L3025)）。发音组并入外观面板、AI 模型组并入词典面板，控件 id 不变。
 
 ### 9.3 桌面 Web 自适应布局 ✅
 
-- ≥960px：底栏变左侧栏（品牌标记 + 竖排导航，[index.html:415 side-brand](../app/index.html#L415)），内容列最宽 1120 居中;弹层中心对齐内容列;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果居中 780 列;滚动条加宽并带 hover（[app.css:1504](../app/css/app.css#L1504)）。
-- ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1563](../app/css/app.css#L1563)、[index.html:29 word-head](../app/index.html#L29)）;移动端 `.word-head{display:contents}` 保持原单列不变。
+- ≥960px：底栏变左侧栏（品牌标记 + 竖排导航，[index.html:430 side-brand](../app/index.html#L430)），内容列最宽 1120 居中;功能页铺满侧栏以右内容区;词根/词缀与「我的」菜单双列、主题卡 auto-fill、统计双栏;测试会话/入口/结果与设置页正文居中 780 列;滚动条加宽并带 hover（[app.css:1507](../app/css/app.css#L1507)）。
+- ≥1100px：学习页词卡双栏——词头（徽标 + 单词 + 朗读）sticky 左栏 330px，16 信息块右栏滚动（[app.css:1570](../app/css/app.css#L1570)、[index.html:35 word-head](../app/index.html#L35)）;移动端 `.word-head{display:contents}` 保持原单列不变。
+
+### 9.4 全页面化 · 图标极简 · 导航反馈 ✅（2026-11-20）
+
+- **功能入口全页面化**：词卡 / 词根家族 / 词缀 / 主题 / 分组选择 / 选词填空 / 个人资料 / 测试设置 / 词典编辑 / 设置共 11 个原底部抽屉改为整页——`position:fixed; inset:0`、无圆角无阴影、自右向左滑入（`translateX(100%)→0`），头部为返回箭头 + 标题（[app.css:1111-1112](../app/css/app.css#L1111-L1112)、[index.html 各 sheet-close 返回图标](../app/index.html#L462)）。原有 openSheet/closeSheet/嵌套/焦点/返回栈逻辑不变（[app.js:295 openSheet](../app/js/app.js#L295)）;移动端页面打开时主界面 inert，桌面 ≥960px 侧栏保持可点（遮罩左移 216px 且透明），点侧栏即关页切换（[app.js:260 pagesDesktop](../app/js/app.js#L260)、[app.js:41 switchView 关页](../app/js/app.js#L41)、[app.css:1552](../app/css/app.css#L1552)）。
+- **图标极简**：底栏标签、学习/测试与词根/词缀切换文字、评分按钮文字、我的行副标题、设置行小字、测试退出文字均隐藏，仅留图标 + aria-label/title（[app.css:1587-1606](../app/css/app.css#L1587-L1606)、[index.html:23 mode-text](../app/index.html#L23)）。
+- **底栏互动反馈**：滑动指示胶囊（accent 13% 混色，弹性曲线跟随_active  tab，横竖两向，ResizeObserver + resize 重算）、按压涟漪（pointerdown 落点扩散、animationend 自清理）、图标弹跳 pop（[index.html:429 tab-indicator](../app/index.html#L429)、[app.js:265 placeTabIndicator](../app/js/app.js#L265)、[app.js:3650 涟漪](../app/js/app.js#L3650)、[app.css:1591-1597](../app/css/app.css#L1591-L1597)）。
 
 ---
 
@@ -464,7 +473,7 @@
 | 词库 | 自定义导入 JSON/TSV/CSV/TXT | ✅ | library.js:569-584 |
 | 词库 | 考纲对比（覆盖/超纲/缺失） | ✅ | library.js:384-413 / app.js:2404-2464 |
 | 词库 | 六级真题词频书（5,772 词头，按真题次数排序） | ✅ | library.js:156-178 / app.js:1596-1631 |
-| 词根 | 家族导航 + 词缀浏览 + 进度条 | ✅ | app.js:1209-1327 / app.js:1662-1731 |
+| 词根 | 家族导航 + 四类筛选 + 字母分组吸顶 + 按需加载 + 词缀浏览 + 进度条 | ✅ | app.js:1306-1445 / app.js:1940-1962 |
 | 专项 | 29 静态主题分类 + 专项学习 | ✅ | themes.js / app.js:1328-1472 |
 | 专项 | 选词填空 7 牌组（词性/重复/近五年/全部，369 词） | ✅ | scripts/build-cet6-cloze.js / themes.js:234-242 / app.js:1359-1472 |
 | 专项 | 26 套真题卷浏览（A–O 选项 + 整卷学习 + 缺失说明） | ✅ | app.js:1478-1595 / index.html:445-452 |

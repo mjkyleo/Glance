@@ -18,8 +18,14 @@
         </div>
         <div class="study-top-actions">
           <div class="mode-switch" role="tablist" aria-label="模式">
-            <button class="mode-btn active" id="mode-study" type="button" role="tab" aria-selected="true">学习</button>
-            <button class="mode-btn" id="mode-quiz" type="button" role="tab" aria-selected="false">测试</button>
+            <button class="mode-btn active" id="mode-study" type="button" role="tab" aria-selected="true" aria-label="学习" title="学习">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2Z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8Z"/></svg>
+              <span class="mode-text">学习</span>
+            </button>
+            <button class="mode-btn" id="mode-quiz" type="button" role="tab" aria-selected="false" aria-label="测试" title="测试">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1Z"/><path d="M8 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="m9 13 2 2 4-4"/></svg>
+              <span class="mode-text">测试</span>
+            </button>
           </div>
         </div>
       </div>
@@ -153,14 +159,22 @@
 
     <main class="view" id="view-roots" hidden>
       <div class="mode-switch" role="tablist">
-        <button class="mode-btn active" id="roots-tab-roots" type="button" role="tab" aria-selected="true">词根</button>
-        <button class="mode-btn" id="roots-tab-affixes" type="button" role="tab" aria-selected="false">词缀</button>
+        <button class="mode-btn active" id="roots-tab-roots" type="button" role="tab" aria-selected="true" aria-label="词根" title="词根">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a3 3 0 0 0-1 5.8V10H7a3 3 0 0 0-3 3v1.2a3 3 0 1 0 2 0V13a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.2a3 3 0 1 0 2 0V13a3 3 0 0 0-3-3h-4V7.8A3 3 0 0 0 12 2Z"/></svg>
+          <span class="mode-text">词根</span>
+        </button>
+        <button class="mode-btn" id="roots-tab-affixes" type="button" role="tab" aria-selected="false" aria-label="词缀" title="词缀">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+          <span class="mode-text">词缀</span>
+        </button>
       </div>
       <div class="search-box">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 2a8 8 0 1 0 4.9 14.3l5 5 1.4-1.4-5-5A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></svg>
         <input type="search" id="roots-search" placeholder="搜索词根 / 释义" autocomplete="off" />
       </div>
+      <div class="chip-row" id="roots-cats"></div>
       <div class="scroll" id="roots-list"></div>
+      <div class="letter-rail" id="roots-rail" aria-hidden="true"></div>
       <div id="affix-panel" hidden>
         <div class="chip-row" id="affix-filter">
           <button class="chip active" data-k="all" type="button">全部</button>
@@ -412,6 +426,7 @@
     </main>
 
     <nav class="tabbar" id="tabbar">
+      <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
       <div class="side-brand" aria-hidden="true">
         <span class="side-brand-mark">G</span>
         <span class="side-brand-text"><b>Glance</b><small>词根背单词</small></span>
@@ -444,7 +459,7 @@
   <div class="sheet" id="family-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="family-title">词根家族</h2><p class="sheet-sub" id="family-meta"></p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="family-words"></div>
     <div class="sheet-foot"><button class="btn-primary" id="family-add-all" type="button">整族加入学习</button></div>
@@ -453,7 +468,7 @@
   <div class="sheet" id="theme-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="theme-title">专项</h2><p class="sheet-sub" id="theme-meta"></p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="theme-words"></div>
     <div class="sheet-foot sheet-foot-wrap">
@@ -468,7 +483,7 @@
   <div class="sheet" id="group-picker-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="group-picker-title">加入分组</h2><p class="sheet-sub" id="group-picker-sub"></p></div>
-      <button class="sheet-close" id="group-picker-close" type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" id="group-picker-close" type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="group-picker-list"></div>
     <div class="sheet-foot"><button class="btn-primary" id="group-picker-create" type="button">＋ 新建分组</button></div>
@@ -477,7 +492,7 @@
   <div class="sheet" id="cloze-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="cloze-title">选词填空真题</h2><p class="sheet-sub" id="cloze-meta"></p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="cloze-body"></div>
     <div class="sheet-foot" id="cloze-foot" hidden><button class="btn-primary" id="cloze-study-btn" type="button">学习本卷选项</button></div>
@@ -486,7 +501,7 @@
   <div class="sheet" id="word-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="word-sheet-title">单词</h2><p class="sheet-sub" id="word-sheet-sub"></p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="word-sheet-body"></div>
     <div class="sheet-foot sheet-foot-wrap">
@@ -499,7 +514,7 @@
   <div class="sheet" id="affix-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="affix-title">词缀</h2><p class="sheet-sub" id="affix-meta"></p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body" id="affix-body"></div>
   </div>
@@ -507,7 +522,7 @@
   <div class="sheet" id="profile-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title">个人资料</h2><p class="sheet-sub">头像与昵称只保存在本机</p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body">
       <div class="profile-top">
@@ -533,7 +548,7 @@
   <div class="sheet" id="quiz-settings-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title">测试设置</h2><p class="sheet-sub">范围、题量、题型、难度与组卷依据</p></div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body">
       <section class="panel quiz-setup">
@@ -578,7 +593,7 @@
   <div class="sheet sheet-nested" id="dict-edit-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="sheet-title-wrap"><h2 class="sheet-title" id="dict-edit-title">添加词典</h2><p class="sheet-sub" id="dict-edit-sub">接入任意返回 JSON 的词典 API</p></div>
-      <button class="sheet-close" id="dict-edit-close" type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" id="dict-edit-close" type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body">
       <label class="field" id="dict-edit-name-wrap"><span>名称</span><input type="text" id="dict-edit-name" maxlength="20" placeholder="例如：我的词典" autocomplete="off" /></label>
@@ -621,7 +636,7 @@
         <h2 class="sheet-title" id="settings-title">设置</h2>
         <p class="sheet-sub" id="settings-sub">按功能分类管理学习、外观与数据</p>
       </div>
-      <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
+      <button class="sheet-close" data-close type="button" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
     </div>
     <div class="sheet-body">
       <div class="settings-pane" id="pane-learn" hidden>
