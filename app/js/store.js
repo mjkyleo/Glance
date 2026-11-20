@@ -166,13 +166,21 @@
       types: qtypes.length ? qtypes : QTYPES.slice(),
       difficulty: ['auto', 'easy', 'normal', 'hard'].includes(qc.difficulty) ? qc.difficulty : 'auto',
       online: qc.online !== false,
-      theme: typeof qc.theme === 'string' ? qc.theme : ''
+      theme: typeof qc.theme === 'string' ? qc.theme : '',
+      explore: Math.max(0, Math.min(40, Math.round(Number(qc.explore ?? 20) || 0))),
+      confusion: qc.confusion !== false,
+      curated: qc.curated !== false
     };
     d.quiz.ability = typeof d.quiz.ability === 'number' ? Math.max(0.05, Math.min(0.95, d.quiz.ability)) : 0.5;
     d.quiz.answered = Math.max(0, Number(d.quiz.answered) || 0);
     d.quiz.correct = Math.max(0, Number(d.quiz.correct) || 0);
     d.quiz.streak = Math.trunc(Number(d.quiz.streak) || 0);
     if (!d.quiz.history || typeof d.quiz.history !== 'object' || Array.isArray(d.quiz.history)) d.quiz.history = {};
+    Object.keys(d.quiz.history).forEach(w => {
+      const h = d.quiz.history[w];
+      if (!h || typeof h !== 'object') { delete d.quiz.history[w]; return; }
+      if (h.mix) d.quiz.history[w].mix = cleanMix(h.mix);
+    });
     if (!d.background || typeof d.background !== 'object') d.background = { image: '', veil: 38, blur: 0 };
     d.background.image = typeof d.background.image === 'string' && /^data:image\//.test(d.background.image) ? d.background.image : '';
     d.background.veil = typeof d.background.veil === 'number' ? Math.max(0, Math.min(80, d.background.veil)) : 38;
@@ -562,8 +570,20 @@
   function dictWords() { return Object.keys(data.dictCache).sort((a, b) => (data.dictCache[b].ts || 0) - (data.dictCache[a].ts || 0)); }
 
   // quiz: configuration, adaptive ability and per-word test history
+  // mix maps keep the top 8 recorded confusion partners per word so backups stay bounded
+  function cleanMix(mix) {
+    if (!mix || typeof mix !== 'object' || Array.isArray(mix)) return undefined;
+    const pairs = Object.keys(mix)
+      .map(w => [w, Math.max(0, Math.trunc(Number(mix[w]) || 0))])
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (!pairs.length) return undefined;
+    const out = {};
+    pairs.forEach(([w, n]) => { out[w] = n; });
+    return out;
+  }
   function setQuizConfig(patch) { Object.assign(data.quiz.config, patch || {}); save(); }
-  function recordQuizResult(word, correct, difficulty) {
+  function recordQuizResult(word, correct, difficulty, chosenWord) {
     const q = data.quiz;
     q.answered = (q.answered || 0) + 1;
     if (correct) { q.correct = (q.correct || 0) + 1; q.streak = Math.max(1, (q.streak || 0) + 1); }
@@ -573,6 +593,12 @@
     h.n++; if (correct) h.correct++; else h.wrong++;
     h.last = Date.now();
     if (typeof difficulty === 'number') h.diff = difficulty;
+    if (!correct && typeof chosenWord === 'string' && chosenWord && chosenWord !== word) {
+      const mix = h.mix || (h.mix = {});
+      mix[chosenWord] = (mix[chosenWord] || 0) + 1;
+      const capped = cleanMix(mix);
+      if (capped) h.mix = capped; else delete h.mix;
+    }
     const keys = Object.keys(q.history);
     if (keys.length > 2000) {
       keys.sort((a, b) => (q.history[a].last || 0) - (q.history[b].last || 0))
@@ -684,7 +710,10 @@
         types: types.length ? types : DEFAULTS.quiz.config.types.slice(),
         difficulty: ['auto', 'easy', 'normal', 'hard'].includes(c.difficulty) ? c.difficulty : 'auto',
         online: c.online !== false,
-        theme: typeof c.theme === 'string' ? c.theme : ''
+        theme: typeof c.theme === 'string' ? c.theme : '',
+        explore: Math.max(0, Math.min(40, Math.round(Number(c.explore ?? 20) || 0))),
+        confusion: c.confusion !== false,
+        curated: c.curated !== false
       };
       q.ability = clampA(src.ability);
       q.answered = Math.max(0, Number(src.answered) || 0);
@@ -702,11 +731,17 @@
         const h = src.history[w];
         if (!isObj(h)) continue;
         const cur = q.history[w];
-        if (!cur) q.history[w] = { n: h.n || 0, correct: h.correct || 0, wrong: h.wrong || 0, last: h.last || 0, diff: h.diff };
+        if (!cur) q.history[w] = { n: h.n || 0, correct: h.correct || 0, wrong: h.wrong || 0, last: h.last || 0, diff: h.diff, mix: cleanMix(h.mix) };
         else {
           cur.n += h.n || 0; cur.correct += h.correct || 0; cur.wrong += h.wrong || 0;
           cur.last = Math.max(cur.last || 0, h.last || 0);
           if (typeof h.diff === 'number') cur.diff = h.diff;
+          if (isObj(h.mix)) {
+            const mix = cur.mix || (cur.mix = {});
+            Object.keys(h.mix).forEach(o => { mix[o] = (mix[o] || 0) + Math.max(0, Math.trunc(Number(h.mix[o]) || 0)); });
+            const capped = cleanMix(mix);
+            if (capped) cur.mix = capped; else delete cur.mix;
+          }
         }
       }
     }

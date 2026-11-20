@@ -228,6 +228,129 @@
     return (1 - age / RECENT_WINDOW) * 2.4 + Math.min(0.8, (h.n || 0) * 0.05);
   }
 
+  // ---------- behavior profile ----------
+  // Every recorded interaction (SRS state, daily logs, views, errors, favorites,
+  // custom groups, lookups, search history, quiz history incl. chosen-wrong
+  // distractors) feeds one per-word signal set. Sessions are built from these
+  // records, but an exploration quota keeps unseen words in every round.
+  function behaviorProfile(now) {
+    const d = Store.data;
+    const srs = d.srs || {}, errors = d.errors || {}, fav = d.favorites || {};
+    const views = d.views || {}, qh = (d.quiz && d.quiz.history) || {};
+    const signals = new Map();
+    const touch = w => {
+      let g = signals.get(w);
+      if (!g) {
+        g = { seen: false, weak: 0, err: 0, due: 0, curated: 0, contact: 0, mix: 0, today: false, fav: false, custom: false };
+        signals.set(w, g);
+      }
+      return g;
+    };
+    const todayKey = Store.today();
+    Object.keys(srs).forEach(w => {
+      const s = srs[w];
+      if (!s || SRS.isNew(s)) return;
+      const g = touch(w);
+      g.seen = true;
+      if (SRS.isDue(s, now)) g.due = 1 + Math.min(1, clamp((now - (s.due || now)) / DAY, 0, 14) / 7);
+      g.weak = clamp((s.lapses || 0) * 0.22 + (s.state === 'relearn' ? 0.6 : s.state === 'learning' ? 0.28 : 0.06)
+        + Math.max(0, 1 - (s.S ?? 10) / 30) * 0.25, 0, 2);
+    });
+    Object.keys(errors).forEach(w => {
+      const g = touch(w);
+      g.err = Math.min(1.6, 0.4 + (errors[w].count || 1) * 0.3);
+    });
+    Object.keys(qh).forEach(w => {
+      const h = qh[w];
+      if (!h || !h.n) return;
+      const g = touch(w);
+      g.err = Math.min(2, g.err + ((h.wrong || 0) / h.n) * 0.9);
+    });
+    Object.keys(fav).forEach(w => { const g = touch(w); g.fav = true; g.curated += 0.7; });
+    (d.customThemes || []).forEach(t => (t.words || []).forEach(w => {
+      const g = touch(w);
+      if (!g.custom) { g.custom = true; g.curated += 0.5; }
+    }));
+    Object.keys(views).forEach(w => {
+      const n = views[w].n || 0;
+      if (!n) return;
+      touch(w).contact += Math.min(0.6, Math.log10(1 + n) * 0.35);
+    });
+    const looked = new Set(Object.keys(d.dictCache || {}));
+    Object.keys(d.aiCache || {}).forEach(w => looked.add(w));
+    (d.history || []).forEach(h => { if (h && h.word) looked.add(h.word); });
+    looked.forEach(w => { touch(w).contact += 0.2; });
+    // Confusion pairs: recorded wrong picks, both directions, so a partner word
+    // also attracts questions about the word it was confused with.
+    const mix = new Map();
+    const addMix = (a, b, n) => {
+      if (!a || !b || a === b || !(n > 0)) return;
+      let m = mix.get(a);
+      if (!m) { m = new Map(); mix.set(a, m); }
+      m.set(b, (m.get(b) || 0) + n);
+    };
+    Object.keys(qh).forEach(w => {
+      const h = qh[w];
+      if (!h || !h.mix) return;
+      Object.keys(h.mix).forEach(o => { addMix(w, o, h.mix[o]); addMix(o, w, h.mix[o]); });
+    });
+    mix.forEach((m, w) => {
+      let sum = 0;
+      m.forEach(n => { sum += n; });
+      touch(w).mix = Math.min(2, sum * 0.5);
+    });
+    // Same-day co-study neighbours (last 14 active days): words met together are
+    // natural confusion candidates even without a recorded wrong pick.
+    const co = new Map();
+    const dayKeys = Object.keys(d.logs || {}).sort().slice(-14);
+    let activeDays = 0;
+    dayKeys.forEach(k => {
+      const l = d.logs[k];
+      if (!l) return;
+      if ((l.know || 0) + (l.fuzzy || 0) + (l.forgot || 0) > 0) activeDays++;
+      const ws = Array.from(new Set([].concat(l.newWords || [], l.reviewWords || []).filter(Boolean))).slice(0, 60);
+      if (k === todayKey) ws.forEach(w => { touch(w).today = true; });
+      ws.forEach(w => {
+        let s = co.get(w);
+        if (!s) { s = new Set(); co.set(w, s); }
+        ws.forEach(o => { if (o !== w && s.size < 24) s.add(o); });
+      });
+    });
+    let confused = 0, dueN = 0, curatedN = 0;
+    signals.forEach(g => {
+      if (g.mix > 0) confused++;
+      if (g.due > 0) dueN++;
+      if (g.curated > 0) curatedN++;
+    });
+    return {
+      signals, mix, co, looked,
+      stats: { recorded: signals.size, confused, due: dueN, curated: curatedN, days: activeDays, looked: looked.size }
+    };
+  }
+  function needScore(g) {
+    if (!g) return 0;
+    return 1.1 * g.due + 0.9 * g.weak + 0.8 * g.err + 0.7 * g.curated + 0.9 * g.mix + 0.3 * g.contact;
+  }
+  function sourceFor(g) {
+    if (!g) return 'new';
+    if (g.due > 0) return 'due';
+    if (g.mix > 0) return 'confused';
+    if (g.weak >= 0.5) return 'weak';
+    if (g.curated > 0) return 'curated';
+    if (g.seen) return 'review';
+    if (g.contact > 0) return 'contact';
+    return 'new';
+  }
+  // Exploration favours common words and roots the learner has not touched yet,
+  // so the non-record share still spreads usefully instead of repeating one family.
+  function exploreWeight(e, seenRoots) {
+    const fr = Number(e.fr) || 0;
+    const freq = fr > 0 ? clamp(1 - Math.log10(fr) / 4.5, 0, 1) * 0.5 : 0.2;
+    const r = rootOf(e);
+    const gap = r && !seenRoots.has(r) ? 0.35 : 0;
+    return 0.9 + freq + gap;
+  }
+
   // ---------- examples + cloze ----------
   function parseExample(raw) {
     let s = String(raw || '').replace(/^\s*[-•·]\s*/, '').trim();
@@ -404,9 +527,21 @@
     const shared = Math.max(1, Math.min(pa.length, pb.length));
     return clamp(base * 0.72 + (pre / shared) * 0.16 + (suf / shared) * 0.12, 0, 1);
   }
-  function buildAudioDistractors(entry, p) {
+  function buildAudioDistractors(entry, p, profile, cfg) {
     const targetPh = phoneticKey(entry);
     if (!targetPh) return null;
+    const recWords = new Set();
+    if (profile && cfg && cfg.confusion !== false) {
+      const m = profile.mix.get(entry.word);
+      if (m) m.forEach((n, w) => recWords.add(w));
+      const co = profile.co.get(entry.word);
+      if (co) co.forEach(w => recWords.add(w));
+      if (cfg.curated !== false) {
+        Object.keys(Store.data.favorites || {}).forEach(w => recWords.add(w));
+        (Store.data.customThemes || []).forEach(t => (t.words || []).forEach(w => recWords.add(w)));
+      }
+      profile.looked.forEach(w => recWords.add(w));
+    }
     const scored = [];
     const seenWord = new Set([entry.word.toLowerCase()]);
     const seenPh = new Set([targetPh]);
@@ -426,7 +561,7 @@
       const phon = ph ? phoneticSim(entry, c) : 0;
       const spell = 1 - editDistance(entry.word.toLowerCase(), w) / Math.max(4, entry.word.length, c.word.length);
       const posBonus = posGroup(entry) && posGroup(entry) === posGroup(c) ? 0.08 : 0;
-      scored.push({ c, s: phon + clamp(spell, 0, 1) * 0.34 + posBonus, phon });
+      scored.push({ c, s: phon + clamp(spell, 0, 1) * 0.34 + posBonus, phon, rec: recWords.has(c.word) });
       seenWord.add(w);
       if (ph) seenPh.add(ph);
     }
@@ -438,21 +573,68 @@
     if (close.length < 3) return null;
     const items = close.slice(0, 10);
     const chosen = [];
+    const weightOf = x => Math.max(0.004, Math.pow(Math.max(0.05, x.phon - 0.3), 2.2) * 8) * (x.rec ? 2.2 : 1);
+    const takeFrom = list => {
+      if (!list.length) return false;
+      const k = pickWeighted(list.map(weightOf));
+      const x = list[k];
+      chosen.push(x.c);
+      const i = items.indexOf(x);
+      if (i >= 0) items.splice(i, 1);
+      return true;
+    };
+    // One recorded confusion/familiar word leads when it also sounds close;
+    // at most two of the three options come from records.
+    const recItems = items.filter(x => x.rec);
+    if (recItems.length) takeFrom(recItems);
     while (chosen.length < 3 && items.length) {
-      // Cubic weighting keeps the options in the closest sound-alike band while
-      // still varying which three appear across sessions.
-      const weights = items.map(x => Math.max(0.004, Math.pow(Math.max(0.05, x.phon - 0.3), 2.2) * 8));
-      const k = pickWeighted(weights);
-      chosen.push(items[k].c);
-      items.splice(k, 1);
+      const recN = chosen.filter(c => recWords.has(c.word)).length;
+      const list = recN >= 2 ? items.filter(x => !x.rec) : items;
+      if (!takeFrom(list)) break;
     }
     if (chosen.length < 3) return null;
     const avg = chosen.reduce((n, c) => n + phoneticSim(entry, c), 0) / chosen.length;
-    return { list: chosen.map(c => c.word), entries: chosen, avg };
+    return { list: chosen.map(c => c.word), entries: chosen, avg, recordCount: chosen.filter(c => recWords.has(c.word)).length };
   }
 
-  function buildDistractors(entry, type, p, phase) {
-    if (type === 'audio2word') return buildAudioDistractors(entry, p);
+  // ---------- record-derived distractors ----------
+  // Ranked by evidence strength: recorded wrong picks first, then same-day
+  // co-study neighbours, then the learner's curated/familiar set. Library
+  // similarity still fills the remaining slots, so options are never drawn
+  // exclusively from records.
+  function recordCandidates(entry, type, p, profile, cfg) {
+    if (!profile || !cfg || cfg.confusion === false) return [];
+    const g = posGroup(entry);
+    const correctKey = glossKey(entry);
+    const seenWord = new Set([entry.word]);
+    const seenGloss = new Set([correctKey]);
+    const out = [];
+    const push = (w, bonus) => {
+      if (!w || seenWord.has(w)) return;
+      const c = p.index.get(w) || Library.lookup(w);
+      if (!c || !c.word || !primaryGloss(c)) return;
+      if ((type === 'zh2en' || type === 'cloze') && g && posGroup(c) !== g) return;
+      const key = glossKey(c);
+      if (!key || seenGloss.has(key)) return;
+      if (semanticNeighbor(entry, c)) return;
+      seenWord.add(c.word);
+      seenGloss.add(key);
+      out.push({ c, s: bonus });
+    };
+    const m = profile.mix.get(entry.word);
+    if (m) Array.from(m.entries()).sort((a, b) => b[1] - a[1]).forEach(([w, n]) => push(w, 10 + Math.min(4, n)));
+    const co = profile.co.get(entry.word);
+    if (co) co.forEach(w => push(w, 6));
+    if (cfg.curated !== false) {
+      Object.keys(Store.data.favorites || {}).forEach(w => push(w, 4));
+      (Store.data.customThemes || []).forEach(t => (t.words || []).forEach(w => push(w, 4)));
+    }
+    profile.looked.forEach(w => push(w, 3));
+    return out;
+  }
+
+  function buildDistractors(entry, type, p, phase, profile, cfg) {
+    if (type === 'audio2word') return buildAudioDistractors(entry, p, profile, cfg);
     const g = posGroup(entry);
     const correctKey = glossKey(entry);
     let candidates;
@@ -462,8 +644,20 @@
     } else {
       candidates = p.entries;
     }
+    const rec = recordCandidates(entry, type, p, profile, cfg);
+    const recPick = [];
+    if (rec.length) {
+      const items = rec.slice(0, 8);
+      const want = Math.min(2, items.length);
+      while (recPick.length < want && items.length) {
+        const k = pickWeighted(items.map(x => x.s));
+        recPick.push(items[k].c);
+        items.splice(k, 1);
+      }
+    }
     const seenGloss = new Set([correctKey]);
     const seenWord = new Set([entry.word]);
+    recPick.forEach(c => { seenWord.add(c.word); seenGloss.add(glossKey(c)); });
     const scored = [];
     for (const c of candidates) {
       if (!c || c.word === entry.word) continue;
@@ -476,9 +670,9 @@
     }
     scored.sort((a, b) => b.s - a.s);
     let top = scored.slice(0, type === 'en2zh' ? 14 : 12);
-    if (top.length < 3 && type === 'en2zh') top = scored.slice(0, 24);
-    if (top.length < 3) return null;
-    const chosen = [];
+    if (top.length + recPick.length < 3 && type === 'en2zh') top = scored.slice(0, 24);
+    if (top.length + recPick.length < 3) return null;
+    const chosen = recPick.slice();
     const items = top.slice();
     while (chosen.length < 3 && items.length) {
       const weights = items.map(x => Math.max(0.05, x.s + 4));
@@ -488,7 +682,7 @@
     }
     if (chosen.length < 3) return null;
     const avg = chosen.reduce((n, c) => n + similarity(entry, c), 0) / chosen.length;
-    return { list: chosen.map(c => type === 'en2zh' ? primaryGloss(c) : c.word), entries: chosen, avg };
+    return { list: chosen.map(c => type === 'en2zh' ? primaryGloss(c) : c.word), entries: chosen, avg, recordCount: recPick.length };
   }
 
   // ---------- question construction ----------
@@ -513,11 +707,12 @@
     return out;
   }
 
-  function buildQuestion(e, type, cfg, p, phase) {
+  function buildQuestion(e, type, cfg, p, phase, profile) {
     const diff = questionDifficulty(e, type);
     const root = rootOf(e);
+    const source = sourceFor(profile ? profile.signals.get(e.word) : null);
     if (type === 'audio2word') {
-      const d = buildAudioDistractors(e, p);
+      const d = buildAudioDistractors(e, p, profile, cfg);
       if (!d) return null;
       const byWord = new Map([[e.word, e]]);
       d.entries.forEach(c => byWord.set(c.word, c));
@@ -528,23 +723,26 @@
         word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 0.72 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
         display: { word: '', phonetic: '', question: '听发音，选择对应的单词' },
         options, optionWords: opts.map(o => o.word), optionGloss: opts.map(o => o.gloss),
-        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e),
+        source, recordDistractors: d.recordCount || 0
       };
     }
     if (type === 'en2zh') {
-      const d = buildDistractors(e, 'en2zh', p, phase);
+      const d = buildDistractors(e, 'en2zh', p, phase, profile, cfg);
       if (!d) return null;
       const correct = primaryGloss(e);
-      const options = shuffle([correct].concat(d.list));
+      const opts = shuffle([{ text: correct, word: e.word }].concat(d.entries.map(c => ({ text: primaryGloss(c), word: c.word }))));
+      const options = opts.map(o => o.text);
       return {
         word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 7 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
         display: { word: e.word, phonetic: e.phonetic || '', question: '选择正确的释义' },
-        options, optionWords: options.map(() => ''), optionGloss: options.map(() => ''),
-        correctIndex: options.indexOf(correct), correct, gloss: correct
+        options, optionWords: opts.map(o => o.word), optionGloss: opts.map(() => ''),
+        correctIndex: options.indexOf(correct), correct, gloss: correct,
+        source, recordDistractors: d.recordCount || 0
       };
     }
     if (type === 'zh2en') {
-      const d = buildDistractors(e, 'zh2en', p, phase);
+      const d = buildDistractors(e, 'zh2en', p, phase, profile, cfg);
       if (!d) return null;
       const byWord = new Map([[e.word, e]]);
       d.entries.forEach(c => byWord.set(c.word, c));
@@ -555,12 +753,13 @@
         word: e.word, type, entry: e, difficulty: clamp(diff + (d.avg > 8 ? 0.04 : 0), 0, 1), root, pos: posGroup(e),
         display: { word: primaryGloss(e), phonetic: '', question: '选择对应的英文单词' },
         options, optionWords: opts.map(o => o.word), optionGloss: opts.map(o => o.gloss),
-        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+        correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e),
+        source, recordDistractors: d.recordCount || 0
       };
     }
     const cloze = buildCloze(e, allExamples(e));
     if (!cloze) return null;
-    const d = buildDistractors(e, 'cloze', p, phase);
+    const d = buildDistractors(e, 'cloze', p, phase, profile, cfg);
     if (!d) return null;
     const inflected = cloze.form.toLowerCase() !== e.word.toLowerCase();
     const correct = inflected ? inflectLike(e.word, cloze.form) : e.word;
@@ -585,7 +784,8 @@
         sentence: cloze
       },
       options, optionWords: shuffled.map(o => o.word), optionGloss: shuffled.map(o => o.gloss),
-      correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e)
+      correctIndex: options.indexOf(correct), correct, gloss: primaryGloss(e),
+      source, recordDistractors: d.recordCount || 0
     };
   }
 
@@ -619,7 +819,11 @@
     const target = targetDifficulty(cfg);
     let fit = 0;
     for (const t of c.types) fit = Math.max(fit, fitScore(questionDifficulty(c.e, t), target));
-    const rp = phase >= 2 ? 0 : recentPenalty(c.e.word, now) * (phase === 1 ? 0.5 : 1);
+    // Strong records (due / just-missed / confused) must surface even when the
+    // word is harder than the current ability target; weak records keep the
+    // normal difficulty fit.
+    if (!c.explore) fit = Math.max(fit, clamp(0.22 + (c.need || 0) * 0.13, 0.22, 0.72));
+    const rp = (phase >= 2 ? 0 : recentPenalty(c.e.word, now) * (phase === 1 ? 0.5 : 1)) * (c.explore ? 1 : 0.35);
     const last = recentRoots[recentRoots.length - 1];
     const rootPenalty = c.root && recentRoots.includes(c.root) ? (c.root === last ? 0.9 : 0.35) : 0;
     // Theme/POS interleaving: secondary axes, softer than root; scaled down as phases relax.
@@ -631,7 +835,7 @@
     return Math.max(0.02, c.base * fit * rootBonus * themeBonus * c.novelty - rp - rootPenalty - themePenalty - posPenalty);
   }
 
-  function sample(scored, cfg, p, now) {
+  function sample(scored, cfg, p, now, profile, exploreQuota) {
     const used = new Set();
     const usedRoots = new Set();
     const usedThemes = new Set();
@@ -642,11 +846,17 @@
     const questions = [];
     const relaxations = [];
     const limit = cfg.count;
+    let explorePicked = 0;
+    const quota = Math.max(0, exploreQuota || 0);
     for (const phase of [0, 1, 2]) {
       while (questions.length < limit) {
-        const allowed = [];
+        // The exploration quota is a floor, not a cap: unseen words keep their
+        // share even when record-driven candidates dominate the weights.
+        const wantExplore = explorePicked < quota;
+        let allowed = [];
         for (const c of scored) {
           if (used.has(c.e.word)) continue;
+          if (wantExplore && !c.explore) continue;
           if (!rootAllowed(c.root, recentRoots, phase)) continue;
           if (!themeAllowed(c.theme, recentThemes, phase)) continue;
           if (!posAllowed(c.pos, recentPos, phase)) continue;
@@ -654,14 +864,36 @@
           if (!types.length) continue;
           allowed.push(c);
         }
+        if (!allowed.length && wantExplore) {
+          for (const c of scored) {
+            if (used.has(c.e.word) || c.explore) continue;
+            if (!rootAllowed(c.root, recentRoots, phase)) continue;
+            if (!themeAllowed(c.theme, recentThemes, phase)) continue;
+            if (!posAllowed(c.pos, recentPos, phase)) continue;
+            const types = c.types.filter(t => typeAllowed(t, recentTypes, phase));
+            if (!types.length) continue;
+            allowed.push(c);
+          }
+        }
         if (!allowed.length) break;
         const weights = allowed.map(c => candidateScore(c, usedRoots, recentRoots, usedThemes, recentThemes, recentPos, cfg, now, phase));
+        // Weighted picking sums across the pool, so a huge unseen-word tail would
+        // otherwise drown the few high-need record words. Normalise the explore
+        // bucket to a fixed share of the total mass; records keep the rest, and
+        // exploration still fills in naturally once records run out.
+        let sumRec = 0, sumExp = 0;
+        allowed.forEach((c, i) => { if (c.explore) sumExp += weights[i]; else sumRec += weights[i]; });
+        if (sumRec > 0 && sumExp > 0) {
+          const share = wantExplore ? 1 : 0.1;
+          const scale = (sumRec * (share / (1 - share))) / sumExp;
+          allowed.forEach((c, i) => { if (c.explore) weights[i] *= scale; });
+        }
         const c = allowed[pickWeighted(weights)];
         let types = c.types.filter(t => typeAllowed(t, recentTypes, phase));
         let q = null;
         while (types.length && !q) {
           const type = chooseType(types, recentTypes);
-          q = buildQuestion(c.e, type, cfg, p, phase);
+          q = buildQuestion(c.e, type, cfg, p, phase, profile);
           if (!q) {
             types = types.filter(t => t !== type);
             c.types = c.types.filter(t => t !== type);
@@ -670,6 +902,7 @@
         if (!q) { used.add(c.e.word); continue; }
         questions.push(q);
         used.add(c.e.word);
+        if (c.explore) explorePicked++;
         if (c.root) usedRoots.add(c.root);
         if (c.theme) usedThemes.add(c.theme);
         recentRoots.push(c.root || '');
@@ -688,18 +921,27 @@
     return { questions, relaxations };
   }
 
-  function buildScored(entries, cfg, p, now) {
+  function buildScored(entries, cfg, p, now, profile, explore, seenRoots) {
     const target = targetDifficulty(cfg);
     const out = [];
     for (const e of entries) {
       const types = availableTypes(e, cfg, p);
       if (!types.length) continue;
-      const base = baseWeight(e, cfg.scope, now);
+      const g = profile ? profile.signals.get(e.word) : null;
+      let base;
+      if (explore) base = exploreWeight(e, seenRoots || new Set());
+      else {
+        base = baseWeight(e, cfg.scope, now) + needScore(g);
+        // Words already studied today get a rest; the SRS queue picks them up tomorrow.
+        if (g && g.today) base *= 0.6;
+      }
+      base = clamp(base, 0.08, 14);
       const novelty = noveltyBonus(e);
       let fit = 0;
       for (const t of types) fit = Math.max(fit, fitScore(questionDifficulty(e, t), target));
       out.push({
-        e, types, base, fit, novelty, root: rootOf(e), theme: themeOf(e), pos: posGroup(e),
+        e, types, base, fit, novelty, root: rootOf(e), theme: themeOf(e), pos: posGroup(e), explore: !!explore,
+        need: explore ? 0 : needScore(g),
         // Sorting hint only; the sampler re-scores with live root coverage.
         hint: base * fit * novelty
       });
@@ -739,27 +981,37 @@
       types: types.length ? Array.from(new Set(types)) : TYPES.slice(),
       difficulty: ['auto', 'easy', 'normal', 'hard'].includes(c.difficulty) ? c.difficulty : 'auto',
       online: c.online !== false,
-      theme: typeof c.theme === 'string' ? c.theme : ''
+      theme: typeof c.theme === 'string' ? c.theme : '',
+      explore: clamp(Math.round(Number(c.explore ?? 20) || 0), 0, 40),
+      confusion: c.confusion !== false,
+      curated: c.curated !== false
     };
   }
 
   // Synchronous estimate used by the start screen (never touches the network).
-  function estimate(input) {
+  function estimate(input, preProfile) {
     const cfg = buildConfig(input);
     const p = pool();
     const entries = listEntries(scopeWords(cfg));
+    const profile = preProfile || behaviorProfile(Date.now());
     const counts = { en2zh: 0, zh2en: 0, cloze: 0, audio2word: 0 };
-    let available = 0;
+    let available = 0, recorded = 0, fresh = 0;
     for (const e of entries) {
       const types = availableTypes(e, cfg, p);
       if (!types.length) continue;
       available++;
+      if (profile.signals.has(e.word)) recorded++; else fresh++;
       types.forEach(t => counts[t]++);
     }
+    const exploreQuota = Math.min(fresh, Math.round(cfg.count * cfg.explore / 100));
     const onlineCloze = cfg.types.includes('cloze') && cfg.online
       ? entries.filter(e => !hasCloze(e)).length
       : 0;
-    return { pool: entries.length, available, types: counts, onlineCloze, cfg };
+    return {
+      pool: entries.length, available, types: counts, onlineCloze, cfg,
+      profile: profile.stats,
+      plan: { review: Math.max(0, Math.min(cfg.count, available) - exploreQuota), explore: exploreQuota, recorded, fresh }
+    };
   }
 
   async function buildSession(input, opts) {
@@ -767,23 +1019,42 @@
     const cfg = buildConfig(input);
     const now = Date.now();
     const p = pool();
+    const profile = behaviorProfile(now);
     let entries = listEntries(scopeWords(cfg));
     if (!entries.length) return { questions: [], config: cfg, warnings: ['当前范围没有可用的词。'] };
 
+    const recordedEntries = [], exploreEntries = [], seenRoots = new Set();
+    entries.forEach(e => {
+      const g = profile.signals.get(e.word);
+      if (g) {
+        recordedEntries.push(e);
+        if (g.seen) { const r = rootOf(e); if (r) seenRoots.add(r); }
+      } else exploreEntries.push(e);
+    });
+
     if (cfg.types.includes('cloze') && cfg.online) {
-      // Prefetch only likely candidates: rank by base weight before sampling.
-      const ranked = entries.slice().sort((a, b) => baseWeight(b, cfg.scope, now) - baseWeight(a, cfg.scope, now));
+      // Prefetch only likely candidates: rank by record-aware weight before sampling.
+      const weightOf = e => baseWeight(e, cfg.scope, now) + needScore(profile.signals.get(e.word));
+      const ranked = recordedEntries.slice().sort((a, b) => weightOf(b) - weightOf(a));
       const limit = Math.min(20, Math.max(cfg.count, 10));
       await prefetchExamples(ranked.slice(0, limit), cfg, limit, opts.onProgress);
-      entries = ranked;
     }
 
-    const scored = buildScored(entries, cfg, p, now);
-    const { questions, relaxations } = sample(scored, cfg, p, now);
-    const info = estimate(cfg);
+    const scored = buildScored(recordedEntries, cfg, p, now, profile, false, seenRoots)
+      .concat(buildScored(exploreEntries, cfg, p, now, profile, true, seenRoots));
+    const exploreQuota = Math.min(exploreEntries.length, Math.round(cfg.count * cfg.explore / 100));
+    const { questions, relaxations } = sample(scored, cfg, p, now, profile, exploreQuota);
+    const composition = { due: 0, weak: 0, confused: 0, curated: 0, review: 0, contact: 0, new: 0 };
+    let recordDistractors = 0;
+    questions.forEach(q => {
+      composition[q.source || 'review'] = (composition[q.source || 'review'] || 0) + 1;
+      recordDistractors += q.recordDistractors || 0;
+    });
+    const info = estimate(cfg, profile);
     return {
       questions, config: cfg, relaxations,
       available: info.available, estimates: info,
+      composition, recordDistractors, profile: profile.stats, plan: info.plan,
       warnings: warningsFor(questions, cfg, info)
     };
   }
@@ -792,6 +1063,6 @@
     TYPES, TYPE_LABEL, SCOPES, DIFFICULTY_TARGET, buildConfig, estimate, buildSession,
     primaryGloss, posGroup, rootOf, pool, scopeWords, listEntries,
     intrinsic, stateDifficulty, questionDifficulty, targetDifficulty, ability,
-    phoneticKey, phoneticSim
+    phoneticKey, phoneticSim, behaviorProfile, sourceFor
   };
 })();

@@ -173,19 +173,30 @@
 
 ### 4.2 自动难度与组卷约束 ✅
 
-- 能力值自适应 `ability` / 目标难度 `targetDifficulty`（[quiz.js:181-187](../app/js/quiz.js#L181-L187)）。
-- **抽题不重复**（`seen` 去重）、**同根词不连续**（[quiz.js:597 rootAllowed](../app/js/quiz.js#L597)）、**同题型不连出三题**（[quiz.js:593-595 typeAllowed](../app/js/quiz.js#L593-L595)）;近期接触降权 `recentPenalty`（[quiz.js:223](../app/js/quiz.js#L223)）、新词加成 `noveltyBonus`（[quiz.js:218](../app/js/quiz.js#L218)）。组卷采样 [quiz.js:634 sample](../app/js/quiz.js#L634)。
+- 能力值自适应 `ability` / 目标难度 `targetDifficulty`（[quiz.js:187-192](../app/js/quiz.js#L187-L192)）。
+- **抽题不重复**（`used` 去重）、**同根词不连续**（[quiz.js:797 rootAllowed](../app/js/quiz.js#L797)）、**同题型不连出三题**（[quiz.js:793-795 typeAllowed](../app/js/quiz.js#L793-L795)）;近期接触降权 `recentPenalty`（[quiz.js:223](../app/js/quiz.js#L223)，记录词衰减到 35%）、新词加成 `noveltyBonus`（[quiz.js:218](../app/js/quiz.js#L218)）。组卷采样 [quiz.js:838 sample](../app/js/quiz.js#L838)。
+- **探索配额**：`explore`（0–40%，默认 20）保证每轮都有未学新词;采样把探索桶总权重归一到固定份额，避免海量新词淹没少量高需求记录词（[quiz.js:879-890](../app/js/quiz.js#L879-L890)）。
 
 ### 4.3 干扰项生成 ✅
 
-- 同词性 / 同根易混干扰（[quiz.js:454 buildDistractors](../app/js/quiz.js#L454)）；小词书自动借标准书凑干扰项（[quiz.js:92](../app/js/quiz.js#L92)）。
-- 听音选词用**音标音近**干扰（[quiz.js:407 buildAudioDistractors](../app/js/quiz.js#L407)、[quiz.js:396 phoneticSim](../app/js/quiz.js#L396)）。
-- 例句填空把目标词形镜像到干扰项，选项读起来自然（[quiz.js:319 buildCloze](../app/js/quiz.js#L319)、[quiz.js:302 inflectLike](../app/js/quiz.js#L302)）。
+- 同词性 / 同根易混干扰（[quiz.js:636 buildDistractors](../app/js/quiz.js#L636)）；小词书自动借标准书凑干扰项（[quiz.js:93](../app/js/quiz.js#L93)）。
+- **记录优先干扰项**（[quiz.js:605 recordCandidates](../app/js/quiz.js#L605)）：按证据强度排序 = 答错误选对（`quiz.history[w].mix`，双向）→ 近 14 天同日共学 → 收藏/自定义词组 → 查词/AI/浏览接触;每題最多 2/3 个来自记录、至少留 1 个词库相似项，记录不足时全词库回退。
+- 听音选词用**音标音近**干扰（[quiz.js:530 buildAudioDistractors](../app/js/quiz.js#L530)、[quiz.js:519 phoneticSim](../app/js/quiz.js#L519)）;记录词只有同样音近才入选，且 ≤2/3。
+- 例句填空把目标词形镜像到干扰项，选项读起来自然（[quiz.js:442 buildCloze](../app/js/quiz.js#L442)、[quiz.js:425 inflectLike](../app/js/quiz.js#L425)）。
 
 ### 4.4 判分、错题本与流程 ✅
 
-- 答对自动跳题、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:994 answerQuiz](../app/js/app.js#L994)、[app.js:1064 renderQuizReveal](../app/js/app.js#L1064)）；错题本 `quiz-wrong-panel`;结束收进顶部胶囊（[app.js:1116 finishQuiz](../app/js/app.js#L1116)、[app.js:1125 renderQuizDone](../app/js/app.js#L1125)）。
-- 设置面板（范围/题型/难度/约束）[app.js:766 renderQuizSettings](../app/js/app.js#L766);考前预估 [app.js:724 renderQuizEstimate](../app/js/app.js#L724)。
+- 答对自动跳题、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1013 answerQuiz](../app/js/app.js#L1013)、[app.js:1086 renderQuizReveal](../app/js/app.js#L1086)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1138 finishQuiz](../app/js/app.js#L1138)、[app.js:1147 renderQuizDone](../app/js/app.js#L1147)）。
+- **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:586 recordQuizResult](../app/js/store.js#L586)，每词上限 8 个伙伴，[store.js:574 cleanMix](../app/js/store.js#L574)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:733-745](../app/js/quiz.js#L733-L745)）。
+- 设置面板（范围/题型/难度/组卷依据）[app.js:761 renderQuizSettings](../app/js/app.js#L761);考前预估含本轮复习/探索计划 [app.js:702 renderQuizEstimate](../app/js/app.js#L702)。
+
+### 4.5 行为驱动组卷（记录为依据、但不全是）✅
+
+- **行为画像** `behaviorProfile`（[quiz.js:236](../app/js/quiz.js#L236)）汇总 app/网页全部行为记录：FSRS 状态与到期/薄弱、每日学习日志（同日共学邻词、今日已学降权）、浏览计数、错题本、生词本与自定义词组、查词历史、AI/词典缓存、测试历史与误选对;输出每词信号与统计（有记录词/易混/到期/收藏/活跃天数）。
+- **需求评分** `needScore`（[quiz.js:330](../app/js/quiz.js#L330)）叠加到候选权重;强记录词有难度 fit 下限，保证刚答错/到期词不被难度模型压掉（[quiz.js:822-826](../app/js/quiz.js#L822-L826)）。
+- **来源标签**：每题带 `source`（到期复习/薄弱词/易混词/收藏分组/已学复习/浏览关注/新词探索，[quiz.js:334 sourceFor](../app/js/quiz.js#L334)），会话内显示徽标（[app.js:697 QUIZ_SOURCE_LABEL](../app/js/app.js#L697)、[index.html:85](../app/index.html#L85)）。
+- **结果构成**：结束页「本轮构成」堆叠条 + 图例 + 「依据 N 个词的学习记录组卷 · M 个干扰项来自你的记录」（[app.js:1160-1190](../app/js/app.js#L1160-L1190)、[index.html:120](../app/index.html#L120)）。
+- **组卷依据面板**：探索比例滑杆、易混词优先开关、收藏/自定义加权开关、画像统计行（[index.html:554-566](../app/index.html#L554-L566)）；入口页显示组卷依据摘要（[index.html:66](../app/index.html#L66)）。配置 `explore/confusion/curated` 随备份导出导入（[store.js:163-172](../app/js/store.js#L163-L172)、[store.js:700 mergeQuiz](../app/js/store.js#L700)）。
 
 ---
 

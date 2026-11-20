@@ -309,7 +309,7 @@
 | `fsrs` | `{w, seqs: {word: [{t, g}]}, count, lastOpt}` | 个性化权重与复习序列 |
 | `customBooks` | `{name: {entries[]}}` | 自定义词书（§4） |
 | `customThemes` | `[{id, name≤20, words[], ts}]` | 自定义专项词组；id 为 `ct_` 前缀，词去重保序 |
-| `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史 |
+| `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史;`config` 含 `explore`(0–40，默认 20)/`confusion`/`curated`;`history[word]` 含 `mix{伙伴词: 误选次数}`（每词 ≤8，[store.js:574 cleanMix](../app/js/store.js#L574)、[store.js:586 recordQuizResult](../app/js/store.js#L586)） |
 | `quizExamples` | `{word: {examples[≤6], provider, ts}}` | 例句填空缓存 |
 | `aiCache` / `dictCache` | `{word: record}` | AI 解释 / 外部词典按词缓存 |
 | 偏好 | `plan, activeBook, profile, theme, studyPanel, studyPanelOrder, bookFilter, progressBars, autoSpeak, preferAudio, ttsRate, ttsLang, background, ai, dict` | 本机设置 |
@@ -457,7 +457,7 @@
 | `favorites` / `favGroups` | 按词覆盖 / 组名并集 | 先清空再还原 |
 | `customThemes` | 按 id 并集：words 合并去重，name 取 ts 较新者 | 先清空再还原 |
 | `history` | 合并去重、按 ts 降序截 100 | 先清空再合并 |
-| `quiz` | 能力按答题数加权、计数相加、历史累加 | 配置校验后重置、历史清空再累加 |
+| `quiz` | 能力按答题数加权、计数相加、历史累加（`mix` 次数相加后按 top-8 截断） | 配置校验后重置（含 explore/confusion/curated）、历史清空再累加 |
 | `fsrs` | 仅本地 count 为空时接收 | 接收 |
 | `settings` | 忽略 | 生效，但**保留本机 API Key**;学习面板按 §5.1 迁移（旧 `cardOrder` 接管顺序、`autoExplain` 丢弃） |
 

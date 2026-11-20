@@ -681,7 +681,9 @@
     const scope = (QuizEngine.SCOPES.find(s => s.id === cfg.scope) || {}).name || '';
     const types = cfg.types.map(t => QuizEngine.TYPE_LABEL[t]).join(' / ');
     const diff = { auto: '自动难度', easy: '简单难度', normal: '普通难度', hard: '困难难度' }[cfg.difficulty] || '';
-    return [scope, cfg.count + ' 题', types, diff].filter(Boolean).join(' · ');
+    const parts = [scope, cfg.count + ' 题', types, diff];
+    if (cfg.explore > 0) parts.push('探索 ' + cfg.explore + '%');
+    return parts.filter(Boolean).join(' · ');
   }
   function quizThemeOptions() {
     const list = window.Themes ? Themes.list().filter(t => t.n > 0) : [];
@@ -692,6 +694,10 @@
     if (d < 0.62) return '普通';
     return '困难';
   }
+  const QUIZ_SOURCE_LABEL = {
+    due: '到期复习', weak: '薄弱词', confused: '易混词', curated: '收藏/分组',
+    review: '已学复习', contact: '浏览关注', new: '新词探索'
+  };
 
   function renderQuizEstimate() {
     const box = $('quiz-estimate');
@@ -709,10 +715,15 @@
       chipRow.appendChild(el('span', 'quiz-est-chip', QuizEngine.TYPE_LABEL[t] + ' ' + (info.types[t] || 0)));
     });
     box.appendChild(chipRow);
+    if (info.plan) {
+      box.appendChild(el('p', 'quiz-est-plan',
+        '本轮计划：复习 ' + info.plan.review + ' 题 · 探索 ' + info.plan.explore + ' 题（依据 ' + info.profile.recorded + ' 个有记录词）'));
+    }
     if (info.onlineCloze) box.appendChild(el('p', 'quiz-est-note', '约 ' + info.onlineCloze + ' 个词需要联网补充例句，离线或失败时自动回退。'));
     if (!info.available) box.appendChild(el('p', 'quiz-est-warn', '当前范围没有可测试的词，换个范围或先学习一些单词。'));
     else if (info.available < cfg.count) box.appendChild(el('p', 'quiz-est-warn', '可用题量不足：预计 ' + info.available + ' 题，计划 ' + cfg.count + ' 题，可以缩小范围或减少题数。'));
     $('quiz-start-btn').disabled = !info.available || quizBuilding;
+    return info;
   }
 
   function renderQuizStart() {
@@ -722,6 +733,18 @@
     $('quiz-start-count').textContent = info.available
       ? '可用 ' + info.available + ' 题 · 覆盖 ' + info.pool + ' 个词'
       : '当前范围没有可测试的词';
+    const basis = $('quiz-start-basis');
+    if (basis) {
+      if (info.profile && info.profile.recorded && info.plan) {
+        basis.hidden = false;
+        basis.textContent = '依据你的学习记录组卷：' + info.profile.recorded + ' 个有记录词' +
+          (info.profile.confused ? ' · 易混词 ' + info.profile.confused : '') +
+          ' · 本轮复习 ' + info.plan.review + ' / 探索 ' + info.plan.explore;
+      } else if (info.available) {
+        basis.hidden = false;
+        basis.textContent = '还没有学习记录，本轮以新词探索为主；开始学习后，记录会自动成为组卷与干扰项的依据。';
+      } else basis.hidden = true;
+    }
     const note = $('quiz-start-note');
     let noteText = '';
     if (!info.available) noteText = '换个范围或先学习一些单词；也可以点右上角设置调整范围。';
@@ -805,7 +828,24 @@
       : '';
 
     $('quiz-online').checked = cfg.online;
-    renderQuizEstimate();
+
+    const ex = $('quiz-explore');
+    ex.value = cfg.explore;
+    $('quiz-explore-val').textContent = cfg.explore + '%';
+    ex.oninput = () => { $('quiz-explore-val').textContent = ex.value + '%'; };
+    ex.onchange = () => quizUpdate({ explore: Number(ex.value) });
+    const conf = $('quiz-confusion');
+    conf.checked = cfg.confusion;
+    conf.onchange = () => quizUpdate({ confusion: conf.checked });
+    const cur = $('quiz-curated');
+    cur.checked = cfg.curated;
+    cur.onchange = () => quizUpdate({ curated: cur.checked });
+
+    const info = renderQuizEstimate();
+    const st = info.profile;
+    $('quiz-profile-line').textContent = st.recorded
+      ? '已记录 ' + st.recorded + ' 词 · 易混 ' + st.confused + ' · 到期 ' + st.due + ' · 收藏/分组 ' + st.curated + ' · 近 14 天活跃 ' + st.days + ' 天'
+      : '暂无学习记录：本轮以新词探索为主，学习、查词、收藏与答错记录都会自动成为组卷依据。';
   }
 
   async function startQuiz() {
@@ -826,7 +866,9 @@
       } else {
         quizSession = {
           questions: res.questions, idx: 0, correct: 0,
-          answered: false, answeredCount: 0, wrong: [], done: false, startedAt: Date.now()
+          answered: false, answeredCount: 0, wrong: [], done: false, startedAt: Date.now(),
+          composition: res.composition || null, recordDistractors: res.recordDistractors || 0,
+          profileStats: res.profile || null
         };
         quizScreen = 'session';
         renderQuizScreen();
@@ -869,6 +911,11 @@
     const diff = $('quiz-diff-badge');
     diff.textContent = quizDiffLabel(q.difficulty);
     diff.dataset.level = q.difficulty < 0.4 ? 'easy' : q.difficulty < 0.62 ? 'normal' : 'hard';
+    const src = $('quiz-source-badge');
+    const srcLabel = QUIZ_SOURCE_LABEL[q.source] || '';
+    src.hidden = !srcLabel;
+    src.textContent = srcLabel;
+    src.dataset.source = q.source || '';
 
     const prev = s.idx > 0 ? s.questions[s.idx - 1] : null;
     const lastEl = $('quiz-last');
@@ -989,8 +1036,9 @@
       }
     });
     const e = q.entry;
+    const chosenWord = !isCorrect && q.optionWords ? (q.optionWords[choice] || '') : '';
     Store.recordGrade(e.word, SRS.isNew(Store.data.srs[e.word]) ? 'new' : 'review', isCorrect ? SRS.GRADE.KNOW : SRS.GRADE.FORGOT, 0);
-    Store.recordQuizResult(e.word, isCorrect, q.difficulty);
+    Store.recordQuizResult(e.word, isCorrect, q.difficulty, chosenWord);
     const fb = $('quiz-feedback');
     fb.hidden = false;
     if (isCorrect) {
@@ -999,7 +1047,7 @@
       announce('回答正确' + (q.type === 'cloze' || q.type === 'audio2word' ? '：' + q.correct : ''));
       scheduleQuizAutoNext();
     } else {
-      s.wrong.push({ word: e.word, correct: q.correct, type: q.type });
+      s.wrong.push({ word: e.word, correct: q.correct, type: q.type, chosen: chosenWord });
       fb.hidden = true;
       announce('回答错误，正确答案：' + q.correct);
       Store.addError(e.word);
@@ -1117,6 +1165,41 @@
     warnEl.hidden = !quizLastWarnings.length;
     warnEl.textContent = quizLastWarnings[0] || '';
 
+    const mixPanel = $('quiz-mix-panel');
+    const comp = s.composition;
+    if (mixPanel) {
+      if (comp && s.questions.length) {
+        mixPanel.hidden = false;
+        const ORDER = [['due', '到期复习'], ['weak', '薄弱词'], ['confused', '易混词'], ['curated', '收藏/分组'], ['review', '已学复习'], ['contact', '浏览关注'], ['new', '新词探索']];
+        const bar = $('quiz-mix-bar');
+        const legend = $('quiz-mix-legend');
+        bar.innerHTML = '';
+        legend.innerHTML = '';
+        const parts = [];
+        ORDER.forEach(([k, label]) => {
+          const n = comp[k] || 0;
+          if (!n) return;
+          const seg = el('span', 'quiz-mix-seg');
+          seg.dataset.source = k;
+          seg.style.flexGrow = n;
+          seg.title = label + ' ' + n + ' 题';
+          bar.appendChild(seg);
+          const item = el('span', 'quiz-mix-item');
+          item.dataset.source = k;
+          item.appendChild(el('i', 'quiz-mix-dot'));
+          item.appendChild(document.createTextNode(label + ' ' + n));
+          legend.appendChild(item);
+          parts.push(label + ' ' + n + ' 题');
+        });
+        bar.setAttribute('aria-label', '本轮构成：' + parts.join('，'));
+        $('quiz-mix-sub').textContent = s.questions.length + ' 题';
+        const st = s.profileStats;
+        $('quiz-mix-note').textContent =
+          (st && st.recorded ? '依据 ' + st.recorded + ' 个词的学习记录组卷' : '本轮以新词探索为主') +
+          (s.recordDistractors ? ' · ' + s.recordDistractors + ' 个干扰项来自你的易混/共学/收藏记录' : '') + '。';
+      } else mixPanel.hidden = true;
+    }
+
     const list = $('quiz-wrong-list');
     list.innerHTML = '';
     if (s.wrong.length) {
@@ -1127,7 +1210,7 @@
         row.type = 'button';
         const main = el('span', 'quiz-wrong-main');
         main.appendChild(el('b', null, w.word));
-        main.appendChild(el('span', 'quiz-wrong-sub', w.correct + ' · ' + (QuizEngine.TYPE_LABEL[w.type] || '')));
+        main.appendChild(el('span', 'quiz-wrong-sub', w.correct + ' · ' + (QuizEngine.TYPE_LABEL[w.type] || '') + (w.chosen ? ' · 误选 ' + w.chosen : '')));
         row.appendChild(main);
         row.appendChild(el('span', 'row-arrow', '›'));
         row.addEventListener('click', () => openWordSheet(w.word));

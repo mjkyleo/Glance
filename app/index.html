@@ -63,6 +63,7 @@
         </div>
         <section class="quiz-start-panel">
           <div class="quiz-start-count" id="quiz-start-count"></div>
+          <p class="quiz-start-basis" id="quiz-start-basis" hidden></p>
           <p class="quiz-start-note" id="quiz-start-note" hidden></p>
           <button class="btn-primary quiz-start-btn" id="quiz-start-btn" type="button">开始</button>
         </section>
@@ -81,6 +82,7 @@
         <div class="quiz-meta-row">
           <span class="quiz-type-badge" id="quiz-type-badge">英选中</span>
           <span class="quiz-diff-badge" id="quiz-diff-badge">普通</span>
+          <span class="quiz-source-badge" id="quiz-source-badge" hidden></span>
         </div>
         <section class="word-block quiz-card">
           <div class="word-row">
@@ -114,6 +116,12 @@
           <div class="quiz-done-ring" id="quiz-done-ring"><span id="quiz-done-pct">0%</span></div>
           <h2 class="quiz-done-title" id="quiz-done-title">测试完成</h2>
           <p class="quiz-done-sub" id="quiz-done-sub"></p>
+        </section>
+        <section class="panel" id="quiz-mix-panel" hidden>
+          <div class="panel-head"><h3>本轮构成</h3><span class="panel-sub" id="quiz-mix-sub"></span></div>
+          <div class="quiz-mix-bar" id="quiz-mix-bar" role="img" aria-label="本轮题目来源构成"></div>
+          <div class="quiz-mix-legend" id="quiz-mix-legend"></div>
+          <p class="quiz-mix-note" id="quiz-mix-note"></p>
         </section>
         <section class="panel" id="quiz-wrong-panel" hidden>
           <div class="panel-head"><h3>错题回顾</h3><span class="panel-sub" id="quiz-wrong-count"></span></div>
@@ -518,7 +526,7 @@
 
   <div class="sheet" id="quiz-settings-sheet" hidden role="dialog" aria-modal="true">
     <div class="sheet-head">
-      <div class="sheet-title-wrap"><h2 class="sheet-title">测试设置</h2><p class="sheet-sub">范围、题量、题型与难度</p></div>
+      <div class="sheet-title-wrap"><h2 class="sheet-title">测试设置</h2><p class="sheet-sub">范围、题量、题型、难度与组卷依据</p></div>
       <button class="sheet-close" data-close type="button" aria-label="关闭">✕</button>
     </div>
     <div class="sheet-body">
@@ -541,6 +549,19 @@
         <div class="set-row">
           <span class="set-row-label">联网补充例句<small>离线或失败时自动回退为其他题型</small></span>
           <label class="switch"><input type="checkbox" id="quiz-online" /><span class="slider"></span></label>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h3>组卷依据</h3><span class="panel-sub">来自你的学习行为记录</span></div>
+        <p class="quiz-profile-line" id="quiz-profile-line"></p>
+        <label class="field"><span>新词探索比例 <b id="quiz-explore-val">20%</b></span><input type="range" id="quiz-explore" min="0" max="40" step="5" /></label>
+        <div class="set-row">
+          <span class="set-row-label">易混词优先<small>优先考你答错时误选过的词，干扰项也取自这些记录</small></span>
+          <label class="switch"><input type="checkbox" id="quiz-confusion" /><span class="slider"></span></label>
+        </div>
+        <div class="set-row">
+          <span class="set-row-label">收藏与自定义词组加权<small>生词本和自建词组里的词更常出现，也作为干扰项来源</small></span>
+          <label class="switch"><input type="checkbox" id="quiz-curated" /><span class="slider"></span></label>
         </div>
       </section>
       <section class="quiz-estimate" id="quiz-estimate"></section>
