@@ -203,8 +203,12 @@
         } else {
           const ctl = new AbortController();
           const to = setTimeout(() => ctl.abort(), timeout);
+          const proxied = window.GLANCE_WEB_PROXY === true && /^https?:\/\//i.test(url);
+          const reqUrl = proxied
+            ? '/api/dict?url=' + encodeURIComponent(url) + '&h=' + encodeURIComponent(JSON.stringify(headers))
+            : url;
           try {
-            const res = await fetch(url, { headers, signal: ctl.signal });
+            const res = await fetch(reqUrl, { headers: proxied ? undefined : headers, signal: ctl.signal });
             status = res.status; text = await res.text();
           } finally { clearTimeout(to); }
         }
