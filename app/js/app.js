@@ -2,6 +2,23 @@
 (function () {
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // 把正文里的英文单词包成可点查义词；逐段 esc 保证不破坏 HTML。
+  // 返回的 HTML 仅用于文章/题干等展示文本，data-w 存小写词用于查词。
+  const WORD_RE = /[A-Za-z]+(?:['’][A-Za-z]+)*/g;
+  function linkWords(raw, limit) {
+    const text = String(raw == null ? '' : raw);
+    let out = '', last = 0, n = 0, m;
+    WORD_RE.lastIndex = 0;
+    while ((m = WORD_RE.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      const word = m[0];
+      const key = word.toLowerCase().replace(/[’]/g, "'");
+      if (limit && ++n > limit) out += esc(word);
+      else out += '<button class="art-word inline-word" type="button" data-w="' + esc(key) + '" title="查词：' + esc(word) + '">' + esc(word) + '</button>';
+      last = m.index + word.length;
+    }
+    return out + esc(text.slice(last));
+  }
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function fmtMs(ms) { const m = Math.round((ms || 0) / 60000); return m < 1 ? '<1' : String(m); }
 
@@ -43,7 +60,8 @@
     if (nestedSheetEl || openSheetEl) { closeNestedSheet(); closeSheet(true); }
     const fromBack = !!(opts && opts.fromBack);
     const prev = currentView;
-    if (!fromBack && TOP_VIEWS.includes(prev) && TOP_VIEWS.includes(v) && prev !== v) {
+    // 任意视图间跳转都记录来源（含子页→tab），保证从真题/答题会话切到查词后能返回。
+    if (!fromBack && prev !== v && (TOP_VIEWS.includes(v) || TOP_VIEWS.includes(prev))) {
       navStack.push(prev);
       if (navStack.length > 24) navStack.shift();
     }
@@ -2212,7 +2230,7 @@
   }
   function studyTextBlock(text) {
     const box = el('div', 'study-text');
-    box.textContent = text;
+    box.innerHTML = linkWords(text);
     return box;
   }
   function renderStudyItem(body) {
@@ -2712,6 +2730,63 @@
   function renderSearchDefault() {
     renderHistory();
     renderFavorites();
+  }
+  // 就地查词面板：答题/看文章时不切视图，输入即查，结果点开词卡。
+  function openLookupSheet() {
+    const input = $('lookup-input');
+    input.value = '';
+    $('lookup-results').innerHTML = '<p class="lookup-hint">输入英文单词或词根即时查找；本地未收录可联网查询。</p>';
+    openNestedSheet('lookup-sheet');
+    input.focus();
+  }
+  function renderLookupResults() {
+    const query = $('lookup-input').value.trim();
+    const res = $('lookup-results');
+    res.innerHTML = '';
+    if (!query) { res.innerHTML = '<p class="lookup-hint">输入英文单词或词根即时查找；本地未收录可联网查询。</p>'; return; }
+    let hit = false;
+    const pick = (word) => { closeNestedSheet(); setTimeout(() => openWordSheet(word, true), 60); };
+    const r = Library.search(query, 12);
+    if (r.words.length) {
+      hit = true;
+      res.appendChild(el('div', 'section-label', '单词'));
+      const wrap = el('div', 'list-gap');
+      r.words.forEach(w => {
+        const row = el('button', 'row'); row.type = 'button';
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', w.word));
+        main.appendChild(el('div', 'row-sub', w.zh || ''));
+        row.appendChild(main);
+        row.addEventListener('click', () => pick(w.word));
+        wrap.appendChild(row);
+      });
+      res.appendChild(wrap);
+    }
+    if (r.roots.length) {
+      hit = true;
+      res.appendChild(el('div', 'section-label', '词根'));
+      const wrap = el('div', 'list-gap');
+      r.roots.forEach(rt => {
+        const row = el('button', 'row'); row.type = 'button';
+        const main = el('div', 'row-main');
+        main.appendChild(el('div', 'row-title', rt.root));
+        main.appendChild(el('div', 'row-sub', rt.zh || ''));
+        row.appendChild(main);
+        row.addEventListener('click', () => pick(rt.root));
+        wrap.appendChild(row);
+      });
+      res.appendChild(wrap);
+    }
+    if (!hit) {
+      const row = el('button', 'row online-lookup-row'); row.type = 'button';
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', '在线查词：' + query));
+      main.appendChild(el('div', 'row-sub', '本地词库未收录，点击联网查询并缓存到本机'));
+      row.appendChild(main);
+      row.appendChild(el('span', 'row-badge', '词典'));
+      row.addEventListener('click', () => pick(query));
+      res.appendChild(row);
+    }
   }
   function runSearch() {
     const query = $('search-input').value.trim();
@@ -3717,6 +3792,15 @@
       AppPlugin.addListener('backButton', () => { if (!handleBack()) AppPlugin.exitApp(); });
     }
     $('sheet-backdrop').addEventListener('click', () => closeSheet());
+    // 正文点词查义：文章/题干/真题短文里的英文词统一走 nested 词卡，不切视图、不丢答题进度。
+    // AI 学习空间内部有自己的 art-word 处理器，这里跳过以免重复打开。
+    document.addEventListener('click', e => {
+      const w = e.target.closest('.art-word[data-w]');
+      if (!w || (w.closest('#ai-space-body'))) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openWordSheet(w.dataset.w, false, [], true);
+    });
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
       if (nestedSheetEl && b.closest('.sheet') === nestedSheetEl) closeNestedSheet();
       else closeSheet();
@@ -3803,6 +3887,7 @@
     });
     $('quiz-next').addEventListener('click', nextQuiz);
     $('quiz-quit').addEventListener('click', quitQuiz);
+    $('quiz-lookup').addEventListener('click', openLookupSheet);
     $('quiz-start-btn').addEventListener('click', startQuiz);
     $('quiz-again').addEventListener('click', () => { quizSession = null; quizScreen = 'start'; startQuiz(); });
     $('quiz-adjust').addEventListener('click', () => {
@@ -3917,6 +4002,7 @@
     });
 
     $('search-input').addEventListener('input', runSearch);
+    $('lookup-input').addEventListener('input', renderLookupResults);
     $('search-clear').addEventListener('click', () => { $('search-input').value = ''; runSearch(); $('search-input').focus(); });
     $('history-clear').addEventListener('click', () => { Store.clearHistory(); renderHistory(); });
     $('fav-add-group').addEventListener('click', () => { const name = prompt('新分组名称 / Group name'); if (name) { Store.addFavGroup(name); favGroup = name.trim(); renderFavorites(); } });
@@ -4462,15 +4548,15 @@
     const q = examCurQuestion();
     const total = s.questions ? s.questions.length : 1;
     const idx = s.questions ? examQIdx : 0;
-    let h = '<div class="exam-session-head"><span>' + esc(EXAM_TYPE_NAME[s.type] || '') + (examRetryMode ? ' · 错题重练' : '') + ' · 第' + (examSIdx + 1) + '/' + examSessions.length + '组</span><span>' + (idx + 1) + ' / ' + total + '</span></div>';
+    let h = '<div class="exam-session-head"><span>' + esc(EXAM_TYPE_NAME[s.type] || '') + (examRetryMode ? ' · 错题重练' : '') + ' · 第' + (examSIdx + 1) + '/' + examSessions.length + '组</span><span>' + (idx + 1) + ' / ' + total + '</span><button class="exam-lookup-btn" type="button" data-lookup="1" title="查词（不离开本题）">查词</button></div>';
     h += '<div class="exam-progress"><i style="width:' + Math.round(((idx + (examPick ? 1 : 0)) / total) * 100) + '%"></i></div>';
-    if (s.directions) h += '<p class="exam-directions">' + esc(s.directions) + '</p>';
+    if (s.directions) h += '<p class="exam-directions">' + linkWords(s.directions) + '</p>';
     if (s.type === 'reading') {
-      if (s.passage) h += '<div class="exam-passage" tabindex="0" aria-label="阅读材料">' + esc(s.passage).replace(/\n/g, '<br>') + '</div>';
-      if (s.prompt) h += '<p class="exam-prompt-hint">' + esc(s.prompt) + '</p>';
+      if (s.passage) h += '<div class="exam-passage" tabindex="0" aria-label="阅读材料">' + linkWords(s.passage).replace(/\n/g, '<br>') + '</div>';
+      if (s.prompt) h += '<p class="exam-prompt-hint">' + linkWords(s.prompt) + '</p>';
       h += examQuestionCardHtml(q);
     } else if (s.type === 'matching') {
-      h += '<div class="exam-passage exam-paras" tabindex="0" aria-label="匹配段落">' + s.paragraphs.map(p => '<div class="exam-para"><span class="exam-para-letter">' + esc(p.letter) + '</span><span>' + esc(p.text) + '</span></div>').join('') + '</div>';
+      h += '<div class="exam-passage exam-paras" tabindex="0" aria-label="匹配段落">' + s.paragraphs.map(p => '<div class="exam-para"><span class="exam-para-letter">' + esc(p.letter) + '</span><span>' + linkWords(p.text) + '</span></div>').join('') + '</div>';
       h += examQuestionCardHtml(q, true);
     } else if (s.type === 'cloze') {
       h += examClozePassageHtml(s);
@@ -4480,8 +4566,8 @@
       h += '<div id="exam-ai-box"></div>';
       h += examFeedbackHtml() + examActionBarHtml() + examNavHtml() + '</div>';
     } else {
-      if (s.type === 'writing') h += '<div class="exam-passage">' + esc(s.prompt || s.directions || '（本套写作题干缺失）') + '</div>';
-      if (s.type === 'translation' && s.passage) h += '<div class="exam-passage">' + esc(s.passage).replace(/\n/g, '<br>') + '</div>';
+      if (s.type === 'writing') h += '<div class="exam-passage">' + linkWords(s.prompt || s.directions || '（本套写作题干缺失）') + '</div>';
+      if (s.type === 'translation' && s.passage) h += '<div class="exam-passage">' + linkWords(s.passage).replace(/\n/g, '<br>') + '</div>';
       h += '<textarea class="exam-textarea" id="exam-writing-input" rows="8" placeholder="' + (s.type === 'writing' ? '在此写下你的作文（150–200 词）…' : '在此写下你的译文…') + '">' + esc(examDraft) + '</textarea>';
       h += '<div class="exam-count" id="exam-count">' + examDraft.length + ' 字符</div>';
       h += '<div id="exam-ai-box"></div>';
@@ -4499,7 +4585,7 @@
   function examQuestionCardHtml(q, matching) {
     if (!q) return '';
     let h = '<div class="exam-qcard"><div class="exam-qno">Q' + q.no + '</div>';
-    if (q.stem) h += '<p class="exam-stem">' + esc(q.stem) + '</p>';
+    if (q.stem) h += '<p class="exam-stem">' + linkWords(q.stem) + '</p>';
     else if (!matching) h += '<p class="exam-stem exam-stem-empty">（本题为题干缺失的听力式排版，请根据选项作答）</p>';
     if (matching) {
       const letters = (examCurSession().paragraphs || []).map(p => p.letter);
@@ -4537,10 +4623,16 @@
   function examClozePassageHtml(s) {
     const state = examClozeState(s);
     const nos = new Set((s.questions || []).map(q => q.no));
-    const html = esc(s.passage || '').replace(/__(\d+)__|\b(\d+)\b/g, (m, a, b) => {
-      const n = +(a || b);
-      return nos.has(n) ? examClozeBlankHtml(s, n, state) : m;
-    });
+    const text = String(s.passage || '');
+    let html = '', last = 0, m;
+    const re = /__(\d+)__|\b(\d+)\b/g;
+    while ((m = re.exec(text))) {
+      html += linkWords(text.slice(last, m.index));
+      const n = +(m[1] || m[2]);
+      html += nos.has(n) ? examClozeBlankHtml(s, n, state) : esc(m[0]);
+      last = m.index + m[0].length;
+    }
+    html += linkWords(text.slice(last));
     return '<div class="exam-passage exam-cloze-passage" tabindex="0" aria-label="选词填空短文">' + html.replace(/\n/g, '<br>') + '</div>';
   }
   function examClozeStripHtml(s) {
@@ -4663,8 +4755,9 @@
   }
 
   function examClick(e) {
-    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list],[data-study]');
+    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list],[data-study],[data-lookup]');
     if (!t) return;
+    if (t.dataset.lookup) { openLookupSheet(); return; }
     if (t.dataset.study) { openStudySheet(null, t.dataset.study); return; }
     if (t.dataset.exam) { openExam(t.dataset.exam); return; }
     if (t.dataset.start) { startExamType(t.dataset.start); return; }
