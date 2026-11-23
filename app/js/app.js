@@ -132,7 +132,7 @@
     blue: ['#f5f7fa', '#131418'],
     green: ['#f4f7f1', '#141a16'],
     yellow: ['#faf5ee', '#1c1713'],
-    gray: ['#e0e5ec', '#252a33'],
+    gray: ['#e0e5ec', '#e0e5ec'],
     black: ['#f6f6f6', '#0b0b0c'],
     paper: ['#f7f7f5', '#191919'],
     sakura: ['#faf7f7', '#1b1517'],

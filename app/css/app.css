@@ -217,7 +217,8 @@ html[data-theme="gray"] {
   --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
   --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
   --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
-  --neu-dark: #b8bcc2; --neu-light: #ffffff;
+  --neu-dark: rgba(136, 140, 148, 0.28); --neu-light: rgba(255, 255, 255, 0.92);
+  --neu-row-dark: rgba(136, 140, 148, 0.16); --neu-row-light: rgba(255, 255, 255, 0.7);
   --hairline: rgba(51, 51, 51, 0.06);
 
   --font-ui: "Avenir Next", "Segoe UI", "Helvetica Neue", -apple-system,
@@ -237,16 +238,16 @@ html[data-theme="gray"] {
   --r-tab-active: 14px; --r-grade: 14px;
   --mark-size: 38px; --icon-size: 38px;
   --field-bg: var(--card); --field-border: none;
-  --field-shadow: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+  --field-shadow: inset 4px 4px 9px var(--neu-dark), inset -4px -4px 9px var(--neu-light);
   --option-border: none;
   --word-size: clamp(32px, 8.6vw, 46px); --word-weight: 700; --word-track: -0.01em;
   --brand-size: 19px; --brand-weight: 700; --brand-track: 0.04em; --head-size: 16px;
   --tab-fw: 600; --tab-track: 0.02em;
-  --tab-active-bg: var(--card);
+  --tab-active-bg: transparent;
   --progress-h: 8px; --progress-fill: linear-gradient(90deg, var(--accent), var(--accent-2));
   --grade-h: 64px;
-  --shadow-card: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
-  --shadow-pop: 12px 12px 24px var(--neu-dark), -12px -12px 24px var(--neu-light);
+  --shadow-card: 6px 6px 14px var(--neu-dark), -6px -6px 14px var(--neu-light);
+  --shadow-pop: 10px 10px 22px var(--neu-dark), -10px -10px 22px var(--neu-light);
   --press-scale: 1; --hover-lift: 0px;
   --dur-ui: .3s; --dur-slow: .34s; --ease-ui: ease-in-out;
 }
@@ -496,27 +497,28 @@ html[data-theme="paper-craft"] {
     --root-bg: rgba(224, 161, 124, 0.16); --root-fg: #eeb997;
     --hairline: rgba(255, 255, 255, 0.06);
   }
-  /* Neumorphism — dark soft plastic */
+  /* Neumorphism stays light — never falls back to the dark neutral plastic */
   html[data-theme="gray"] {
-    --bg: #252a33; --card: #252a33; --elevated: #252a33;
-    --text: #e6e9ef; --text-2: #b8c0cc; --text-3: #939cab;
-    --accent: #8b7dff; --accent-2: #4ecdc4; --accent-fg: #12121a;
-    --green: #4ecdc4; --green-fg: #7fe0d9;
-    --purple: #8b7dff; --orange: #ff8080; --orange-fg: #ff9d9d;
-    --red: #ff8080; --red-fg: #ff9d9d;
-    --morph-prefix: #8b7dff; --morph-root: #ff8080; --morph-suffix: #4ecdc4;
-    --root-bg: rgba(139, 125, 255, 0.16); --root-fg: #b6acff;
-    --prefix-bg: rgba(139, 125, 255, 0.16); --prefix-fg: #b6acff;
-    --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #7fe0d9;
-    --neu-dark: #191d24; --neu-light: #323946;
-    --hairline: rgba(255, 255, 255, 0.05);
+    --bg: #e0e5ec; --card: #e0e5ec; --elevated: #e0e5ec;
+    --text: #333333; --text-2: #5a626c; --text-3: #6b7280;
+    --accent: #6d5dfc; --accent-2: #4ecdc4; --accent-fg: #ffffff;
+    --green: #4ecdc4; --green-fg: #2f8f88;
+    --purple: #6d5dfc; --orange: #ff6b6b; --orange-fg: #c04a4a;
+    --red: #ff6b6b; --red-fg: #c04a4a;
+    --morph-prefix: #6d5dfc; --morph-root: #ff6b6b; --morph-suffix: #4ecdc4;
+    --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
+    --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
+    --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
+    --neu-dark: rgba(136, 140, 148, 0.28); --neu-light: rgba(255, 255, 255, 0.92);
+    --neu-row-dark: rgba(136, 140, 148, 0.16); --neu-row-light: rgba(255, 255, 255, 0.7);
+    --hairline: rgba(51, 51, 51, 0.06);
     --line: transparent;
     --card-border: none;
     --field-bg: var(--card); --field-border: none;
-    --field-shadow: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+    --field-shadow: inset 4px 4px 9px var(--neu-dark), inset -4px -4px 9px var(--neu-light);
     --option-border: none;
-    --shadow-card: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
-    --shadow-pop: 12px 12px 24px var(--neu-dark), -12px -12px 24px var(--neu-light);
+    --shadow-card: 6px 6px 14px var(--neu-dark), -6px -6px 14px var(--neu-light);
+    --shadow-pop: 10px 10px 22px var(--neu-dark), -10px -10px 22px var(--neu-light);
   }
   /* Monochrome — ink */
   html[data-theme="black"] {
@@ -577,7 +579,6 @@ html[data-theme="paper-craft"] {
 
   /* UI/UX tokens that need a dark counterpart */
   html[data-theme] { --line: rgba(255, 255, 255, 0.1); }
-  html[data-theme="gray"] { --line: transparent; --card-border: none; --field-border: none; --option-border: none; }
   html[data-theme="paper-craft"] { --line: #5a4a3a; --card-border: 2px solid var(--line); --field-border: 2px solid var(--line); --option-border: 2px solid var(--line); }
   html[data-theme="green"] {
     --bg-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 220px);
@@ -633,33 +634,58 @@ html[data-theme="paper-craft"] .grade-btn:hover { transform: translate(-2px, -2p
 html[data-theme="paper-craft"] .sheet-head { border-bottom: 2px solid var(--line); }
 html[data-theme="paper-craft"] .sheet-foot { border-top: 2px solid var(--line); }
 
-/* ---------- Neumorphism: raised buttons, hover flatten, pressed inset ---------- */
+/* ---------- Neumorphism: soft raised/intruded, no hard light corners ---------- */
 html[data-theme="gray"] .btn-primary,
 html[data-theme="gray"] .btn-ghost,
 html[data-theme="gray"] .grade-btn,
 html[data-theme="gray"] .chip {
   border: none;
-  box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
-  transition: box-shadow .3s ease-in-out, filter .3s ease-in-out, background .3s ease-in-out;
+  box-shadow: 4px 4px 9px var(--neu-dark), -4px -4px 9px var(--neu-light);
+  transition: box-shadow .28s ease-in-out, filter .28s ease-in-out, background .28s ease-in-out, color .28s ease-in-out;
 }
 html[data-theme="gray"] .btn-primary:hover,
 html[data-theme="gray"] .btn-ghost:hover,
 html[data-theme="gray"] .grade-btn:hover,
-html[data-theme="gray"] .chip:hover { transform: none; box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light); }
+html[data-theme="gray"] .chip:hover {
+  transform: none;
+  box-shadow: inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
+  filter: none;
+}
+html[data-theme="gray"] .btn-primary:hover { filter: brightness(1.06); }
 html[data-theme="gray"] .btn-primary:active,
 html[data-theme="gray"] .btn-ghost:active,
 html[data-theme="gray"] .grade-btn:active,
 html[data-theme="gray"] .chip:active {
   transform: none; opacity: 1;
-  box-shadow: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+  box-shadow: inset 5px 5px 11px var(--neu-dark), inset -5px -5px 11px var(--neu-light);
 }
-html[data-theme="gray"] .btn-primary:active { filter: brightness(.96); }
-html[data-theme="gray"] .quiz-option {
-  box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
+/* Dense lists: use a much softer shadow so stacked rows don't form light rectangles */
+html[data-theme="gray"] .row,
+html[data-theme="gray"] .quiz-option,
+html[data-theme="gray"] .ai-card {
+  box-shadow: 3px 3px 8px var(--neu-row-dark), -3px -3px 8px var(--neu-row-light);
+  transition: box-shadow .28s ease-in-out, background .28s ease-in-out;
 }
+html[data-theme="gray"] .row:hover,
 html[data-theme="gray"] .quiz-option:hover {
-  transform: none; box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
+  transform: none;
+  box-shadow: 5px 5px 12px var(--neu-dark), -5px -5px 12px var(--neu-light);
 }
+html[data-theme="gray"] .row:active,
+html[data-theme="gray"] .quiz-option:active { transform: none; opacity: 1; }
+/* Sidebar / bottom nav: each tab is its own raised tile, active tile pressed in */
+html[data-theme="gray"] .tabbar { box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light); }
+html[data-theme="gray"] .tab {
+  box-shadow: 3px 3px 7px var(--neu-row-dark), -3px -3px 7px var(--neu-row-light);
+  transition: box-shadow .28s ease-in-out, color .28s ease-in-out, background .28s ease-in-out;
+}
+html[data-theme="gray"] .tab:hover { color: var(--accent); }
+html[data-theme="gray"] .tab.active,
+html[data-theme="gray"] .tab.active:hover {
+  color: var(--accent); background: var(--card);
+  box-shadow: inset 4px 4px 9px var(--neu-dark), inset -4px -4px 9px var(--neu-light);
+}
+html[data-theme="gray"] .tab-indicator { display: none; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; }
@@ -1771,7 +1797,7 @@ h3.exam-year { font-size: 13px; color: var(--text-3); letter-spacing: .04em; mar
 .row.compact .row-title { flex: 0 0 auto; }
 .row.compact .row-sub { flex: 1 1 auto; min-width: 0; }
 .row.compact .row-badge { padding: 3px 8px; }
-.row-progress-abs { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 3px; margin-top: 0; }
+.row-progress-abs { position: absolute; left: 14px; right: 14px; bottom: 5px; width: auto; height: 3px; margin-top: 0; max-width: calc(100% - 28px); }
 .compact-gap { gap: 6px; }
 
 /* ===== theme groups & cards ===== */
