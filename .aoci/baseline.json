@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-23T03:56:12Z",
+  "updated_at": "2026-11-23T04:06:18Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "3b5d9de9c34197b7406ab0c010f3dc05c591c25c10ec159f8ef39782389bcc8f",
-      "size": 64849,
-      "normalized_sha256": "3b5d9de9c34197b7406ab0c010f3dc05c591c25c10ec159f8ef39782389bcc8f"
+      "sha256": "076a3803f4d994741f8acb49b69e5fc893c71ea060e8f9ad4e9c5662ebaec61e",
+      "size": 65186,
+      "normalized_sha256": "076a3803f4d994741f8acb49b69e5fc893c71ea060e8f9ad4e9c5662ebaec61e"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -374,9 +374,9 @@
     },
     "app/css/app.css": {
       "role": "index",
-      "sha256": "9e3fc00a90d71208be141d075af62c86024ccdd7f0874dedd5799841833e4ae4",
-      "size": 140489,
-      "normalized_sha256": "bcd79a7a462830448a551fa1a8be0b0651c5013b82b6665a95aeb3e3fe9c4d92"
+      "sha256": "55f72709cceeb40a5771b9615be515b4e144b591728afb0cd1460c59fd588cd5",
+      "size": 141256,
+      "normalized_sha256": "ecd509dc480cd299afef139ce1e3c775582763ba786afee86e0fc10555f62d91"
     },
     "app/data/affixes.json": {
       "role": "index",
@@ -840,9 +840,9 @@
     },
     "app/index.html": {
       "role": "index",
-      "sha256": "4232b66b09ab1c889a5fe1993f91309f2352ed487126df517f371ef09ef8a4ce",
-      "size": 71555,
-      "normalized_sha256": "47a0cfe6318a8087a2481a371d0fcd7cbf277370dbaf8ad700b897a91f4fd8dd"
+      "sha256": "d36b2899d4a4fe53c5aecb2adeccae23d167fafd8d1737e07cb18f6007d3272e",
+      "size": 72968,
+      "normalized_sha256": "2ebee4f4ba4b352ba7a11f3a38454468420b211f5502ace55d2117a1433ce908"
     },
     "app/js/ai.js": {
       "role": "index",
@@ -852,9 +852,9 @@
     },
     "app/js/app.js": {
       "role": "index",
-      "sha256": "cad4a7d14d922a52648f38b8b6428ec367eddfb7fa8351521433b33d579691be",
-      "size": 268440,
-      "normalized_sha256": "cad4a7d14d922a52648f38b8b6428ec367eddfb7fa8351521433b33d579691be"
+      "sha256": "ed4b6e955ff4b9316554a5555b4e5ea4b5d1e2af1ec1df8623fc16aabf2bd141",
+      "size": 272974,
+      "normalized_sha256": "ed4b6e955ff4b9316554a5555b4e5ea4b5d1e2af1ec1df8623fc16aabf2bd141"
     },
     "app/js/dictionary.js": {
       "role": "index",
