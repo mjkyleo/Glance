@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-20T09:55:03Z",
+  "updated_at": "2026-11-23T01:52:19Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     "DEVELOPMENT.md": {
       "role": "index",
-      "sha256": "a60325cdf4b782a1f7f2779a63c6b5ead5722954c72e48e545c23a902de8c996",
-      "size": 221111,
-      "normalized_sha256": "a60325cdf4b782a1f7f2779a63c6b5ead5722954c72e48e545c23a902de8c996"
+      "sha256": "0181eef77c405d35160f9ee80762363625751afda1e70234f2ff6d04886dead8",
+      "size": 224886,
+      "normalized_sha256": "0181eef77c405d35160f9ee80762363625751afda1e70234f2ff6d04886dead8"
     },
     "README.md": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "46ef58beac5268628f493ad8cc1a9a7156598cb8a03a8cf3df2382dbbb449733",
-      "size": 64703,
-      "normalized_sha256": "46ef58beac5268628f493ad8cc1a9a7156598cb8a03a8cf3df2382dbbb449733"
+      "sha256": "4f2a209de1f91ed445ca8aa47de951fe01deaed012a02cf829685118a6beca8b",
+      "size": 64504,
+      "normalized_sha256": "4f2a209de1f91ed445ca8aa47de951fe01deaed012a02cf829685118a6beca8b"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -374,9 +374,9 @@
     },
     "app/css/app.css": {
       "role": "index",
-      "sha256": "83d67552af78ae1c5508114bedd95305b499071899e3787332f7724e9682e01b",
-      "size": 139791,
-      "normalized_sha256": "36c81193c4b15fd2869ca14728cea42a8b6b29d236c232b0729e7c087b37863f"
+      "sha256": "34179b9a358283d5835b107b0d348a8959f05c12b9b23b47b575994d8caa7c8d",
+      "size": 139870,
+      "normalized_sha256": "9d3574ce76db20e31ec58dbd4ab339b5672ab1810404d78f94ce785d918b82e8"
     },
     "app/data/affixes.json": {
       "role": "index",
@@ -852,9 +852,9 @@
     },
     "app/js/app.js": {
       "role": "index",
-      "sha256": "d824bae34cdf4ff9e4d163ddbaf1b9edac484d98ed4255063d19e18f6862094c",
-      "size": 265342,
-      "normalized_sha256": "d824bae34cdf4ff9e4d163ddbaf1b9edac484d98ed4255063d19e18f6862094c"
+      "sha256": "19240ebcc85da3bfca8b04a30507dcff534b36eb673f99a1dd0e67012ab79427",
+      "size": 265896,
+      "normalized_sha256": "19240ebcc85da3bfca8b04a30507dcff534b36eb673f99a1dd0e67012ab79427"
     },
     "app/js/dictionary.js": {
       "role": "index",
@@ -1027,9 +1027,9 @@
     },
     "docs/FEATURES.md": {
       "role": "index",
-      "sha256": "82af13be5b4ea98bc7914201782542df3d3ae03ccfdb1b187a107ca349edb49a",
-      "size": 76322,
-      "normalized_sha256": "82af13be5b4ea98bc7914201782542df3d3ae03ccfdb1b187a107ca349edb49a"
+      "sha256": "6a5fb41c0836f362c93f82b9b52f5701bbf1369f236424cbea97058bcbf8c5d6",
+      "size": 77274,
+      "normalized_sha256": "6a5fb41c0836f362c93f82b9b52f5701bbf1369f236424cbea97058bcbf8c5d6"
     },
     "docs/FSRS-CONTRAST.md": {
       "role": "index",
