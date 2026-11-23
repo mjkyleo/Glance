@@ -376,7 +376,7 @@
           <p class="field-hint">复习上限 0 表示不限。已掌握的词会自动减少出现。</p>
         </section>
         <section class="panel">
-          <div class="panel-head"><h3>词书过滤</h3><span class="panel-sub">可选</span></div>
+          <div class="panel-head"><h3>词书过滤</h3><span class="panel-sub">真实过滤 · 可建为新词书</span></div>
           <div class="set-row">
             <span class="set-row-label">跳过低阶重复词<small>去掉已出现在更低阶考试词书中的单词</small></span>
             <label class="switch"><input type="checkbox" id="book-skip-lower" /><span class="slider"></span></label>
@@ -392,6 +392,17 @@
           <div class="filter-books">
             <span class="set-row-label">按词书过滤<small>勾选其它词书，去掉其中已收录的单词（可多选）</small></span>
             <div class="filter-book-chips" id="book-exclude-chips"></div>
+          </div>
+          <div class="filter-result" id="book-filter-result" hidden>
+            <div class="filter-result-head">
+              <div><b id="filter-result-count">0</b> 词符合过滤条件</div>
+              <button class="btn-primary" id="filter-make-book" type="button">建为新词书</button>
+            </div>
+            <div class="filter-result-actions">
+              <select id="filter-target-book" aria-label="加入现有词书"></select>
+              <button class="btn-ghost" id="filter-add-book" type="button">加入所选词书</button>
+            </div>
+            <div class="filter-preview" id="filter-result-preview"></div>
           </div>
           <p class="field-hint" id="book-filter-hint"></p>
         </section>

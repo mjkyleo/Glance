@@ -39,6 +39,7 @@
   let favGroup = '';
   let sheetWord = null;
   let sheetFamily = null;
+  let lastFilteredEntries = [];
   let sheetTheme = null;
   let lastViewKey = null;
   let panelDirty = false;
@@ -404,25 +405,33 @@
     return Library.getBook(tag) || null;
   }
   function knownCount(entries) { let n = 0; for (const e of entries) if (SRS.isKnown(Store.data.srs[e.word])) n++; return n; }
-  // Optional book filters only trim the daily study queue; the book itself and quiz scopes stay intact.
-  function studyEntries(b) {
+  // 词书过滤的唯一真源：返回真正符合当前过滤条件的词条列表。
+  // 每日队列、过滤预览与「建为新词书」都走这里，保证所见即所得。
+  function filteredEntries(b) {
     const f = Store.data.bookFilter || {};
     let entries = b.entries;
+    const steps = [];
     if (f.skipBasic !== false) {
       const basic = Library.basicWordSet();
       entries = entries.filter(e => !basic.has(e.word));
+      steps.push('基础词');
     }
     if (f.skipLower && !b.custom) {
       const lower = Library.lowerWordSet(b.tag);
-      if (lower.size) entries = entries.filter(e => !lower.has(e.word));
+      if (lower.size) { entries = entries.filter(e => !lower.has(e.word)); steps.push('低阶重复'); }
     }
     if (f.excludeBooks && f.excludeBooks.length) {
       const ex = Library.excludeWordSet(f.excludeBooks);
-      if (ex.size) entries = entries.filter(e => !ex.has(e.word));
+      if (ex.size) { entries = entries.filter(e => !ex.has(e.word)); steps.push('其它词书'); }
     }
-    if (f.skipKnown) entries = entries.filter(e => !SRS.isKnown(Store.data.srs[e.word]));
+    if (f.skipKnown) {
+      entries = entries.filter(e => !SRS.isKnown(Store.data.srs[e.word]));
+      steps.push('已掌握');
+    }
+    entries.filteredSteps = steps;
     return entries;
   }
+  function studyEntries(b) { return filteredEntries(b); }
 
   // ===================== study session =====================
   function buildSession(bonusNew) {
@@ -721,6 +730,7 @@
     btn.style.transform = 'scale(0.9)'; setTimeout(() => { btn.style.transform = ''; }, 130);
     sessionIdx++;
     updatePlanBar();
+    if (currentView === 'books') renderBooksHeader();
     if (sessionIdx >= session.length) { buildSession(); sessionIdx = 0; if (!currentItem()) { renderEmpty(); updateStudyVisibility(); return; } }
     renderStudy();
   }
@@ -3288,21 +3298,71 @@
     box.appendChild(cmpSection('考纲缺失', r.missingWords, 'gray', '官方考纲有、本书未收录的词'));
   }
 
+  // 顶部概览独立刷新：评分、切书、改过滤后都能实时同步，不必整页重绘。
+  function renderBooksHeader() {
+    const b = activeBook();
+    const known = knownCount(b.entries);
+    const pct = b.n ? Math.round((known / b.n) * 100) : 0;
+    const ab = $('active-book');
+    ab.innerHTML = '';
+    const head = el('div', 'ab-head');
+    head.appendChild(el('div', 'ab-name', b.name));
+    head.appendChild(el('span', 'ab-tag' + (b.custom ? ' custom' : ''), b.custom ? '自定义' : '内置'));
+    ab.appendChild(head);
+    const stats = el('div', 'ab-stats');
+    [ ['总词数', String(b.n)], ['已掌握', String(known)], ['掌握率', pct + '%'] ].forEach(([k, v]) => {
+      const cell = el('div', 'ab-stat');
+      cell.appendChild(el('b', null, v));
+      cell.appendChild(el('span', null, k));
+      stats.appendChild(cell);
+    });
+    ab.appendChild(stats);
+    const bar = el('div', 'ab-bar'); const fill = el('div', 'ab-fill');
+    fill.style.width = pct + '%'; bar.appendChild(fill); ab.appendChild(bar);
+    const plan = Store.planProgress();
+    const nums = el('div', 'ab-nums');
+    nums.appendChild(el('span', null, '今日新词 ' + plan.newDone + '/' + plan.newPerDay));
+    nums.appendChild(el('span', null, '每日复习 ' + plan.reviewDone + (Store.data.plan.reviewCap ? '/' + Store.data.plan.reviewCap : '')));
+    ab.appendChild(nums);
+  }
+
+  // 把当前过滤结果落成自定义词书：与导入共用引用式存储，释义从全局词库实时解析。
+  function makeBookFromFilter() {
+    const entries = lastFilteredEntries.slice();
+    if (!entries.length) { announce('过滤后没有可加入的词'); return; }
+    const base = '过滤词书';
+    const name = uniqueBookName(base);
+    const refs = entries.map(filterEntryRef);
+    Store.data.customBooks[name] = { entries: refs };
+    Store.save();
+    announce('已创建词书「' + name + '」，共 ' + refs.length + ' 词');
+    switchBook(name);
+  }
+
+  function filterEntryRef(e) {
+    if (e.rootFamily || Library.lookup(e.word)) return { word: e.word, rootFamily: e.rootFamily || null };
+    return { word: e.word, zh: e.zh || e.meaning || '', phonetic: e.phonetic || '', rootFamily: null };
+  }
+  function addFilterToBook() {
+    const name = $('filter-target-book').value;
+    const target = Store.data.customBooks[name];
+    if (!target || !Array.isArray(target.entries)) { announce('请先选择一本自定义词书'); return; }
+    const seen = new Set(target.entries.map(e => String(e.word || '').toLowerCase()));
+    let added = 0;
+    lastFilteredEntries.forEach(e => {
+      const k = String(e.word || '').toLowerCase();
+      if (!k || seen.has(k)) return;
+      seen.add(k); target.entries.push(filterEntryRef(e)); added++;
+    });
+    Store.save();
+    announce(added ? '已向「' + name + '」加入 ' + added + ' 词' : '所选词书已包含全部过滤结果');
+    renderBooks();
+  }
+
   function renderBooks() {
     setCrumbs('crumbs-books', [crumbMine(), { label: '词书与计划' }]);
     const b = activeBook();
-    const known = knownCount(b.entries);
-    const ab = $('active-book');
-    ab.innerHTML = '';
-    ab.appendChild(el('div', 'ab-name', b.name));
-    ab.appendChild(el('div', 'ab-sub', b.n + ' 词 · 已掌握 ' + known));
-    const bar = el('div', 'ab-bar'); const fill = el('div', 'ab-fill');
-    fill.style.width = (b.n ? (known / b.n) * 100 : 0) + '%';
-    bar.appendChild(fill); ab.appendChild(bar);
-    const nums = el('div', 'ab-nums');
-    nums.appendChild(el('span', null, '掌握 ' + Math.round(b.n ? (known / b.n) * 100 : 0) + '%'));
-    nums.appendChild(el('span', null, '每日 ' + Store.data.plan.newPerDay + ' 新词'));
-    ab.appendChild(nums);
+    renderBooksHeader();
 
     $('plan-new-input').value = Store.data.plan.newPerDay;
     $('plan-review-input').value = Store.data.plan.reviewCap;
@@ -3312,28 +3372,42 @@
     $('book-skip-known').checked = !!f.skipKnown;
     $('book-skip-basic').checked = f.skipBasic !== false;
     renderExcludeChips(b);
+
+    // 真实过滤：filteredEntries 是唯一真源，预览、建库与每日队列共用同一结果。
+    const kept = filteredEntries(b);
+    lastFilteredEntries = kept.slice();
+    const steps = kept.filteredSteps || [];
     const hint = $('book-filter-hint');
-    const basic = f.skipBasic !== false ? Library.basicWordSet() : null;
-    const lower = f.skipLower && !b.custom ? Library.lowerWordSet(b.tag) : null;
-    const ex = (f.excludeBooks && f.excludeBooks.length) ? Library.excludeWordSet(f.excludeBooks) : null;
-    let dBasic = 0, dLower = 0, dEx = 0, dKnown = 0;
-    for (const e of b.entries) {
-      if (basic && basic.has(e.word)) { dBasic++; continue; }
-      if (lower && lower.has(e.word)) { dLower++; continue; }
-      if (ex && ex.has(e.word)) { dEx++; continue; }
-      if (f.skipKnown && SRS.isKnown(Store.data.srs[e.word])) dKnown++;
-    }
-    const total = dBasic + dLower + dEx + dKnown;
-    if (!total) {
-      hint.textContent = '当前不裁剪词书;过滤只影响每日学习队列，测试范围不受影响。';
+    const removed = b.entries.length - kept.length;
+    hint.textContent = steps.length
+      ? '已按 ' + steps.join(' / ') + ' 过滤，去掉 ' + removed + ' 词，剩 ' + kept.length + ' 词。以下为真实过滤结果，可直接建为新词书。'
+      : '当前没有启用过滤条件，全部 ' + kept.length + ' 词符合条件。勾选上方条件即可预览过滤结果。';
+    const result = $('book-filter-result');
+    result.hidden = false;
+    $('filter-result-count').textContent = kept.length;
+    const preview = $('filter-result-preview');
+    preview.innerHTML = '';
+    if (!kept.length) {
+      preview.appendChild(el('span', 'field-hint', '过滤后没有剩余单词，请放宽条件。'));
     } else {
-      const parts = [];
-      if (dBasic) parts.push('基础词 ' + dBasic);
-      if (dLower) parts.push('低阶重复 ' + dLower);
-      if (dEx) parts.push('词书重复 ' + dEx);
-      if (dKnown) parts.push('已掌握 ' + dKnown);
-      hint.textContent = '过滤后剩 ' + (b.n - total) + ' 词（' + parts.join(' · ') + '）。';
+      const chipWrap = el('div', 'chip-row wrap');
+      kept.slice(0, 30).forEach(e => {
+        const chip = el('button', 'chip static', e.word); chip.type = 'button';
+        chip.title = '查词：' + e.word;
+        chip.dataset.w = e.word;
+        chipWrap.appendChild(chip);
+      });
+      preview.appendChild(chipWrap);
+      if (kept.length > 30) preview.appendChild(el('p', 'field-hint', '仅预览前 30 词，建为新词书将包含全部 ' + kept.length + ' 词。'));
     }
+    const targetSel = $('filter-target-book');
+    const prevTarget = targetSel.value;
+    targetSel.innerHTML = '';
+    const names = Object.keys(Store.data.customBooks);
+    names.forEach(n => { const o = el('option', null, n); o.value = n; targetSel.appendChild(o); });
+    targetSel.disabled = !names.length;
+    $('filter-add-book').disabled = !names.length;
+    if (prevTarget && names.includes(prevTarget)) targetSel.value = prevTarget;
 
     const list = $('books-list');
     list.innerHTML = '';
@@ -4035,6 +4109,12 @@
     $('book-skip-known').addEventListener('change', onBookFilter);
     $('book-skip-basic').addEventListener('change', onBookFilter);
     $('import-book').addEventListener('click', importBook);
+    $('filter-make-book').addEventListener('click', makeBookFromFilter);
+    $('filter-add-book').addEventListener('click', addFilterToBook);
+    $('filter-result-preview').addEventListener('click', e => {
+      const chip = e.target.closest('.chip[data-w]');
+      if (chip) openWordSheet(chip.dataset.w, false, [], true);
+    });
     $('cmp-source').addEventListener('change', renderCompare);
     $('cmp-level').addEventListener('change', renderCompare);
     $('cmp-toggle').addEventListener('click', () => {
