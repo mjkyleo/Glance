@@ -15,9 +15,10 @@
   let rootsTab = 'roots';
   let affixFilter = 'all';
   let rootsFilter = 'all';
+  let affixCat = 'all';
   const ROOT_CATS = [['all', '全部'], ['new', '未学'], ['learning', '学习中'], ['near', '接近学完']];
   const rootsBatch = { groups: [], gi: 0, ri: 0, wrap: null, cur: null, io: null, infos: null };
-  const affixBatch = { items: [], i: 0, wrap: null, io: null };
+  const affixBatch = { items: [], i: 0, wrap: null, io: null, infos: null };
   let favGroup = '';
   let sheetWord = null;
   let sheetFamily = null;
@@ -1430,15 +1431,7 @@
     });
     const infos = new Map();
     base.forEach(r => infos.set(r.root, rootInfo(r)));
-    const cats = $('roots-cats');
-    cats.innerHTML = '';
-    ROOT_CATS.forEach(([id, label]) => {
-      const n = id === 'all' ? base.length : base.filter(r => catOf(infos.get(r.root)) === id).length;
-      const b = el('button', 'chip' + (rootsFilter === id ? ' active' : ''), id === 'all' ? label : label + ' ' + n);
-      b.type = 'button';
-      b.dataset.cat = id;
-      cats.appendChild(b);
-    });
+    buildCatChips(base, r => infos.get(r.root), rootsFilter);
     let roots = rootsFilter === 'all' ? base : base.filter(r => catOf(infos.get(r.root)) === rootsFilter);
     roots = roots.slice().sort((a, b) => {
       if (rv.sort === 'size') return (b.size || 0) - (a.size || 0) || a.root.localeCompare(b.root);
@@ -1522,6 +1515,11 @@
     let af = Library.getAffixes().slice();
     if (affixFilter !== 'all') af = af.filter(a => a.k === affixFilter);
     if (q) af = af.filter(a => a.id.toLowerCase().includes(q) || (a.zh || '').includes(raw));
+    const awm = affixWordsMap();
+    const infos = new Map();
+    af.forEach(a => { const w = awm.get(a.id); infos.set(a.id, w && w.size ? learnProgress(Array.from(w)) : null); });
+    buildCatChips(af, a => infos.get(a.id), affixCat);
+    if (affixCat !== 'all') af = af.filter(a => catOf(infos.get(a.id)) === affixCat);
     af.sort((a, b) => (b.count || 0) - (a.count || 0));
     const list = $('affix-list');
     if (affixBatch.io) { affixBatch.io.disconnect(); affixBatch.io = null; }
@@ -1529,7 +1527,7 @@
     if (!af.length) { list.appendChild(el('div', 'empty-hint', '没有匹配的词缀')); return; }
     const wrap = el('div', 'list-gap compact-gap');
     list.appendChild(wrap);
-    Object.assign(affixBatch, { items: af, i: 0, wrap });
+    Object.assign(affixBatch, { items: af, i: 0, wrap, infos });
     loadAffixBatch();
     affixBatch.io = makeSentinel(list, loadAffixBatch);
   }
@@ -1544,8 +1542,7 @@
       title.appendChild(el('span', 'row-badge gray', a.k === 'prefix' ? '前缀' : a.k === 'suffix' ? '后缀' : '词缀'));
       main.appendChild(title);
       main.appendChild(el('div', 'row-sub', a.zh || a.en || ''));
-      const words = affixWordsMap().get(a.id);
-      const info = words && words.size ? learnProgress(Array.from(words)) : null;
+      const info = b.infos.get(a.id);
       const done = attachRowProgress(row, main, info);
       row.appendChild(main);
       if (info && Store.data.progressBars) {
@@ -1566,6 +1563,18 @@
   function catOf(info) {
     if (!info || !info.total || !info.learned) return 'new';
     return info.ratio >= 0.85 ? 'near' : 'learning';
+  }
+  // The status chip row is shared by both tabs: counts come from the tab's own base list.
+  function buildCatChips(items, infoOf, active) {
+    const host = $('roots-cats');
+    host.innerHTML = '';
+    ROOT_CATS.forEach(([id, label]) => {
+      const n = id === 'all' ? items.length : items.filter(x => catOf(infoOf(x)) === id).length;
+      const b = el('button', 'chip' + (active === id ? ' active' : ''), id === 'all' ? label : label + ' ' + n);
+      b.type = 'button';
+      b.dataset.cat = id;
+      host.appendChild(b);
+    });
   }
   function makeSentinel(list, load) {
     const sen = el('div', 'load-sentinel');
@@ -3761,7 +3770,7 @@
     });
 
     $('roots-tab-roots').addEventListener('click', () => { rootsTab = 'roots'; $('roots-tab-roots').classList.add('active'); $('roots-tab-affixes').classList.remove('active'); $('roots-list').hidden = false; $('affix-panel').hidden = true; $('roots-cats').hidden = false; $('roots-opts').hidden = false; $('roots-search').placeholder = '搜索词根 / 释义'; renderRoots(); });
-    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-cats').hidden = true; $('roots-opts').hidden = true; $('roots-rail').hidden = true; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
+    $('roots-tab-affixes').addEventListener('click', () => { rootsTab = 'affixes'; $('roots-tab-affixes').classList.add('active'); $('roots-tab-roots').classList.remove('active'); $('roots-list').hidden = true; $('affix-panel').hidden = false; $('roots-cats').hidden = false; $('roots-opts').hidden = true; $('roots-rail').hidden = true; $('roots-search').placeholder = '搜索词缀 / 释义'; renderAffixes(); });
     $('roots-search').addEventListener('input', () => rootsTab === 'roots' ? renderRoots() : renderAffixes());
     $('roots-opts').addEventListener('click', ev => {
       const b = ev.target.closest('[data-roots-opt]'); if (!b) return;
@@ -3775,8 +3784,8 @@
     });
     $('roots-cats').addEventListener('click', ev => {
       const b = ev.target.closest('.chip'); if (!b) return;
-      rootsFilter = b.dataset.cat;
-      renderRoots();
+      if (rootsTab === 'roots') { rootsFilter = b.dataset.cat; renderRoots(); }
+      else { affixCat = b.dataset.cat; renderAffixes(); }
     });
     $('roots-rail').addEventListener('click', ev => {
       const b = ev.target.closest('button'); if (!b) return;
