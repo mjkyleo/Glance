@@ -73,33 +73,7 @@ jobs:
           check(root);
           NODE
 
-      - name: Prepare private release signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          GLANCE_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          GLANCE_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          GLANCE_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
-        run: |
-          set -euo pipefail
-          for NAME in KEYSTORE_BASE64 GLANCE_RELEASE_STORE_PASSWORD GLANCE_RELEASE_KEY_ALIAS GLANCE_RELEASE_KEY_PASSWORD EXPECTED_CERT_SHA256; do
-            if [ -z "${!NAME}" ]; then
-              echo "::error::Missing release signing configuration: $NAME"
-              exit 1
-            fi
-          done
-          EXPECTED=$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
-          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || { echo '::error::Invalid signing certificate SHA-256'; exit 1; }
-          umask 077
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/glance-release.keystore"
-          test -s "$RUNNER_TEMP/glance-release.keystore"
-
-      - name: Build release APK
-        env:
-          GLANCE_RELEASE_STORE_FILE: ${{ runner.temp }}/glance-release.keystore
-          GLANCE_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          GLANCE_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          GLANCE_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Build release APK (public debug keystore)
         run: |
           cd android
           chmod +x gradlew
@@ -107,7 +81,6 @@ jobs:
 
       - name: Verify APK build metadata
         env:
-          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
@@ -125,17 +98,12 @@ jobs:
           fi
           CERTS=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK")
           printf '%s\n' "$CERTS"
-          EXPECTED=$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
-          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]
           printf '%s\n' "$CERTS" | grep -Fx "Number of signers: 1"
-          printf '%s\n' "$CERTS" | grep -Fx "Signer #1 certificate SHA-256 digest: $EXPECTED"
           printf '%s\n' "$CERTS" | grep -Fx 'Verified using v1 scheme (JAR signing): true'
           printf '%s\n' "$CERTS" | grep -Fx 'Verified using v2 scheme (APK Signature Scheme v2): true'
-          DEBUG_CERT=$(keytool -exportcert -keystore android/keystore/glance-debug.keystore -storepass android -alias androiddebugkey | sha256sum)
-          if [ "$EXPECTED" = "${DEBUG_CERT%% *}" ]; then
-            echo '::error::The public debug certificate cannot be used for release'
-            exit 1
-          fi
+          # 断言 release 签名与仓库公开 debug keystore 一致，保证旧版可覆盖安装。
+          EXPECTED=$(keytool -exportcert -keystore android/keystore/glance-debug.keystore -storepass android -alias androiddebugkey | sha256sum)
+          printf '%s\n' "$CERTS" | grep -Fx "Signer #1 certificate SHA-256 digest: ${EXPECTED%% *}"
           cp "$APK" Glance-android.apk
           sha256sum Glance-android.apk > Glance-android.apk.sha256
 
@@ -174,7 +142,7 @@ jobs:
           APK: $BYTES bytes
           SHA-256: ${CHECKSUM%% *}
 
-          从旧调试包首次迁移到私有签名版：先导出学习数据并确认备份文件可读取，再卸载旧版、安装并导入；API Key 不在备份中，需重新填写。不要仅依赖共享镜像恢复。以后同一私有签名可覆盖升级。"
+          使用仓库内公开调试签名，与历史调试包同签名可直接覆盖安装。若覆盖失败，先从「我的 → 数据备份」导出并确认备份可读取，再卸载旧版、安装并导入；API Key 不在备份中，需重新填写。公开签名不具备防伪造性，正式上架前需改用私有发布签名。"
           TITLE="Glance $VERSION (build ${{ github.run_number }}) · $TITLE"
           echo "Release title: $TITLE"
           echo "$NOTES"
@@ -182,7 +150,3 @@ jobs:
             --title "$TITLE" \
             --notes "$NOTES" \
             --target "${{ github.sha }}"
-
-      - name: Remove temporary signing material
-        if: always()
-        run: rm -f -- "$RUNNER_TEMP/glance-release.keystore"

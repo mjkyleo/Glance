@@ -53,7 +53,7 @@ npx serve app          #或：python -m http.server 8080 -d app
 
 从 [Releases](https://github.com/mjkyleo/Glance/releases/latest) 下载 `Glance-android.apk`（GitHub Actions 自动构建），允许「安装未知应用」后安装。
 
-> 从旧调试版首次迁移到私有签名 release：先「我的 → 数据备份」导出并确认文件可读取，再卸载旧版、安装并导入；不要只依赖共享镜像。API Key 不在备份中，需重新填写；头像与背景也需重新设置。此后同一私有签名可覆盖升级。
+> 与历史调试包使用同一公开调试签名，可直接覆盖安装。若覆盖失败，先「我的 → 数据备份」导出并确认文件可读取，再卸载旧版、安装并导入；不要只依赖共享镜像。API Key 不在备份中，需重新填写；头像与背景也需重新设置。该签名是公开的，不具备防伪造性，正式上架前需改用私有发布签名。
 
 ## 使用概览
 
@@ -100,7 +100,7 @@ node scripts/verify-single-source.js   # 单一解释源验收门
 node scripts/verify-custom-compat.js   # 自定义词书兼容验收门
 ```
 
-推送 `main` 后 [android-build.yml](.github/workflows/android-build.yml) 构建私有签名 release APK，发布为 `android-<构建号>` 并附 SHA-256 校验文件；缺少签名 Secrets 会停止构建。首次配置与升级注意事项见 [DEVELOPMENT.md §8.53](DEVELOPMENT.md#853-正式发布版本与私有签名改造待-ci--真机验证)。文档与认知资产提交不触发构建。
+推送 `main` 后 [android-build.yml](.github/workflows/android-build.yml) 构建 release APK（仓库内公开调试签名、`debuggable false`），发布为 `android-<构建号>` 并附 SHA-256 校验文件；签名与历史调试包一致，可直接覆盖安装。版本与签名说明见 [DEVELOPMENT.md §8.53](DEVELOPMENT.md#853-正式发布版本与公开调试签名改造待-ci--真机验证)。文档与认知资产提交不触发构建。
 
 ## 文档
 

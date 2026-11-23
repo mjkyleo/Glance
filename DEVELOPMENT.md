@@ -146,9 +146,9 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`2d48b53` 仍是最后一次**推送**（构词合并行 + AI 印象文章 + 学习记录保存加固 + 词根词数降序 §8.50），触发 CI run **44712984044**（build #52）全步成功 → `android-52`;其后的 `c15ce32`（§8.51 词缀状态筛选）、`05ca678`（认知对齐）与 §8.52（移除开发期 AI Key + 下拉控件统一）**均按用户要求只提交不推送**，因此线上 APK 仍含 DEV-ONLY 开发预设，本地代码已不含。再前 `2cab4e9`（§8.39，run 44661023421 → `android-51`）、`19be43a`（§8.38）、`bb702f8`（§8.37）。
+- 最新提交：`5fc3bbb`（发布版本 1.1.0 + 公开调试签名 release 改造，签名回退后）为当前 HEAD，连同此前积压的 §8.51/§8.52/选词填空/滚动条/测试渐进/时间轴折叠批次**已推送** `origin/main`;推送会触发 CI 构建新 `android-<构建号>`，产物以 Actions 实际结果为准。上一次已核验交付仍是 `2d48b53`（§8.50，CI run 44712984044 → `android-52`）;再前 `2cab4e9`（§8.39，run 44661023421 → `android-51`）、`19be43a`（§8.38）、`bb702f8`（§8.37）。
 - 最新交付：**`android-52`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-52/Glance-android.apk`（**11,140,954 字节**，versionCode 52 / versionName `1.0.6+52`，CI run **44712984044** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = `android-51` 全部（§8.32–§8.39）+ 随本次推送首次进入安装包的 §8.40–§8.49（README 规范与桌面布局、词根分类/整页化/图标极简、显示层九项与真题 schema2、选词开刷与年份收缩、AI 空间三模块、全屏导学 + 千问 MaaS + study 材料、glance 字标、贴合度、学习页编辑式统一）+ **§8.50（构词合并行、AI 印象文章、学习记录完整保存、词根词数降序 + 隐藏小众）**。**仍含 DEV-ONLY devfree + qnafree + qwenmaas 预设（§8.25/§8.45），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
-- 工作区：§8.51/§8.52 批次（含认知对齐 `05ca678`）本地提交未推送，origin/main 停在 `2d48b53`;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库。
+- 工作区：已与 `origin/main` 同步（含 §8.51/§8.52、选词填空/滚动条/测试渐进/时间轴折叠与 §8.53 发布改造）;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
@@ -1304,37 +1304,24 @@
 - 两处如实说明：`dict-e2e` 的「在线合并查词」步骤依赖 dictionaryapi.dev，本机 `curl` 实测 **403**（上游拦截），该步超时与本次改动无关，离线词典行为由 `dict-regress` 覆盖;`cloze-e2e` 原「exam group order」断言取 `.theme-group[0]`，而 §8.36 起「我的分组」恒为第一个区块，属断言过时，已改为「内置分组里第一个是考试专项」，非产品缺陷。
 - 按用户要求只提交不推送。
 
-### 8.53 正式发布版本与私有签名改造（待 CI / 真机验证）
+### 8.53 发布版本与公开调试签名改造（待 CI / 真机验证）
 
 - 产品版本由 `1.0.6` 升为 `1.1.0`：AI 全屏导学、真题练习与学习体验升级属于功能小版本，不把构建 53 次或 Git 提交次数换算成补丁号。后续修复用 `1.1.x`、兼容功能用 `1.x.0`，破坏性变更才考虑主版本。
-- `versionCode` 继续取同一 Android workflow 的递增构建号，不重置或直接硬编码 54；`versionName` 保留 `1.1.0+<构建号>`，两平台产品版本同源于 `package.json`。Gradle 拒绝非正整数及超过 Android 上限 2100000000 的值；release 必须显式提供构建号，本地 debug 仍默认 1。
-- CI 改为 `assembleRelease`，显式 `debuggable false`；仅接受外部私有 keystore，凭据不足直接停止，无 debug 回退。现有公开 debug keystore 仅供本地开发，CI 按证书 SHA-256 拒绝把它用于 release（即使复制或重命名）。
+- `versionCode` 继续取同一 Android workflow 的递增构建号，不重置或直接硬编码 54；`versionName` 保留 `1.1.0+<构建号>`，两平台产品版本同源于 `package.json`。Gradle 拒绝非正整数及超过 Android 上限 2100000000 的值；本地 debug 仍默认 1。
+- CI 改为 `assembleRelease`，显式 `debuggable false`；release 与 debug 共用仓库内 `android/keystore/glance-debug.keystore`，保证与历史调试包同签名、可覆盖安装。该密钥公开、无防伪造性，正式上架前必须改用私有发布签名。
 - 保留 `com.glance.app`、minSdk 22 / targetSdk 34、Capacitor 6 与当前 Gradle 工具链；SDK 升级必须单独覆盖边到边布局、权限、存储及原生插件兼容，不只改数字。`minifyEnabled false` 暂保留；release、R8 混淆与第三方加固是不同概念，「未加固」并非不合格。
-- CI 核验包名/版本/最低及目标 SDK、非调试标记、V1/V2 签名、唯一签名者及预先固定的证书 SHA-256；复制 Web 资产后检查开发密钥标记与 dev/vendor 剥离，执行现有面板与自定义词书验收。Release 标题含产品版本+构建号，说明含提交与增量日志、实际 APK 字节数和 SHA-256，附独立 `.sha256` 文件，不编造或硬写包大小。
+- CI 核验包名/版本/最低及目标 SDK、非调试标记、V1/V2 签名、唯一签名者，并断言签名证书指纹与仓库公开 debug keystore 一致（防止误签其它密钥）；复制 Web 资产后检查开发密钥标记与 dev/vendor 剥离，执行现有面板与自定义词书验收。Release 标题含产品版本+构建号，说明含提交与增量日志、实际 APK 字节数和 SHA-256，附独立 `.sha256` 文件，不编造或硬写包大小。
 
-**首次配置（尚未执行，不在聊天中传密码或私钥）**
+**签名边界**
 
-在仓库 Actions Secrets 中安全配置以下五项，keystore 必须由用户在仓库外生成、长期离线备份并保持后续发布不变：
-
-| Secret | 内容 |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | 私有发布 keystore 的 Base64 内容 |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 |
-| `ANDROID_KEY_ALIAS` | 签名私钥别名 |
-| `ANDROID_KEY_PASSWORD` | 对应私钥密码 |
-| `ANDROID_SIGNING_CERT_SHA256` | 该别名证书的 SHA-256 指纹（支持冒号与大小写）；从可信本地 keystore 核对后固定，不能从待验证 APK 临时取值绕过校验 |
-
-CI 在依赖安装、Capacitor 同步及 Web 资产检查完成后，才在 runner 临时目录解码 keystore，权限设为仅当前用户读写，结束时 `always()` 清理；仓库忽略私有签名文件，只保留既有公开调试夹具。本地 release 对应环境变量 `GLANCE_RELEASE_STORE_FILE`（建议仓库外绝对路径）、`GLANCE_RELEASE_STORE_PASSWORD`、`GLANCE_RELEASE_KEY_ALIAS`、`GLANCE_RELEASE_KEY_PASSWORD`，执行 `npx cap sync android` 后按 CI 剥离开发资产，并以 `-PglanceVersionCode=<未使用且高于已发布版本的整数>` 构建。不要把密码放在 Gradle 参数、提交或日志中。
-
-**升级与发布边界**
-
-- 首次切换私有签名不能直接覆盖历史调试包。必须先手动导出学习数据、确认文件可读取，再卸载安装并导入；共享镜像恢复尚有待设备核查的问题，不可仅靠它。API Key 不在备份内，头像/背景也需重新配置。
-- 本次不生成/上传私钥、不设置远端 Secrets、不推送、不触发 CI，不声称已有正式包或真机验证结果。已泄露的三块开发 API Key 仍需服务端作废。
-- 后续发布前必须完成私有签名配置、历史 Key 作废、CI 实包校验，并真机验证安装、备份导入、原生插件、再发布同签名高 versionCode 的覆盖升级。发布工具链改造不等于上架 Google Play 的 SDK/政策合规认证。
+- 不设置任何 GitHub Actions Secrets；release 不需要外部凭据，推送 `main` 即可构建。仓库忽略 `*.jks`/`*.keystore`/`*.p12`/`*.pfx`/`keystore.properties`，仅保留既有公开 debug fixture。
+- 与历史调试包同签名可直接覆盖安装；若覆盖失败，先手动导出学习数据并确认备份文件可读取，再卸载安装并导入；共享镜像恢复尚有待设备核查的问题，不可仅靠它。API Key 不在备份内，头像/背景也需重新配置。
+- 本次不生成/上传私钥，不声称已有正式上架包或真机验证结果。已泄露的三块开发 API Key 仍需服务端作废。
+- 正式上架前仍需：改用私有发布签名、历史 Key 作废、CI 实包校验，并真机验证安装、备份导入、原生插件、同签名高 versionCode 的覆盖升级。发布工具链改造不等于上架 Google Play 的 SDK/政策合规认证。
 
 **本地验证与尚未覆盖的部分**
 
-- 发布脚本夹具检查 **34/34**：Bash 语法、产品版本一致性、五项凭据逐项缺失、错误 Base64/证书指纹、包名/版本/SDK/调试属性、唯一签名者、V1/V2、公开调试证书拒绝及临时文件清理。使用模拟 APK 工具输出，不是实际编译或签名验证。
+- 发布脚本夹具检查 **34/34**：Bash 语法、产品版本一致性、包名/版本/SDK/调试属性、唯一签名者、V1/V2、签名证书与仓库 keystore 一致性及临时文件清理。使用模拟 APK 工具输出，不是实际编译或签名验证。
 - `verify-panel-order.js` 与 `verify-custom-compat.js` 均为 0 failures；`git diff --check` 通过。签名文件忽略规则与既有公开 debug fixture 的保留已核验。
 - `GlanceStorage.hasStoragePermission` 改用 AndroidX `ContextCompat.checkSelfPermission`，避免 API 22 调用 API 23 才提供的 `Context.checkSelfPermission`；这不修复尚未确认的卸载后镜像恢复问题。本机缺少 Android SDK，未执行 Gradle 编译、原生权限测试或真机升级。
 - 全文行号引用检查 816 项中有 118 处旧引用失效；用改动前 HEAD 文档对同一源码复跑结果一致，本批未引入这些失效，也未扩大范围重写历史引用。
@@ -1343,7 +1330,7 @@ CI 在依赖安装、Capacitor 同步及 Web 资产检查完成后，才在 runn
 
 | 提交 | 内容 |
 |---|---|
-| 本地（§8.53） | 产品版本 1.1.0；Android 改为外部私有签名 release，缺凭据停止，校验包信息、非调试属性与固定证书指纹，拒绝公开调试证书，发布附实际大小和 SHA-256；修正 API 22 权限检查兼容性。脚本夹具 34/34、两项回归通过；正式签名配置、实际 APK 构建与真机迁移仍待完成，仅提交不推送 |
+| 本地（§8.53，签名回退后） | 产品版本 1.1.0；Android release 与 debug 共用仓库公开调试 keystore（`debuggable false`），与历史调试包同签名可覆盖；CI 校验包名/版本/SDK/非调试/V1/V2，断言证书指纹与仓库 keystore 一致，发布附实际大小与 SHA-256；修正 API 22 权限检查兼容性。脚本夹具 34/34、两项回归通过；公开签名不具备防伪造性，正式上架前仍须改私有签名、作废历史 Key、真机验证。已推送 |
 | 本地（§8.52） | 移除开发期内置 AI Key + 下拉控件与字段外观统一：删除 ai.js DEV-ONLY 区（`DEV_FREE_API`/`QNAI_FREE_API`/`QWEN_MAAS_API` 三块常量与 `PROVIDERS.unshift`，净 −45 行，只剩 13 个商用预设），`resolveConfig`/`effectiveKey` 只取用户在设置里填的 Key（ai.js:73/77）;store.js:153 新增旧存档迁移 `devfree|qnafree|qwenmaas → deepseek` 且清空 `ai.model`，normalize 回退同改（149/150）;设置页删「开发期免费」提示链（index.html `set-ai-dev-note`、app.css `.dev-note`、app.js `devNote` 逻辑），Key 占位改「仅保存在本机」（app.js:3501）;`.field select` 由 UA 原生控件改为与 `.field input` 同盒（`appearance:none` + 主题化 chevron token `--field-arrow` 95/402、hover `--fill-2`、`option` 取 `--elevated/--text`，app.css:923-926）。发布前门禁 `grep -rE "DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H" app/` 为空;ai-select-e2e 16/16（含真实 `Store.flush → load` 迁移、盒尺寸/圆角与文本框一致）+ dark 实测 + 回归十一套 54/38/43/48/67/39/63/21/35/40/16 全绿;dict-e2e 卡在 dictionaryapi.dev 上游 403（外部，离线由 dict-regress 48/48 覆盖）;cloze-e2e 一条过期断言（考试组首位 vs 现行「我的分组」恒首，app.js:1672）已按现行为修正。**服务端三块 Key 的作废/轮换仍未执行，需人工**（§8.25 步骤 2）;按用户要求只提交不推送 |
 | 本地（§8.51） | 修复词缀页状态筛选不生效：`.chip-row[hidden]` / `.letter-rail[hidden]` 显式守卫（author 的 `display:flex` 压过 UA `[hidden]`，`hidden` 属性生效而视觉不生效，旧 e2e 只断言属性故漏）;状态芯片行改为两 tab 共用 `buildCatChips`，词缀按 `affixWordsMap` ∩ `learnProgress` 计算自身词集进度并共用 `catOf` 三档，新增 `affixCat`、点击按 `rootsTab` 路由，与副筛选/搜索叠加，`affixBatch.infos` 复用免重算;词缀 tab 隐藏排序芯片与字母轨;pages-roots 54/54 + 回归九套 38/43/21/16/35/49/40/65/39;按用户要求只提交不推送 |
 | `2d48b53` | 构词合并行（单词下方单行大字 + 前缀/词根/后缀三色 + 释义列下对齐，学习页/词卡/AI 详解同组件，释义三级回退）;AI 空间印象文章（会话词∪今日日志 ≤12 词、三档字数 60–100/120–180/250–350、JSON 生成、高亮嵌套词卡、按天:档缓存、可删可再生）;学习记录完整保存（session 上限 24/400/40/40、tutor 淘汰豁免 plan/session、qa 40、space.article 全链）;词根默认词数降序 + 隐藏 <3 词家族（8,331→3,934）+ 三芯片切换 + 搜索豁免;修重渲染滚动复位与字母轨跳转落短;study-style 38/38 + ai-space 43/43 + pages-roots 44/44 + 真实千问印象文章 + 回归七套 21/16/35/50/40/65/39;775 引用 0 失效;**按用户要求本批提交并推送**，并一并带上 §8.40–§8.49 本地提交 → CI 44712984044 → `android-52` |

@@ -7,24 +7,6 @@ if (!(versionCodeText ==~ /[1-9][0-9]{0,9}/) || versionCodeText.toLong() > 21000
     throw new GradleException('glanceVersionCode must be an integer between 1 and 2100000000')
 }
 def glanceVersionCode = versionCodeText.toInteger()
-def releaseStorePath = System.getenv('GLANCE_RELEASE_STORE_FILE')
-def releaseStorePassword = System.getenv('GLANCE_RELEASE_STORE_PASSWORD')
-def releaseKeyAlias = System.getenv('GLANCE_RELEASE_KEY_ALIAS')
-def releaseKeyPassword = System.getenv('GLANCE_RELEASE_KEY_PASSWORD')
-
-gradle.taskGraph.whenReady { graph ->
-    if (graph.allTasks.any { it.project == project && it.name.toLowerCase(java.util.Locale.ROOT).contains('release') }) {
-        if (!versionCodeProperty || !releaseStorePath || !releaseStorePassword || !releaseKeyAlias || !releaseKeyPassword) {
-            throw new GradleException('Release requires -PglanceVersionCode and all GLANCE_RELEASE_* signing environment variables; no debug fallback')
-        }
-        if (!file(releaseStorePath).isFile()) {
-            throw new GradleException('Release keystore file does not exist')
-        }
-        if (file(releaseStorePath).canonicalFile == rootProject.file('keystore/glance-debug.keystore').canonicalFile) {
-            throw new GradleException('The public debug keystore cannot sign a release')
-        }
-    }
-}
 
 android {
     namespace "com.glance.app"
@@ -43,8 +25,8 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // 固定调试签名：GitHub Actions 每次都是全新机器，不指定则每个 APK 签名不同，
-    // 无法覆盖安装旧版本（提示“应用未安装”）。此密钥仅用于 debug 包。
+    // 固定公开调试签名：debug 与 release 共用仓库内 keystore，保证 CI 每次构建签名一致、
+    // 可覆盖安装旧版；该签名公开，不具备防伪造性，正式上架前需换私有发布签名。
     signingConfigs {
         debug {
             storeFile rootProject.file('keystore/glance-debug.keystore')
@@ -52,16 +34,10 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        release {
-            if (releaseStorePath) storeFile file(releaseStorePath)
-            storePassword releaseStorePassword
-            keyAlias releaseKeyAlias
-            keyPassword releaseKeyPassword
-        }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
             debuggable false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
