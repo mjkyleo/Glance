@@ -217,8 +217,8 @@ html[data-theme="gray"] {
   --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
   --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
   --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
-  --neu-dark: rgba(136, 140, 148, 0.16); --neu-light: rgba(255, 255, 255, 0.42);
-  --neu-row-dark: rgba(136, 140, 148, 0.09); --neu-row-light: rgba(255, 255, 255, 0.28);
+  --neu-dark: rgba(136, 140, 148, 0.14); --neu-light: rgba(255, 255, 255, 0.30);
+  --neu-row-dark: rgba(136, 140, 148, 0.08); --neu-row-light: rgba(255, 255, 255, 0.18);
   --hairline: rgba(51, 51, 51, 0.06);
 
   --font-ui: "Avenir Next", "Segoe UI", "Helvetica Neue", -apple-system,
@@ -246,8 +246,8 @@ html[data-theme="gray"] {
   --tab-active-bg: transparent;
   --progress-h: 8px; --progress-fill: linear-gradient(90deg, var(--accent), var(--accent-2));
   --grade-h: 64px;
-  --shadow-card: 6px 6px 14px var(--neu-dark), -6px -6px 14px var(--neu-light);
-  --shadow-pop: 10px 10px 22px var(--neu-dark), -10px -10px 22px var(--neu-light);
+  --shadow-card: 2px 2px 8px var(--neu-row-dark), -2px -2px 8px var(--neu-row-light);
+  --shadow-pop: 5px 5px 14px var(--neu-dark), -5px -5px 14px var(--neu-light);
   --press-scale: 1; --hover-lift: 0px;
   --dur-ui: .3s; --dur-slow: .34s; --ease-ui: ease-in-out;
 }
@@ -509,8 +509,8 @@ html[data-theme="paper-craft"] {
     --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
     --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
     --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
-    --neu-dark: rgba(136, 140, 148, 0.16); --neu-light: rgba(255, 255, 255, 0.42);
-    --neu-row-dark: rgba(136, 140, 148, 0.09); --neu-row-light: rgba(255, 255, 255, 0.28);
+    --neu-dark: rgba(136, 140, 148, 0.14); --neu-light: rgba(255, 255, 255, 0.30);
+    --neu-row-dark: rgba(136, 140, 148, 0.08); --neu-row-light: rgba(255, 255, 255, 0.18);
     --hairline: rgba(51, 51, 51, 0.06);
     --line: transparent;
     --card-border: none;
@@ -687,7 +687,7 @@ html[data-theme="gray"] .tab.active:hover {
   color: var(--accent); background: var(--card);
   box-shadow: inset 4px 4px 9px var(--neu-dark), inset -4px -4px 9px var(--neu-light);
 }
-html[data-theme="gray"] .tab-indicator { display: none; }
+html[data-theme="gray"] .tab-indicator { background: transparent; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; }
@@ -739,6 +739,10 @@ body.has-bg { background-color: transparent; background-image: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .view { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--gap-ui); }
 .view[hidden] { display: none; }
+/* AI 学习空间：作为学习页第三个模式直接切换，不再从右侧滑入 */
+.ai-space-panel { gap: 0; }
+.ai-space-top { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 2px 4px 10px; }
+.ai-space-body { display: flex; flex-direction: column; gap: 10px; padding: 0 2px; }
 .scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: var(--gap-ui); padding: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .scroll[hidden] { display: none; }
 /* affix panel must fill remaining height so its inner list scrolls instead of overflowing */
@@ -754,6 +758,11 @@ body.has-bg { background-color: transparent; background-image: none; }
 .mode-switch { flex: 0 0 auto; display: flex; gap: 2px; padding: 2px; border-radius: var(--r-field); background: var(--fill); }
 .mode-btn { flex: 1 1 0; height: 44px; border: none; border-radius: calc(var(--r-field) - 2px); background: transparent; color: var(--text-3); font-size: 14px; font-weight: var(--fw-button); cursor: pointer; transition: background var(--dur-ui) var(--ease-ui), color var(--dur-ui) var(--ease-ui), box-shadow var(--dur-ui) var(--ease-ui); }
 .mode-btn.active { background: var(--elevated); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+html[data-theme="gray"] .mode-btn { box-shadow: none; }
+html[data-theme="gray"] .mode-btn.active {
+  background: var(--card); color: var(--accent);
+  box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light);
+}
 @media (prefers-color-scheme: dark) { .mode-btn.active { background: var(--accent); color: var(--accent-fg); box-shadow: none; } }
 
 /* ---------- stat chips ---------- */

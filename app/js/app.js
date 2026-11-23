@@ -99,7 +99,7 @@
     if (openSheetEl) { closeSheet(); return true; }
     if (currentView === 'exams' && examPane !== 'list') { examBack(); return true; }
     if (SUB_VIEWS.includes(currentView)) { backFromSub(); return true; }
-    if (currentView === 'study' && mode === 'quiz') { setMode('study'); return true; }
+    if (currentView === 'study' && (mode === 'quiz' || mode === 'ai')) { setMode('study'); return true; }
     if (navStack.length) { switchView(navStack.pop(), { fromBack: true }); return true; }
     return false;
   }
@@ -473,11 +473,15 @@
     $('quiz-start').hidden = !(quizOn && quizScreen === 'start');
     $('quiz-session').hidden = !(quizOn && quizScreen === 'session');
     $('quiz-done').hidden = !(quizOn && quizScreen === 'done');
+    const aiOn = mode === 'ai';
+    $('ai-space-panel').hidden = !aiOn;
     $('grade-footer').hidden = !hasItem;
     $('mode-study').classList.toggle('active', inStudy);
     $('mode-quiz').classList.toggle('active', quizOn);
+    $('mode-ai').classList.toggle('active', aiOn);
     $('mode-study').setAttribute('aria-selected', String(inStudy));
     $('mode-quiz').setAttribute('aria-selected', String(quizOn));
+    $('mode-ai').setAttribute('aria-selected', String(aiOn));
   }
 
   function setMode(m) {
@@ -487,6 +491,10 @@
       else if (quizSession) quizScreen = 'session';
       else quizScreen = 'start';
       renderQuizScreen();
+    } else if (m === 'ai') {
+      clearQuizAuto();
+      updateStudyVisibility();
+      openAiSpace();
     } else {
       clearQuizAuto();
       updateStudyVisibility();
@@ -4030,7 +4038,7 @@
 
     $('mode-study').addEventListener('click', () => { Platform.haptic('tap'); setMode('study'); });
     $('mode-quiz').addEventListener('click', () => { Platform.haptic('tap'); setMode('quiz'); });
-    $('mode-ai').addEventListener('click', () => { Platform.haptic('tap'); openAiSpace(); });
+    $('mode-ai').addEventListener('click', () => { Platform.haptic('tap'); setMode('ai'); });
     $('ai-settings-btn').addEventListener('click', () => openSettings('dict'));
     $('ai-space-body').addEventListener('click', aiSpaceClick);
     $('ai-space-body').addEventListener('keydown', e => {
@@ -4387,7 +4395,7 @@
       const tag = (ev.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       if (openSheetEl) return;
-      if (currentView !== 'study') return;
+      if (currentView !== 'study' || mode === 'ai') return;
       if (mode === 'study') {
         if (ev.key === '1') grade(SRS.GRADE.FORGOT);
         else if (ev.key === '2') grade(SRS.GRADE.FUZZY);
@@ -5055,7 +5063,7 @@
       aiSession = saved; aiStage = 'session'; aiEnterStep();
     } else { aiSession = null; aiStage = 'confirm'; }
     if (!Library.studyReady()) Library.studyInit().then(() => {
-      if (openSheetEl && openSheetEl.id === 'ai-space-sheet') {
+      if (mode === 'ai') {
         renderAiSpace();
         const s = aiCurStep();
         if (aiStage === 'session' && s && s.kind === 'study') aiFetchTeach();
@@ -5121,7 +5129,7 @@
     aiBusy = '';
     if (res.ok) Store.spaceSet('tutor', aiTeachKey(s), { text: res.text, t: Date.now(), provider: res.provider, model: res.model });
     else aiTeachErr = res.error;
-    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+    if (mode === 'ai') renderAiSpace();
   }
 
   function renderAiSpace() {
@@ -5133,7 +5141,6 @@
     else if (aiStage === 'session') renderAiSession(body);
     else if (aiStage === 'done') renderAiDone(body);
     else renderAiReportView(body);
-    if (!openSheetEl || openSheetEl.id !== 'ai-space-sheet') openSheet('ai-space-sheet');
     body.scrollTop = (aiStage === 'session' || aiBusy) ? sc : 0;
   }
 
@@ -5407,7 +5414,7 @@
     aiBusy = '';
     if (res.ok) { Store.spaceSet('report', Store.today(), { text: res.text, t: Date.now(), provider: res.provider, model: res.model }); announce('今日报告已生成'); }
     else aiTeachErr = res.error;
-    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+    if (mode === 'ai') renderAiSpace();
   }
 
   // ---- 印象文章：把学过的词串成短文，按天 + 字数范围缓存 ----
@@ -5499,7 +5506,7 @@
         announce('印象文章已生成');
       } else aiTeachErr = 'AI 返回格式异常，请重试';
     } else aiTeachErr = res.error;
-    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+    if (mode === 'ai') renderAiSpace();
   }
 
   function aiStart() {
@@ -5560,7 +5567,7 @@
       aiSaveSession();
       announce('回答已生成');
     } else announce('提问失败：' + res.error);
-    if (openSheetEl && openSheetEl.id === 'ai-space-sheet') renderAiSpace();
+    if (mode === 'ai') renderAiSpace();
   }
 
   function aiSpaceClick(e) {
