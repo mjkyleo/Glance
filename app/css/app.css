@@ -1689,7 +1689,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .exam-entry { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 88px; padding: 14px 16px; border: var(--card-border); border-radius: var(--r-lg); background: linear-gradient(135deg, var(--prefix-bg), var(--root-bg) 58%, var(--suffix-bg)); box-shadow: var(--shadow-card); cursor: pointer; text-align: left; transition: filter var(--dur-ui) var(--ease-ui); }
 .exam-entry:hover { filter: brightness(1.04); }
 .exam-entry-icon { display: grid; place-items: center; width: 56px; height: 56px; flex: 0 0 auto; border-radius: 16px; background: color-mix(in srgb, var(--accent) 16%, var(--card)); color: var(--accent); box-shadow: var(--shadow-card); }
-.exam-entry-icon svg { width: 34px; height: 34px; }
+.exam-entry-icon svg { width: 40px; height: 40px; }
 .exam-entry-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
 .exam-entry-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--accent); }
 .exam-entry-title { font-family: var(--font-head); font-size: 21px; font-weight: 700; letter-spacing: var(--track-head); color: var(--text); }
@@ -1876,7 +1876,7 @@ h3.exam-year { font-size: 13px; color: var(--text-3); letter-spacing: .04em; mar
     border-radius: 13px; background: var(--book-gradient); color: var(--accent-fg);
     box-shadow: var(--shadow-card);
   }
-  .side-brand-mark svg { width: 30px; height: 30px; display: block; }
+  .side-brand-mark svg { width: 36px; height: 36px; display: block; }
   .side-brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .side-brand-text b { font-family: var(--font-head); font-size: 17px; letter-spacing: var(--track-head); color: var(--text); }
   .side-brand-text small { font-size: 11.5px; color: var(--text-3); letter-spacing: var(--track-body); }
