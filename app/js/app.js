@@ -987,22 +987,22 @@
     btn.textContent = '正在准备…';
     let failure = '';
     try {
-      const res = await QuizEngine.buildSession(cfg, {
-        onProgress: (done, total) => { btn.textContent = '获取例句 ' + done + '/' + total; }
-      });
-      quizLastWarnings = res.warnings || [];
-      if (!res.questions.length) {
-        failure = res.warnings && res.warnings[0] ? res.warnings[0] : '没有生成题目，请调整设置。';
+      const session = await QuizEngine.buildSession(cfg);
+      quizLastWarnings = session.warnings || [];
+      if (!session.questions.length) {
+        failure = session.warnings && session.warnings[0] ? session.warnings[0] : '没有生成题目，请调整设置。';
       } else {
         quizSession = {
-          questions: res.questions, idx: 0, correct: 0,
+          questions: session.questions, idx: 0, correct: 0,
           answered: false, answeredCount: 0, wrong: [], done: false, startedAt: Date.now(),
-          composition: res.composition || null, recordDistractors: res.recordDistractors || 0,
-          profileStats: res.profile || null
+          composition: session.composition || null, recordDistractors: session.recordDistractors || 0,
+          profileStats: session.profile || null,
+          streaming: !!session.streaming, streamDone: false, plannedCount: session.plannedCount || session.questions.length
         };
         quizScreen = 'session';
         renderQuizScreen();
         if (mode !== 'quiz') setMode('quiz');
+        if (quizSession.streaming) startQuizStream(cfg, session.questions);
       }
     } catch (err) {
       quizLastWarnings = ['生成测试失败：' + String((err && err.message) || err)];
@@ -1020,6 +1020,48 @@
         renderQuizStart();
       }
     }
+  }
+
+  function startQuizStream(cfg, firstQuestions) {
+    const s = quizSession;
+    if (!s) return;
+    const usedWords = firstQuestions.map(q => q.word);
+    const seen = new Set(usedWords.map(w => String(w).toLowerCase()));
+    const needMore = Math.max(0, (s.plannedCount || firstQuestions.length) - firstQuestions.length);
+    let added = 0;
+    QuizEngine.streamExtra(cfg, {
+      usedWords, needMore,
+      onAppend: (q) => {
+        const cur = quizSession;
+        if (!cur || cur !== s || cur.done) return;
+        const key = String(q.word || '').toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        cur.questions.push(q);
+        added++;
+        if (quizScreen === 'session') {
+          $('quiz-score').textContent = cur.correct + ' / ' + cur.questions.length;
+          $('quiz-progress').textContent = '第 ' + (cur.idx + 1) + ' / ' + cur.questions.length + ' 题 · 后续题目补充中';
+          const badge = $('quiz-type-badge');
+          if (cur.idx === cur.questions.length - 1 && !cur.answered && badge) badge.title = '后续题目仍在补充中';
+        }
+      },
+      onDone: () => {
+        const cur = quizSession;
+        if (!cur || cur !== s || cur.done) return;
+        cur.streamDone = true;
+        if (quizScreen === 'session') {
+          $('quiz-progress').textContent = '第 ' + (cur.idx + 1) + ' / ' + cur.questions.length + ' 题';
+        }
+        if (!added && quizLastWarnings.length && /例句/.test(quizLastWarnings[0])) {
+          quizLastWarnings = [];
+        }
+        if (cur.answered && added) scheduleQuizAutoNext();
+      }
+    }).catch(() => {
+      const cur = quizSession;
+      if (cur === s) { cur.streamDone = true; cur.streaming = false; }
+    });
   }
 
   function renderQuizScreen() {
@@ -1259,7 +1301,14 @@
     const s = quizSession;
     if (!s || !s.answered) return;
     clearQuizAuto();
-    if (s.idx + 1 >= s.questions.length) { finishQuiz(); return; }
+    if (s.idx + 1 >= s.questions.length) {
+      if (s.streaming && !s.streamDone) {
+        $('quiz-progress').textContent = '第 ' + (s.idx + 1) + ' / ' + s.questions.length + ' 题 · 后续题目补充中';
+        announce('后续题目正在补充，请稍候…');
+        return;
+      }
+      finishQuiz(); return;
+    }
     s.idx++;
     s.answered = false;
     renderQuizQuestion();
@@ -3030,6 +3079,8 @@
     svg += '</svg>';
     $('trend-chart').innerHTML = '<div class="trend-wrap">' + svg + '</div>';
   }
+  const tlOpenDays = new Set();
+  tlOpenDays.add('__first__');
   function renderDayHistory() {
     const box = $('stats-history');
     box.innerHTML = '';
@@ -3073,14 +3124,17 @@
           words.forEach(w => { const c = el('button', 'chip word-chip', w); c.type = 'button'; c.addEventListener('click', () => openWordSheet(w)); cr.appendChild(c); });
           body.appendChild(cr);
         });
-        const open = rendered === 0;
+        const open = rendered === 0 ? tlOpenDays.has('__first__') : tlOpenDays.has(key);
         body.hidden = !open;
         head.classList.toggle('open', open);
         head.setAttribute('aria-expanded', String(open));
         head.addEventListener('click', () => {
-          body.hidden = !body.hidden;
-          head.classList.toggle('open', !body.hidden);
-          head.setAttribute('aria-expanded', String(!body.hidden));
+          const next = !open;
+          body.hidden = !next;
+          head.classList.toggle('open', next);
+          head.setAttribute('aria-expanded', String(next));
+          if (next) tlOpenDays.add(key); else tlOpenDays.delete(key);
+          if (rendered === 0) { if (next) tlOpenDays.add('__first__'); else tlOpenDays.delete('__first__'); }
         });
         card.appendChild(head); card.appendChild(body);
         day.appendChild(card);
@@ -4477,7 +4531,8 @@
     const cur = examCurQuestion();
     const st = state[no];
     const cls = 'exam-blank' + (cur && cur.no === no ? ' current' : '') + (st ? ' filled' : '') + (st && st.ok === 1 ? ' ok' : st && st.ok === 0 ? ' bad' : '');
-    return '<button class="' + cls + '" type="button" data-blank="' + no + '" aria-label="第' + no + '空">' + (st ? esc(st.letter) : no) + '</button>';
+    const word = st && s.bank && s.bank[st.letter] ? s.bank[st.letter] : (st ? st.letter : String(no));
+    return '<button class="' + cls + '" type="button" data-blank="' + no + '" aria-label="第' + no + '空' + (st ? '，已填 ' + esc(word) : '') + '">' + esc(word) + '</button>';
   }
   function examClozePassageHtml(s) {
     const state = examClozeState(s);
@@ -4628,8 +4683,10 @@
     if (t.dataset.opt) {
       examPick = t.dataset.opt;
       const q = examCurQuestion();
+      const s = examCurSession();
       const auto = q && Exams.judge(examCur, q, examPick);
       if (auto) { examRecord(auto.ok, 'auto'); announce(auto.ok ? '回答正确' : '回答错误，正确答案 ' + auto.key); Platform.haptic('light'); }
+      else if (s && s.type === 'cloze') { examRecord(-1, 'pick'); }
       renderExamSession();
       return;
     }

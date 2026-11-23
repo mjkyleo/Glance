@@ -406,9 +406,29 @@
     return out;
   }
   function cachedExamples(e) { return Store.quizExamples(e.word) || []; }
+  function dictCacheExamples(e) {
+    const rec = Store.dictEntry && Store.dictEntry(e.word);
+    return rec ? examplesFromRecord(rec) : [];
+  }
+  function aiCacheExamples(e) {
+    const ai = Store.aiExplanation && Store.aiExplanation(e.word);
+    const raw = ai && (ai.examples || (ai.data && ai.data.examples));
+    if (!Array.isArray(raw)) return [];
+    const out = [];
+    raw.forEach(x => {
+      const p = typeof x === 'string' ? parseExample(x) : (x && x.en ? { en: String(x.en), zh: String(x.zh || '') } : null);
+      if (p) out.push(p);
+    });
+    return out;
+  }
   function allExamples(e) {
     const cached = cachedExamples(e);
-    return cached.length ? cached : localExamples(e);
+    if (cached.length) return cached;
+    const local = localExamples(e);
+    if (local.length) return local;
+    const dict = dictCacheExamples(e);
+    if (dict.length) return dict;
+    return aiCacheExamples(e);
   }
   function hasCloze(e) {
     if (!allExamples(e).length) return false;
@@ -424,7 +444,7 @@
   }
   async function ensureExamples(e, cfg) {
     if (cachedExamples(e).length) return cachedExamples(e);
-    if (!cfg.online || !window.Dictionary) return localExamples(e);
+    if (!cfg.online || !window.Dictionary) return allExamples(e);
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return [];
     try {
       const res = await Dictionary.lookup(e.word, Store.data.dict);
@@ -434,22 +454,51 @@
       return list;
     } catch (err) { return []; }
   }
-  async function prefetchExamples(entries, cfg, limit, onProgress) {
-    if (!cfg.types.includes('cloze') || !cfg.online) return;
-    const need = entries.filter(e => !hasCloze(e)).slice(0, limit);
+  // 后台渐进补题：拿到例句生成 cloze，失败/无例句回退为其它题型，
+  // 通过 onAppend 逐题追加到已开局的 session，避免开局等待全部联网检索。
+  async function streamExtra(input, opts) {
+    opts = opts || {};
+    const cfg = buildConfig(input);
+    if (!cfg.types.includes('cloze') || !cfg.online || !window.Dictionary) return;
+    const now = Date.now();
+    const p = pool();
+    const profile = behaviorProfile(now);
+    const used = new Set((opts.usedWords || []).map(w => String(w).toLowerCase()));
+    const cap = Math.max(0, Math.min(cfg.count, Number(opts.needMore) || cfg.count));
+    const ranked = listEntries(scopeWords(cfg)).filter(e => !used.has(e.word.toLowerCase()));
+    const weightOf = e => baseWeight(e, cfg.scope, now) + needScore(profile.signals.get(e.word));
+    // 先用已有例句的词，再用需要联网检索的词，最后按权重排序。
+    ranked.sort((a, b) => (hasCloze(b) ? 1 : 0) - (hasCloze(a) ? 1 : 0) || weightOf(b) - weightOf(a));
+    const limit = Math.min(20, Math.max(cfg.count, 10));
+    const need = ranked.slice(0, limit);
     const total = need.length;
     if (!total) return;
     let done = 0;
+    let appended = 0;
+    const fallbackTypes = cfg.types.filter(t => t !== 'cloze');
+    if (!fallbackTypes.length) fallbackTypes.push('en2zh');
     const queue = need.slice();
     const worker = async () => {
       while (queue.length) {
         const e = queue.shift();
-        await ensureExamples(e, cfg);
+        let q = null;
+        try {
+          const examples = await ensureExamples(e, cfg);
+          if (examples && examples.length) q = buildQuestion(e, 'cloze', cfg, p, 1, profile);
+        } catch (err) { q = null; }
+        if (!q && fallbackTypes.length) {
+          for (const t of fallbackTypes) {
+            q = buildQuestion(e, t, cfg, p, 1, profile);
+            if (q) break;
+          }
+        }
+        if (q && appended < cap) { appended++; if (opts.onAppend) opts.onAppend(q, { done: done + 1, total }); }
         done++;
-        if (onProgress) onProgress(done, total);
+        if (opts.onProgress) opts.onProgress(done, total);
       }
     };
     await Promise.all(Array.from({ length: Math.min(5, total) }, worker));
+    if (opts.onDone) opts.onDone({ scanned: total, appended });
   }
 
   // Mirror the matched inflection onto distractors so cloze options read naturally.
@@ -989,7 +1038,7 @@
       warnings.push('可用题量不足：计划 ' + cfg.count + ' 题，实际生成 ' + questions.length + ' 题。可以缩小范围、减少题数或调整题型。');
     }
     if (cfg.types.includes('cloze') && !types.cloze) {
-      warnings.push(cfg.online ? '本轮没有找到可用例句，例句题已自动回退为其他题型。' : '未开启联网补充例句，本轮没有例句题。');
+      warnings.push('本轮没有找到可用例句（本地词库与已缓存词典例句均不可用），例句题已回退为其他题型；联网开启时会在开局后继续检索补充。');
     }
     if (cfg.types.includes('audio2word') && !types.audio2word) {
       warnings.push('部分单词缺少近音干扰词，听音题已自动回退为其他题型。');
@@ -1065,18 +1114,15 @@
       } else exploreEntries.push(e);
     });
 
-    if (cfg.types.includes('cloze') && cfg.online) {
-      // Prefetch only likely candidates: rank by record-aware weight before sampling.
-      const weightOf = e => baseWeight(e, cfg.scope, now) + needScore(profile.signals.get(e.word));
-      const ranked = recordedEntries.slice().sort((a, b) => weightOf(b) - weightOf(a));
-      const limit = Math.min(20, Math.max(cfg.count, 10));
-      await prefetchExamples(ranked.slice(0, limit), cfg, limit, opts.onProgress);
-    }
-
+    // 不再等待联网预取：本地 / 词典缓存例句已可直接参与组卷。
+    // 需联网补例句时先出一批即可作答，其余由 streamExtra 后台追加到 cfg.count。
+    const streamingPlanned = !!(cfg.online && cfg.types.includes('cloze') && window.Dictionary);
+    const firstBatch = streamingPlanned ? Math.max(3, Math.ceil(cfg.count * 0.6)) : cfg.count;
+    const sampleCfg = Object.assign({}, cfg, { count: firstBatch });
     const scored = buildScored(recordedEntries, cfg, p, now, profile, false, seenRoots)
       .concat(buildScored(exploreEntries, cfg, p, now, profile, true, seenRoots));
-    const exploreQuota = Math.min(exploreEntries.length, Math.round(cfg.count * cfg.explore / 100));
-    const { questions, relaxations } = sample(scored, cfg, p, now, profile, exploreQuota);
+    const exploreQuota = Math.min(exploreEntries.length, Math.round(firstBatch * cfg.explore / 100));
+    const { questions, relaxations } = sample(scored, sampleCfg, p, now, profile, exploreQuota);
     const composition = { due: 0, weak: 0, confused: 0, curated: 0, review: 0, contact: 0, new: 0 };
     let recordDistractors = 0;
     questions.forEach(q => {
@@ -1085,15 +1131,15 @@
     });
     const info = estimate(cfg, profile);
     return {
-      questions, config: cfg, relaxations,
+      questions, config: cfg, relaxations, streaming: streamingPlanned, plannedCount: cfg.count,
       available: info.available, estimates: info,
       composition, recordDistractors, profile: profile.stats, plan: info.plan,
-      warnings: warningsFor(questions, cfg, info)
+      warnings: warningsFor(questions, sampleCfg, info)
     };
   }
 
   window.QuizEngine = {
-    TYPES, TYPE_LABEL, SCOPES, DIFFICULTY_TARGET, buildConfig, estimate, buildSession,
+    TYPES, TYPE_LABEL, SCOPES, DIFFICULTY_TARGET, buildConfig, estimate, buildSession, streamExtra,
     primaryGloss, posGroup, rootOf, pool, scopeWords, listEntries,
     intrinsic, stateDifficulty, questionDifficulty, targetDifficulty, ability,
     phoneticKey, phoneticSim, behaviorProfile, sourceFor, fitFor, FIT_TIERS

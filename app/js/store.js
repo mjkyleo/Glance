@@ -490,7 +490,7 @@
           if (!(no >= 1 && no <= 57)) continue;
           const r = p.a[key];
           if (!r || typeof r !== 'object') continue;
-          a[no] = { p: typeof r.p === 'string' ? r.p.slice(0, 200) : '', ok: r.ok === 1 ? 1 : r.ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai'].includes(r.m) ? r.m : 'self', t: +r.t || 0 };
+          a[no] = { p: typeof r.p === 'string' ? r.p.slice(0, 200) : '', ok: r.ok === 1 ? 1 : r.ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai', 'pick'].includes(r.m) ? r.m : 'self', t: +r.t || 0 };
         }
         const done = {};
         if (p.done && typeof p.done === 'object') for (const ty of Object.keys(p.done)) {
@@ -520,7 +520,7 @@
     const now = Date.now();
     let p = data.exams.progress[examId];
     if (!p) { p = data.exams.progress[examId] = { a: {}, done: {}, at: 0 }; }
-    p.a[no] = { p: String(pick == null ? '' : pick).slice(0, 200), ok: ok === 1 ? 1 : ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai'].includes(mode) ? mode : 'self', t: now };
+    p.a[no] = { p: String(pick == null ? '' : pick).slice(0, 200), ok: ok === 1 ? 1 : ok === 0 ? 0 : -1, m: ['auto', 'self', 'ai', 'pick'].includes(mode) ? mode : 'self', t: now };
     p.at = now;
     data.exams.wrong = data.exams.wrong.filter(w => !(w.examId === examId && w.no === no));
     if (ok === 0) {
