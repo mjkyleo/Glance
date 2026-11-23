@@ -217,8 +217,8 @@ html[data-theme="gray"] {
   --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
   --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
   --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
-  --neu-dark: rgba(136, 140, 148, 0.28); --neu-light: rgba(255, 255, 255, 0.92);
-  --neu-row-dark: rgba(136, 140, 148, 0.16); --neu-row-light: rgba(255, 255, 255, 0.7);
+  --neu-dark: rgba(136, 140, 148, 0.16); --neu-light: rgba(255, 255, 255, 0.42);
+  --neu-row-dark: rgba(136, 140, 148, 0.09); --neu-row-light: rgba(255, 255, 255, 0.28);
   --hairline: rgba(51, 51, 51, 0.06);
 
   --font-ui: "Avenir Next", "Segoe UI", "Helvetica Neue", -apple-system,
@@ -509,8 +509,8 @@ html[data-theme="paper-craft"] {
     --root-bg: rgba(109, 93, 252, 0.12); --root-fg: #5b4ad6;
     --prefix-bg: rgba(109, 93, 252, 0.12); --prefix-fg: #5b4ad6;
     --suffix-bg: rgba(78, 205, 196, 0.16); --suffix-fg: #2f8f88;
-    --neu-dark: rgba(136, 140, 148, 0.28); --neu-light: rgba(255, 255, 255, 0.92);
-    --neu-row-dark: rgba(136, 140, 148, 0.16); --neu-row-light: rgba(255, 255, 255, 0.7);
+    --neu-dark: rgba(136, 140, 148, 0.16); --neu-light: rgba(255, 255, 255, 0.42);
+    --neu-row-dark: rgba(136, 140, 148, 0.09); --neu-row-light: rgba(255, 255, 255, 0.28);
     --hairline: rgba(51, 51, 51, 0.06);
     --line: transparent;
     --card-border: none;
@@ -660,10 +660,12 @@ html[data-theme="gray"] .chip:active {
   box-shadow: inset 5px 5px 11px var(--neu-dark), inset -5px -5px 11px var(--neu-light);
 }
 /* Dense lists: use a much softer shadow so stacked rows don't form light rectangles */
+html[data-theme="gray"] .word-block,
+html[data-theme="gray"] .panel,
 html[data-theme="gray"] .row,
 html[data-theme="gray"] .quiz-option,
 html[data-theme="gray"] .ai-card {
-  box-shadow: 3px 3px 8px var(--neu-row-dark), -3px -3px 8px var(--neu-row-light);
+  box-shadow: 2px 2px 7px var(--neu-row-dark), -2px -2px 7px var(--neu-row-light);
   transition: box-shadow .28s ease-in-out, background .28s ease-in-out;
 }
 html[data-theme="gray"] .row:hover,
@@ -1895,7 +1897,8 @@ h3.exam-year { font-size: 13px; color: var(--text-3); letter-spacing: .04em; mar
   }
   #study-panel .word-head {
     display: flex; flex-direction: column; gap: 0;
-    grid-area: head; position: sticky; top: 0;
+    grid-area: head; position: sticky; top: 50%;
+    transform: translateY(-50%); align-self: start;
   }
   #study-panel .word-head .word-top { margin-bottom: 10px; }
   #study-panel #word-blocks { grid-area: blocks; min-width: 0; }

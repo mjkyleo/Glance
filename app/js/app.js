@@ -146,7 +146,7 @@
     });
   }
   function applyTheme(theme) {
-    const t = THEME_META[theme] ? theme : 'blue';
+    const t = THEME_META[theme] ? theme : 'gray';
     document.documentElement.dataset.theme = t;
     const metas = document.querySelectorAll('meta[name="theme-color"]');
     if (metas[0]) metas[0].content = THEME_META[t][0];

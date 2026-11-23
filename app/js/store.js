@@ -23,7 +23,7 @@
       'family', 'synonyms', 'derivatives', 'inflections', 'etymology', 'examples',
       'collocations', 'freq', 'cloze', 'dict', 'ai'
     ],
-    theme: 'blue',
+    theme: 'gray',
     progressBars: true,
     bookFilter: { skipLower: false, skipKnown: false, skipBasic: true, excludeBooks: [] },
     autoSpeak: false,
@@ -143,7 +143,7 @@
       skipBasic: d.bookFilter.skipBasic !== false,
       excludeBooks: Array.isArray(d.bookFilter.excludeBooks) ? d.bookFilter.excludeBooks.filter(t => typeof t === 'string' && t) : []
     };
-    if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet', 'paper-craft'].includes(d.theme)) d.theme = 'blue';
+    if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet', 'paper-craft'].includes(d.theme)) d.theme = 'gray';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
@@ -772,7 +772,7 @@
         exams: clone(data.exams || { progress: {}, wrong: [], aiCache: {} }),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook,
-          studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'blue',
+          studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'gray',
           rootsView: clone(data.rootsView || { sort: 'size', hideSmall: true }),
           autoSpeak: data.autoSpeak, preferAudio: data.preferAudio, ttsRate: data.ttsRate, ttsLang: data.ttsLang,
           profile: { nickname: data.profile.nickname, avatar: data.profile.avatar },
