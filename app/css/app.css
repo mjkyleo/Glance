@@ -929,6 +929,8 @@ span.info-link { cursor: default; }
 .filter-result-head b { font-size: 17px; color: var(--accent); }
 .filter-result-actions { display: flex; gap: 8px; margin-top: 10px; }
 .filter-result-actions select { flex: 1; min-width: 0; }
+.book-edit-add { display: flex; gap: 8px; margin-bottom: 12px; }
+.book-edit-add input { flex: 1; min-width: 0; }
 .filter-result[hidden] { display: none; }
 .btn-ghost:disabled, .btn-primary:disabled { opacity: .45; cursor: default; }
 .filter-preview { margin-top: 10px; }

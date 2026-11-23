@@ -3330,7 +3330,9 @@
   function makeBookFromFilter() {
     const entries = lastFilteredEntries.slice();
     if (!entries.length) { announce('过滤后没有可加入的词'); return; }
-    const base = '过滤词书';
+    const input = prompt('新词书名称（24 字以内）', '过滤词书');
+    if (input == null) return;
+    const base = Array.from(String(input).trim()).slice(0, 24).join('') || '过滤词书';
     const name = uniqueBookName(base);
     const refs = entries.map(filterEntryRef);
     Store.data.customBooks[name] = { entries: refs };
@@ -3357,6 +3359,78 @@
     Store.save();
     announce(added ? '已向「' + name + '」加入 ' + added + ' 词' : '所选词书已包含全部过滤结果');
     renderBooks();
+  }
+
+  function renameBook(oldName) {
+    const cur = Store.data.customBooks[oldName];
+    if (!cur) return;
+    const input = prompt('重命名词书（24 字以内）', oldName);
+    if (input == null) return;
+    let base = Array.from(String(input).trim()).slice(0, 24).join('');
+    if (!base) { announce('名称不能为空'); return; }
+    if (base === oldName) return;
+    base = uniqueBookName(base);
+    const books = Store.data.customBooks;
+    const rebuilt = {};
+    Object.keys(books).forEach(k => { rebuilt[k === oldName ? base : k] = books[k]; });
+    Store.data.customBooks = rebuilt;
+    if (Store.data.activeBook === oldName) Store.data.activeBook = base;
+    const f = Store.data.bookFilter;
+    if (f && Array.isArray(f.excludeBooks)) f.excludeBooks = f.excludeBooks.map(t => t === oldName ? base : t);
+    Store.save();
+    announce('已重命名为「' + base + '」');
+    renderBooks();
+    updatePlanBar();
+  }
+
+  let bookEditing = '';
+  function openBookEdit(name) {
+    const cb = Store.data.customBooks[name];
+    if (!cb) return;
+    bookEditing = name;
+    $('book-edit-title').textContent = '编辑：' + name;
+    $('book-add-word').value = '';
+    renderBookEditList();
+    openNestedSheet('book-edit-sheet');
+  }
+  function renderBookEditList() {
+    const cb = Store.data.customBooks[bookEditing];
+    const box = $('book-edit-list');
+    box.innerHTML = '';
+    if (!cb || !cb.entries.length) { box.appendChild(el('p', 'field-hint', '词书为空，可在上方输入单词添加。')); return; }
+    $('book-edit-sub').textContent = cb.entries.length + ' 词 · 点击词条查看，✕ 移除';
+    const wrap = el('div', 'list-gap');
+    cb.entries.forEach((ref, i) => {
+      const row = el('div', 'row');
+      const main = el('div', 'row-main');
+      main.appendChild(el('div', 'row-title', ref.word || '（无效词条）'));
+      const e = Library.lookup(ref.word);
+      main.appendChild(el('div', 'row-sub', (e && e.zh) || ref.zh || '点标题查词'));
+      row.appendChild(main);
+      const view = el('button', 'op', '查'); view.title = '查词';
+      view.addEventListener('click', () => { if (ref.word) openWordSheet(ref.word, false, [], true); });
+      row.appendChild(view);
+      const del = el('button', 'op', '✕'); del.title = '移除';
+      del.addEventListener('click', () => { cb.entries.splice(i, 1); Store.save(); renderBookEditList(); renderBooks(); updatePlanBar(); });
+      row.appendChild(del);
+      wrap.appendChild(row);
+    });
+    box.appendChild(wrap);
+  }
+  function addWordToBook() {
+    const cb = Store.data.customBooks[bookEditing];
+    const input = $('book-add-word');
+    const word = String(input.value || '').trim().toLowerCase();
+    if (!cb || !word) { announce('请输入单词'); return; }
+    if (cb.entries.some(e => String(e.word || '').toLowerCase() === word)) { announce('词书中已有该词'); return; }
+    const e = Library.lookup(word) || findEntry(word);
+    cb.entries.push(filterEntryRef(e || { word }));
+    Store.save();
+    input.value = '';
+    announce('已添加 ' + word);
+    renderBookEditList();
+    renderBooks();
+    updatePlanBar();
   }
 
   function renderBooks() {
@@ -3442,6 +3516,12 @@
       main.appendChild(el('div', 'row-title', name));
       main.appendChild(el('div', 'row-sub', cb.entries.length + ' 词 · 自定义'));
       row.appendChild(main);
+      const edit = el('button', 'op', '✎'); edit.title = '重命名';
+      edit.addEventListener('click', ev => { ev.stopPropagation(); renameBook(name); });
+      row.appendChild(edit);
+      const words = el('button', 'op', '≡'); words.title = '编辑词条';
+      words.addEventListener('click', ev => { ev.stopPropagation(); openBookEdit(name); });
+      row.appendChild(words);
       const del = el('button', 'op', '✕'); del.title = '删除';
       del.addEventListener('click', ev => { ev.stopPropagation(); delete Store.data.customBooks[name]; Store.save(); if (Store.data.activeBook === name) switchBook('六级'); else renderBooks(); });
       row.appendChild(del);
@@ -4111,6 +4191,8 @@
     $('import-book').addEventListener('click', importBook);
     $('filter-make-book').addEventListener('click', makeBookFromFilter);
     $('filter-add-book').addEventListener('click', addFilterToBook);
+    $('book-add-btn').addEventListener('click', addWordToBook);
+    $('book-add-word').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addWordToBook(); } });
     $('filter-result-preview').addEventListener('click', e => {
       const chip = e.target.closest('.chip[data-w]');
       if (chip) openWordSheet(chip.dataset.w, false, [], true);
