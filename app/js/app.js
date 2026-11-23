@@ -137,6 +137,7 @@
     paper: ['#f7f7f5', '#191919'],
     sakura: ['#faf7f7', '#1b1517'],
     violet: ['#f4f4fb', '#15141c'],
+    'paper-craft': ['#fdf6ee', '#241f1a'],
   };
   if (window.VisualThemeTokens) {
     Object.keys(window.VisualThemeTokens).forEach(k => {
@@ -159,8 +160,8 @@
   function setTheme(theme) {
     if (!THEME_META[theme]) return;
     Store.data.theme = theme;
-    Store.save();
     applyTheme(theme);
+    try { Store.save(); } catch (_) {}
   }
 
   // ===================== background image =====================
