@@ -51,35 +51,111 @@ jobs:
         run: |
           rm -rf android/app/src/main/assets/public/dev android/app/src/main/assets/public/js/vendor
 
-      - name: Build debug APK
+      - name: Check release web assets
+        run: |
+          node scripts/verify-panel-order.js
+          node scripts/verify-custom-compat.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = 'android/app/src/main/assets/public';
+          for (const name of ['dev', 'js/vendor']) {
+            if (fs.existsSync(path.join(root, name))) throw new Error('Dev-only assets remain: ' + name);
+          }
+          const forbidden = /DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H/;
+          function check(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const file = path.join(dir, entry.name);
+              if (entry.isDirectory()) check(file);
+              else if (forbidden.test(fs.readFileSync(file, 'utf8'))) throw new Error('Development credential marker found in ' + file);
+            }
+          }
+          check(root);
+          NODE
+
+      - name: Prepare private release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          GLANCE_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GLANCE_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GLANCE_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          for NAME in KEYSTORE_BASE64 GLANCE_RELEASE_STORE_PASSWORD GLANCE_RELEASE_KEY_ALIAS GLANCE_RELEASE_KEY_PASSWORD EXPECTED_CERT_SHA256; do
+            if [ -z "${!NAME}" ]; then
+              echo "::error::Missing release signing configuration: $NAME"
+              exit 1
+            fi
+          done
+          EXPECTED=$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || { echo '::error::Invalid signing certificate SHA-256'; exit 1; }
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/glance-release.keystore"
+          test -s "$RUNNER_TEMP/glance-release.keystore"
+
+      - name: Build release APK
+        env:
+          GLANCE_RELEASE_STORE_FILE: ${{ runner.temp }}/glance-release.keystore
+          GLANCE_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GLANCE_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GLANCE_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -PglanceVersionCode=${{ github.run_number }}
+          ./gradlew assembleRelease --no-daemon -PglanceVersionCode=${{ github.run_number }}
 
       - name: Verify APK build metadata
+        env:
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
           VERSION=$(node -p "require('./package.json').version")
-          BADGING=$("$ANDROID_HOME/build-tools/34.0.0/aapt2" dump badging "$APK" | head -n1)
-          echo "$BADGING"
-          echo "$BADGING" | grep -q "package: name='com.glance.app' versionCode='${{ github.run_number }}'"
-          echo "$BADGING" | grep -q "versionName='$VERSION+${{ github.run_number }}'"
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$APK" | grep -q "CN=Glance Debug"
+          BADGING=$("$ANDROID_HOME/build-tools/34.0.0/aapt2" dump badging "$APK")
+          printf '%s\n' "$BADGING"
+          printf '%s\n' "$BADGING" | grep -F "package: name='com.glance.app' versionCode='$BUILD_NUMBER'"
+          printf '%s\n' "$BADGING" | grep -F "versionName='$VERSION+$BUILD_NUMBER'"
+          printf '%s\n' "$BADGING" | grep -Fx "sdkVersion:'22'"
+          printf '%s\n' "$BADGING" | grep -Fx "targetSdkVersion:'34'"
+          if [[ "$BADGING" == *application-debuggable* ]]; then
+            echo '::error::Release APK must not be debuggable'
+            exit 1
+          fi
+          CERTS=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK")
+          printf '%s\n' "$CERTS"
+          EXPECTED=$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s\n' "$CERTS" | grep -Fx "Number of signers: 1"
+          printf '%s\n' "$CERTS" | grep -Fx "Signer #1 certificate SHA-256 digest: $EXPECTED"
+          printf '%s\n' "$CERTS" | grep -Fx 'Verified using v1 scheme (JAR signing): true'
+          printf '%s\n' "$CERTS" | grep -Fx 'Verified using v2 scheme (APK Signature Scheme v2): true'
+          DEBUG_CERT=$(keytool -exportcert -keystore android/keystore/glance-debug.keystore -storepass android -alias androiddebugkey | sha256sum)
+          if [ "$EXPECTED" = "${DEBUG_CERT%% *}" ]; then
+            echo '::error::The public debug certificate cannot be used for release'
+            exit 1
+          fi
+          cp "$APK" Glance-android.apk
+          sha256sum Glance-android.apk > Glance-android.apk.sha256
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Glance-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            Glance-android.apk
+            Glance-android.apk.sha256
           if-no-files-found: error
 
       - name: Publish APK to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Glance-android.apk
-          PREV=$(git tag --list 'android-*' --sort=-v:refname | head -n1)
+          VERSION=$(node -p "require('./package.json').version")
+          BYTES=$(stat -c%s Glance-android.apk)
+          CHECKSUM=$(sha256sum Glance-android.apk)
+          PREV=$(git describe --tags --match 'android-*' --abbrev=0 HEAD 2>/dev/null || true)
           if [ -n "$PREV" ]; then RANGE="$PREV..HEAD"; else RANGE="HEAD~1..HEAD"; fi
           LAST_PRODUCT=$(git log -1 --format=%H -- app main.js package.json android capacitor.config.json || true)
           TITLE=""
@@ -93,10 +169,20 @@ jobs:
           [ -z "$CHANGES" ] && CHANGES="- $(git log -1 --pretty=%s)"
           NOTES="$CHANGES
 
-          Build #${{ github.run_number }} · ${GITHUB_SHA:0:7}$( [ -n "$PREV" ] && printf ' · changes since %s' "$PREV" )"
+          Version $VERSION · Build #${{ github.run_number }} · ${GITHUB_SHA:0:7}$( [ -n "$PREV" ] && printf ' · changes since %s' "$PREV" )
+          Package: com.glance.app · Release (not debuggable) · Android 5.1+ / target API 34
+          APK: $BYTES bytes
+          SHA-256: ${CHECKSUM%% *}
+
+          从旧调试包首次迁移到私有签名版：先导出学习数据并确认备份文件可读取，再卸载旧版、安装并导入；API Key 不在备份中，需重新填写。不要仅依赖共享镜像恢复。以后同一私有签名可覆盖升级。"
+          TITLE="Glance $VERSION (build ${{ github.run_number }}) · $TITLE"
           echo "Release title: $TITLE"
           echo "$NOTES"
-          gh release create "android-${{ github.run_number }}" Glance-android.apk \
+          gh release create "android-${{ github.run_number }}" Glance-android.apk Glance-android.apk.sha256 \
             --title "$TITLE" \
             --notes "$NOTES" \
             --target "${{ github.sha }}"
+
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/glance-release.keystore"

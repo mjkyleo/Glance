@@ -15,6 +15,14 @@ Thumbs.db
 learned.json
 settings.json
 
+# Private signing material; only the existing public debug fixture is tracked.
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+!/android/keystore/glance-debug.keystore
+
 # Lockfiles
 package-lock.json
 yarn.lock

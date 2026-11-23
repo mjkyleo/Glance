@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-23T03:22:11Z",
+  "updated_at": "2026-11-23T03:42:26Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -11,9 +11,9 @@
     },
     ".github/workflows/android-build.yml": {
       "role": "index",
-      "sha256": "b047bf6e76f2826bfce087a6d18307426d8f367cc0960770de2941aeadbb5aa3",
-      "size": 3985,
-      "normalized_sha256": "0170d16966495b0bd11798968967c8b01a38236f64520d5bcabb6208b874baed"
+      "sha256": "c90269d3c2d1b4bc04f5fdae820f50ea642ad9a0ccd01cb21d585caa79a621b3",
+      "size": 8804,
+      "normalized_sha256": "2eb6b604bee552534933418dc2daf5e1095dd5b0a7ae9e646f13f8cc871db932"
     },
     ".github/workflows/release-order.yml": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     ".gitignore": {
       "role": "index",
-      "sha256": "8eeea2c15792d4340f9134dc38c39da7af45526cab9a8a0a342f6033575c909c",
-      "size": 926,
-      "normalized_sha256": "6d2266c933213df24098f74e5020db1b058059737a1955604bf8ee881751c7d4"
+      "sha256": "b20326970693d2cfd32568191b1b3ca8f9e7b0cae2c8f3beebd5606a0e8e7ec8",
+      "size": 1104,
+      "normalized_sha256": "c4802ba842cf63628ae1cc4ae4c6d36a0d2d35e72161c3ade58158fcdd6fa6c0"
     },
     "AGENTS.md": {
       "role": "index",
@@ -35,15 +35,15 @@
     },
     "DEVELOPMENT.md": {
       "role": "index",
-      "sha256": "e748fbd8807055b770356c4c933a2c59c8d2ccf0a101df12679eef9dfae6764d",
-      "size": 231099,
-      "normalized_sha256": "e748fbd8807055b770356c4c933a2c59c8d2ccf0a101df12679eef9dfae6764d"
+      "sha256": "4728c3d90ca21387a6867e614a5741ec1812dff86a355bb1a6c5454a6bc2221d",
+      "size": 236290,
+      "normalized_sha256": "4728c3d90ca21387a6867e614a5741ec1812dff86a355bb1a6c5454a6bc2221d"
     },
     "README.md": {
       "role": "index",
-      "sha256": "b93be35f988f352cc32791f312a6b419d25321370eda010bf6b3083b506fd301",
-      "size": 8102,
-      "normalized_sha256": "b93be35f988f352cc32791f312a6b419d25321370eda010bf6b3083b506fd301"
+      "sha256": "981b25c1e45057b04145d09ff4141e32e31e6df2caa546e183b1a9379820b66c",
+      "size": 8465,
+      "normalized_sha256": "981b25c1e45057b04145d09ff4141e32e31e6df2caa546e183b1a9379820b66c"
     },
     "android/.gitignore": {
       "role": "index",
@@ -59,9 +59,9 @@
     },
     "android/app/build.gradle": {
       "role": "index",
-      "sha256": "52cd699e3a9169c1e6a832cba0b825c2ff95a63e6d0331724faef88e2b7a6dbc",
-      "size": 3055,
-      "normalized_sha256": "52cd699e3a9169c1e6a832cba0b825c2ff95a63e6d0331724faef88e2b7a6dbc"
+      "sha256": "a59232488a495cddc212bd14709b2c448dd0a88bf59aedf3ca120e7fe5e82319",
+      "size": 4628,
+      "normalized_sha256": "a59232488a495cddc212bd14709b2c448dd0a88bf59aedf3ca120e7fe5e82319"
     },
     "android/app/capacitor.build.gradle": {
       "role": "index",
@@ -89,9 +89,9 @@
     },
     "android/app/src/main/java/com/glance/app/GlanceStorage.java": {
       "role": "index",
-      "sha256": "d71cf9bba83a1c5eeb8839e156f41903f94a67db186a87b3fed0edb29eec033e",
-      "size": 13627,
-      "normalized_sha256": "d71cf9bba83a1c5eeb8839e156f41903f94a67db186a87b3fed0edb29eec033e"
+      "sha256": "35a2fd384829125803ed39cef21c93c0231d0d024a73ddf4118ebf615ebda679",
+      "size": 13701,
+      "normalized_sha256": "35a2fd384829125803ed39cef21c93c0231d0d024a73ddf4118ebf615ebda679"
     },
     "android/app/src/main/java/com/glance/app/MainActivity.java": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "347b50de89dd4060a9b8e2cb8c1d99ed6ae721928f068ac002234681c02dfd0c",
-      "size": 65557,
-      "normalized_sha256": "347b50de89dd4060a9b8e2cb8c1d99ed6ae721928f068ac002234681c02dfd0c"
+      "sha256": "d9ff761458181dc8f9079687b04fca9e3df3134405018da4c417d100d43e03f8",
+      "size": 64574,
+      "normalized_sha256": "d9ff761458181dc8f9079687b04fca9e3df3134405018da4c417d100d43e03f8"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -1027,9 +1027,9 @@
     },
     "docs/FEATURES.md": {
       "role": "index",
-      "sha256": "1874fa9467774b766db0352ff63940d6fa57b3a79fc7bb9b5d72b106cc0cd7bb",
-      "size": 77117,
-      "normalized_sha256": "1874fa9467774b766db0352ff63940d6fa57b3a79fc7bb9b5d72b106cc0cd7bb"
+      "sha256": "5cdbf68126c0330ae85f59cdb692cbafe6040174f610878d19a7edc91a6be430",
+      "size": 77703,
+      "normalized_sha256": "5cdbf68126c0330ae85f59cdb692cbafe6040174f610878d19a7edc91a6be430"
     },
     "docs/FSRS-CONTRAST.md": {
       "role": "index",
@@ -1196,15 +1196,15 @@
     },
     "package-lock.json": {
       "role": "observe",
-      "sha256": "6428c0c1be12f9f795b321937af41e354b5852fc105401898b368bae40225aee",
+      "sha256": "a6dc20326faf1dc5c0dd4b3310a5d9c137a8003e5f2577bed05e3073c50c6c07",
       "size": 200391,
-      "normalized_sha256": "84bab87030a276b6a643ddddafeb9d811c1f74a037e55064fedb85c214b30eb1"
+      "normalized_sha256": "5983225af2b169777cbc21224d1a20358ef2cc153dcc463523bdba8a54ed375a"
     },
     "package.json": {
       "role": "index",
-      "sha256": "9157f4b9f38d4d015420d802a5ac63e1f1804dca532c0c161790978c685fd38c",
+      "sha256": "758bf89f9e65f8c8df1319210199a350ae72d6b5d181e2bd6a82e1091c19fc4f",
       "size": 2181,
-      "normalized_sha256": "3bb066061fb9688f410db3085f5cf6f181348444a997ebda179283010908e4cd"
+      "normalized_sha256": "345be793d29269671f8e65c07ab739feb130faea362fc9ea6f363d95b28010dc"
     },
     "scripts/build-cet6-cloze.js": {
       "role": "index",

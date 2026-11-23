@@ -429,7 +429,9 @@
 
 ### 12.2 CI/CD ✅
 
-- 推送 `main` → `.github/workflows/android-build.yml` 自动构建 APK 并发布 Releases;versionCode = 构建号、versionName 带构建号、固定调试签名;CI 断言版本与签名证书;文档-only 提交不触发构建。
+- 推送 `main` → `.github/workflows/android-build.yml` 构建私有签名 release APK 并发布 Releases；产品版本由 `package.json` 管理（当前 1.1.0），versionCode = CI 构建号、versionName = 产品版本+构建号，不按提交次数机械递增产品版本。
+- 签名凭据由 GitHub Actions Secrets 注入，缺失则停止、不回退调试签名；CI 核验包名、版本、SDK、非调试属性、V1/V2 签名与指定 SHA-256 证书指纹，并拒绝仓库内公开调试证书。附 APK 校验文件与实际字节数；文档-only 提交不触发构建。
+- 正式签名尚需用户配置，当前改造不代表已交付 release APK；从历史调试包迁移需要先手动导出并核验备份。暂不升级 SDK、不启用未经真机验证的 R8 压缩、不接入第三方加固。
 
 ### 12.3 导航返回栈与原生震动 ✅
 
