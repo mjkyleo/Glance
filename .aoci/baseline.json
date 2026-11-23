@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-23T09:09:29Z",
+  "updated_at": "2026-11-23T09:40:37Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "a616cb244dbb0d0b43bd1bae326301dd9c6e363ee015b8dc67147b61c3537095",
-      "size": 67089,
-      "normalized_sha256": "a616cb244dbb0d0b43bd1bae326301dd9c6e363ee015b8dc67147b61c3537095"
+      "sha256": "4e1bdfdcccda89d65c6842690338573da1a5f3ba5245e87f45b5f9d8c8ba727e",
+      "size": 67260,
+      "normalized_sha256": "4e1bdfdcccda89d65c6842690338573da1a5f3ba5245e87f45b5f9d8c8ba727e"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -374,9 +374,9 @@
     },
     "app/css/app.css": {
       "role": "index",
-      "sha256": "a1fae1642beee085dad8ef1ee6bb6ec3ff15b54fad8f7dda402ce77be9986deb",
+      "sha256": "c96dd6b8c305f874101983a477f7e87dfbd37eb1b8009291e08ccc178023dcc4",
       "size": 155549,
-      "normalized_sha256": "53d7659b7745b3937649912f7b95ff1698f6ac7cab8c178e812a42f93e7374b4"
+      "normalized_sha256": "e8881c8c9ae1bbf81b514987b68302db704294f5cbb602cffde4e4e2614bb226"
     },
     "app/data/affixes.json": {
       "role": "index",
@@ -840,15 +840,15 @@
     },
     "app/favicon.svg": {
       "role": "observe",
-      "sha256": "0c79ee224e8a45124ebb4ac94a244b37761a07818e8478d1d9b958dda9b46f2e",
-      "size": 785,
-      "normalized_sha256": "cc03d0dee88d72b9667ec8c143be05f5ad18542cb2dde9e0b052a37e3ef4ac03"
+      "sha256": "9a904d88ea41c38f2e34ec7550015b48a8d39b58b08e7f9825802c2ce94f1da3",
+      "size": 13339,
+      "normalized_sha256": "9a904d88ea41c38f2e34ec7550015b48a8d39b58b08e7f9825802c2ce94f1da3"
     },
     "app/index.html": {
       "role": "index",
-      "sha256": "d79d19dcfd43261acd9ee389a5f3c2a71fe4dd40e79d7cc6de026f9253f830e7",
-      "size": 75067,
-      "normalized_sha256": "65ff8ed3961f8d7bd4422f17e1cf381be7baa01d9bbbdf4c60adff6f4f8f3989"
+      "sha256": "3ea6836ee73296431669b1a772cb5b3c35af82bb4b640a7617723132d1f40026",
+      "size": 79875,
+      "normalized_sha256": "6e8ce135019dd0f90200f0a93e128099155c124297940714b35519d1727ded86"
     },
     "app/js/ai.js": {
       "role": "index",
