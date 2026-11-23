@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-19T01:15:41Z",
-  "updated_at": "2026-11-23T05:30:17Z",
+  "updated_at": "2026-11-23T05:49:45Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -356,9 +356,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "5f5c24a65c136bda1b20ac26c211cf21d8051b1f924c0f4af76546f85c748d50",
-      "size": 66117,
-      "normalized_sha256": "5f5c24a65c136bda1b20ac26c211cf21d8051b1f924c0f4af76546f85c748d50"
+      "sha256": "931870ee95bd8c5090a627d831152f88fc78407aec7b8f45ba725af92e810a43",
+      "size": 66799,
+      "normalized_sha256": "931870ee95bd8c5090a627d831152f88fc78407aec7b8f45ba725af92e810a43"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -876,9 +876,9 @@
     },
     "app/js/platform.js": {
       "role": "index",
-      "sha256": "0aa4b3fca37e4ee30b93daafe48a867c583ec04f5d75c99667cfd5795399802f",
-      "size": 14928,
-      "normalized_sha256": "0aa4b3fca37e4ee30b93daafe48a867c583ec04f5d75c99667cfd5795399802f"
+      "sha256": "cbbee75001ab21ca18e618837731d42c2e91d851ee11183db6a498d436ab2724",
+      "size": 15214,
+      "normalized_sha256": "cbbee75001ab21ca18e618837731d42c2e91d851ee11183db6a498d436ab2724"
     },
     "app/js/quiz.js": {
       "role": "index",
@@ -1202,9 +1202,9 @@
     },
     "package.json": {
       "role": "index",
-      "sha256": "758bf89f9e65f8c8df1319210199a350ae72d6b5d181e2bd6a82e1091c19fc4f",
-      "size": 2181,
-      "normalized_sha256": "345be793d29269671f8e65c07ab739feb130faea362fc9ea6f363d95b28010dc"
+      "sha256": "2450cc67bc4c27e40f134b2eaaa06e5821567d5c81c03f01632aa11581086af9",
+      "size": 2222,
+      "normalized_sha256": "c129937476d0ec4a95790bf857899c2de095ec771604556178aa894c33daa405"
     },
     "scripts/build-cet6-cloze.js": {
       "role": "index",
@@ -1295,6 +1295,12 @@
       "sha256": "66ae4f38eeb87e8f5dd6128eedb481dc7e66425e04619fd484ef5519019bdc9c",
       "size": 6147,
       "normalized_sha256": "66ae4f38eeb87e8f5dd6128eedb481dc7e66425e04619fd484ef5519019bdc9c"
+    },
+    "scripts/web-proxy.js": {
+      "role": "index",
+      "sha256": "53571b4221521e1c14df61101c27565cd8c8bf90058315e57adb6db63beecad6",
+      "size": 4215,
+      "normalized_sha256": "d4ce02f0d547ee1e61489f5dda9124f445785ca6f377f7fde8486a2b5362c96e"
     },
     "showcase/paper-craft.html": {
       "role": "index",
