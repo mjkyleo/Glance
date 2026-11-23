@@ -22,7 +22,7 @@
 | [platform.js](../app/js/platform.js) | 308 | 平台适配（存储/网络/发音/文件/镜像/震动） |
 | [themes.js](../app/js/themes.js) | 264 | 专项主题分类器（29 静态主题 + 7 真题选词填空牌组 + 自定义词组注册） |
 | [srs.js](../app/js/srs.js) | 197 | FSRS-6 调度内核 + 个性化优化 |
-| [ai.js](../app/js/ai.js) | 142 | 大模型按词讲解（13 商用服务商 + 2 个 DEV-ONLY 免费预设） |
+| [ai.js](../app/js/ai.js) | 111 | 大模型按词讲解（13 个商用服务商预设，开发期内置 Key 已移除） |
 
 ---
 
@@ -192,7 +192,7 @@
 ### 4.4 判分、错题本与流程 ✅
 
 - 答对自动跳题（约 1s）、答错展示全部义项与可点开选项单词、上一题回顾（[app.js:1144 answerQuiz](../app/js/app.js#L1144)、[app.js:1217 renderQuizReveal](../app/js/app.js#L1217)）；错题本 `quiz-wrong-panel` 每行附「误选 ×」;结束收进顶部胶囊（[app.js:1269 finishQuiz](../app/js/app.js#L1269)、[app.js:1278 renderQuizDone](../app/js/app.js#L1278)）。
-- **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:655 recordQuizResult](../app/js/store.js#L677)，每词上限 8 个伙伴，[store.js:643 cleanMix](../app/js/store.js#L665)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:763-775](../app/js/quiz.js#L763-L775)）。
+- **误选落库**：答错时把所选干扰词写入 `quiz.history[word].mix`（[store.js:679 recordQuizResult](../app/js/store.js#L679)，每词上限 8 个伙伴，[store.js:667 cleanMix](../app/js/store.js#L667)），下一轮即成为该词与伙伴词的易混干扰依据;英选中选项也回填来源词（[quiz.js:763-775](../app/js/quiz.js#L763-L775)）。
 - 键盘：`1–4` 选选项、`Enter` 开始/答错后继续、`S` 朗读。
 - 设置面板（范围/题型/难度/组卷依据）[app.js:891 renderQuizSettings](../app/js/app.js#L891);考前预估含本轮复习/探索计划 [app.js:798 renderQuizEstimate](../app/js/app.js#L798)。
 
@@ -219,7 +219,7 @@
 - **需求评分** `needScore`（[quiz.js:361 needScore](../app/js/quiz.js#L361)）叠加到候选权重;强记录词有难度 fit 下限，保证刚答错/到期词不被难度模型压掉（[quiz.js:852-856](../app/js/quiz.js#L852-L856)）。
 - **来源标签**：每题带 `source`（到期复习/薄弱词/易混词/收藏分组/已学复习/浏览关注/新词探索，[quiz.js:335 sourceFor](../app/js/quiz.js#L365)），会话内显示徽标（[app.js:793 QUIZ_SOURCE_LABEL](../app/js/app.js#L793)、[index.html:87](../app/index.html#L87)）。
 - **结果构成**：结束页「本轮构成」堆叠条 + 图例 + 「依据 N 个词的学习记录组卷 · M 个干扰项来自你的记录」（[app.js:1232-1262](../app/js/app.js#L1232-L1262)、[index.html:122](../app/index.html#L122)）。
-- **组卷依据面板**：探索比例滑杆、易混词优先开关、收藏/自定义加权开关、画像统计行（[index.html:554-566](../app/index.html#L554-L566)）；入口页显示组卷依据摘要（[index.html:67](../app/index.html#L67)）。配置 `explore/confusion/curated` 随备份导出导入（[store.js:166-175](../app/js/store.js#L166-L175)、[store.js:770 mergeQuiz](../app/js/store.js#L793)）。
+- **组卷依据面板**：探索比例滑杆、易混词优先开关、收藏/自定义加权开关、画像统计行（[index.html:554-566](../app/index.html#L554-L566)）；入口页显示组卷依据摘要（[index.html:67](../app/index.html#L67)）。配置 `explore/confusion/curated` 随备份导出导入（[store.js:166-175](../app/js/store.js#L166-L175)、[store.js:795 mergeQuiz](../app/js/store.js#L795)）。
 - **定制贴合度（2026-11-20）**：入口页 basis 行下的 `#quiz-fit` 卡给出 0–100 分与分档措辞（初识校准/渐入佳境/贴合/量身定制/深度默契）。公式 `100 × (50%·覆盖 + 30%·深度 + 20%·广度)`，三因子均 `x/(x+k)` 单调饱和：覆盖 = 当前范围有记录词占比（k=0.10）、深度 = 累计评分次数（k=600）、广度 = 活跃天（k=12，60%）+ 六类行为信号（k=3，40%）——**记录越多越贴合、增幅渐缓、新增记录不降分**;三条权重微条 + 「计算依据」展开实时输入;纯派生不落盘（[quiz.js:340-360 fitFor](../app/js/quiz.js#L340-L360)、[quiz.js:1042-1047](../app/js/quiz.js#L1042-L1047)、[app.js:843-876](../app/js/app.js#L843-L876)、[app.css:1031-1047](../app/css/app.css#L1031-L1047)、[index.html:80](../app/index.html#L80)）。
 
 ---
@@ -259,11 +259,11 @@
 
 ### 6.1 大模型按词讲解 ✅
 
-- [ai.js](../app/js/ai.js)：**13 个商用服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:4-18](../app/js/ai.js#L4-L18)），另加 2 个 DEV-ONLY 免费预设（下两条），共 15 项。
-- **开发期免费预设 🚧 DEV-ONLY**：开发期默认服务商「开发免费（发布前移除）」内置一个免费 OpenAI 兼容端点与共享 Key，开发期免填 Key 即可试用；三个模型 `DeepSeek-V4-Flash`（默认）/ `DeepSeek-V4.1-Flash` / `GLM-5.3-Flash` 以**下拉选择器**直接可选。**正式发布前必须移除并作废 Key**，详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)（[ai.js:29-37](../app/js/ai.js#L29-L37)）。
-- **QNAI 免费端点 🚧 DEV-ONLY**：另置顶「QNAI Free（发布前移除）」`https://api.qnaigc.com/v1`，免 Key 直连（内置共享 Key），模型下拉二选一——`qiniu/conatus-free`（默认，实测可用、支持 JSON 模式;免费档有全局限流 `429 free_campaign_global_limit`，数十秒后可恢复）与 `nvidia/nemotron-3-ultra-550b-a55b0-free`（接入时上游持续 `service temporarily unavailable`，恢复即可切换）。**正式发布前与 devfree 一并移除并作废 Key**（[ai.js:42-50](../app/js/ai.js#L42-L50)）。
-- **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器（现为 devfree 三模型与 qnafree 二模型），其余服务商保留自由文本输入；切换服务商自动切换形态并持久化所选模型，清单内无该模型时回落到新服务商默认模型（[app.js:3358-3383 syncAiProviderUi](../app/js/app.js#L3472-L3497)、[app.js:3266-3272](../app/js/app.js#L3266-L3272)、[index.html:18](../app/index.html#L18)）。开发期默认服务商为 devfree（[store.js:32](../app/js/store.js#L32)）。
-- 按词生成结构化解释，解析失败重试一次（[ai.js:135-138](../app/js/ai.js#L135-L138)）;平台网络通道绕 CORS（[platform.js:233 llmChat](../app/js/platform.js#L225)）。浏览器直连受 CORS 限制，Electron / Android 正常。
+- [ai.js](../app/js/ai.js)：**13 个商用服务商预设，全部走 OpenAI 兼容 `/chat/completions`**（DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 智谱 GLM / Kimi / 文心一言 / 讯飞星火 / 腾讯混元 / MiniMax / 阶跃星辰 / SiliconFlow / 自定义）（[ai.js:4-18](../app/js/ai.js#L4-L18)）。开发期内置的三个免费预设已于 2026-11-23 全部删除（见 DEVELOPMENT.md §8.52），Key 只取用户在设置里填写的值（[ai.js:73](../app/js/ai.js#L73)）。
+- **默认服务商**：新装默认 `deepseek` 且 AI 默认关闭，填好 Key 再自行开启（[store.js:34](../app/js/store.js#L34)）;旧存档里残留的 `devfree` / `qnafree` / `qwenmaas` 在 normalize 时回落 `deepseek` 并清空开发模型名（[store.js:153](../app/js/store.js#L153)）。
+- **模型选择器**：带固定模型清单（`models`）的服务商在「模型」栏渲染下拉选择器，其余服务商保留自由文本输入;切换服务商自动切换形态并持久化所选模型，清单内无该模型时回落到新服务商默认模型（[app.js:3481 syncAiProviderUi](../app/js/app.js#L3481)、[app.js:3924-3931](../app/js/app.js#L3924-L3931)、[index.html:918-919](../app/index.html#L918-L919)）。移除开发预设后没有服务商声明 `models`，故当前恒为自由文本输入;机制保留，日后补充清单即自动出现下拉。
+- **下拉控件与字段外观统一**：`.field select` 不再用 UA 原生外观，改用设计系统尖角 token `--field-arrow`（浅色/深色两值）与 `--fill-2` hover 反馈，弹层选项随主题上色，盒高/圆角/底色与同一面板的文本框一致（[app.css:924-926](../app/css/app.css#L924-L926)、[app.css:95](../app/css/app.css#L95)、[app.css:402](../app/css/app.css#L402)）。
+- 按词生成结构化解释，解析失败重试一次（[ai.js:89-93](../app/js/ai.js#L89-L93)）;平台网络通道绕 CORS（[platform.js:233 llmChat](../app/js/platform.js#L225)）。浏览器直连受 CORS 限制，Electron / Android 正常。
 - **连通性测试 + 可操作错误** ✅：「模型」栏下方「测试连通性」按钮发一条最小 ping 请求，显示 `✓ 连通正常 · 模型 · 耗时s` 或可操作错误，切换服务商自动清空（[index.html:753](../app/index.html#L753)、[app.js:3468-3481](../app/js/app.js#L3468-L3481)、[app.js:3307-3308](../app/js/app.js#L3307-L3308)）。网络错误分类为「超时（120 秒）」/「浏览器 CORS 拦截，请改用 Electron/Android」，取代裸 `Failed to fetch`（[platform.js:246-251](../app/js/platform.js#L246-L251)、[main.js:375-382](../main.js#L375-L382)）;三端 LLM 超时统一 120s 以适配慢端点（[platform.js:224](../app/js/platform.js#L224)、[main.js:337-340](../main.js#L337-L340)）。
 - 学习页与词卡的 AI 块 [app.js:2457-2514 aiSection](../app/js/app.js#L2571-L2628)，渲染 [app.js:2358 renderAiExplanation](../app/js/app.js#L2358);缓存优先，无缓存时块内手动生成。
 
@@ -350,7 +350,7 @@
 ### 10.5 真题刷题（62 套六级真题）✅
 
 - **数据（2026-11-20 升级 schema 2）**：在用集为外部导入的 schema 2 分片（62 套 + manifest，[scripts/import-exams.js](../scripts/import-exams.js) 可复现导入;分片单源、manifest 由分片派生并补 writing/translation 布尔）;新增 `hasAnswers/answersComplete/answersCoverage/answersSource/stats` 答案元数据，2026-06-01/03 两套含官方答案。旧 `build-exams.js` 为 schema 1 解析管线（溯源保留，重跑后须重新导入）。启动只读 manifest，打开某套才懒加载分片（[platform.js:129-130](../app/js/platform.js#L129-L130)、[main.js:356](../main.js#L356)）。残缺套顶部如实提示（缺题/缺选项数）。
-- **年份折叠网格（2026-11-20）**：列表按年份分组为可折叠组——组头按钮（年 + 套数 + 已练进度 + 箭头）**全部默认收缩**，点组头展开/收起;组内卡片网格含月/套、题量与题型、已练进度条与「已练 x/y」、含答案/答案覆盖率/残缺徽标;移动 2 列、≥960 3 列、≥1280 4 列;进入某套后返回保持该年展开（[app.js:4164 renderExamsList](../app/js/app.js#L4164)）。
+- **年份折叠网格（2026-11-20）**：列表按年份分组为可折叠组——组头按钮（年 + 套数 + 已练进度 + 箭头）**全部默认收缩**，点组头展开/收起;组内卡片网格含月/套、题量与题型、已练进度条与「已练 x/y」、含答案/答案覆盖率/残缺徽标;移动 2 列、≥960 3 列、≥1280 4 列;进入某套后返回保持该年展开（[app.js:4162 renderExamsList](../app/js/app.js#L4162)）。
 - **题型**：仔细阅读（一段材料 + 一组选择题，逐题推进）、信息匹配（[A]–[O] 段落 ↔ 陈述句字母芯片）、**选词填空（2026-11-20 开刷）**、短文写作 / 汉译英（写作区 + 字符计数）;按「一段材料 + 一组题」推进，不整卷塞满（[exams.js:39 availableTypes / 51 sessions](../app/js/exams.js#L39)）。听力无音频暂不开刷（数据入库）。
 - **选词填空刷法（2026-11-20）**：短文内空位渲染为可点芯片（兼容裸数字与 `__26__` 两种 OCR 形态），空位导航条逐空跳转;A–O 词库网格选词（移动 2 列 / ≥600 3 列），已被其他空占用的字母标灰并注「Qxx」;有官方答案即自动判分（反馈带正确字母 + 词），无答案走 AI 分析（入参含词库）/自评;错题重练含选词组（[app.js:4326 examClozePassageHtml / 4132 examBankHtml](../app/js/app.js#L4461)、[exams.js:107 analyzeQuestion](../app/js/exams.js#L107)）。
 - **三级判分**：`answers` 有官方答案→自动判分（schema 2 起 2026-06-01/03 两套生效，反馈标注「官方答案」）;AI 已接入→「AI 分析 / AI 批改」按需生成并缓存，标注「仅供参考」;否则自评「答对/答错」（写译「完成/待改进」）。错题自动入真题错题本，可错题重练（[exams.js:80 judge](../app/js/exams.js#L80)）。
@@ -369,12 +369,12 @@
 
 ### 10.7 AI 学习空间（全屏导学，2026-11-20 重构）✅
 
-- **入口与形态**：学习页「AI」按钮改为**入口**（不再占用模式档），点击打开整页 `#ai-space-sheet`（右滑入全屏，返回箭头关闭，学习/测试模式不受影响）;原三标签内联面板已移除（[app.js:4730 openAiSpace](../app/js/app.js#L4730)、[index.html #ai-space-sheet](../app/index.html)）。
-- **先确认再开始**：confirm 阶段展示学习记录摘要（到期复习/错词/今日新学复习/翻译材料数），可选**学习时长**（10/15/20/30 分钟）、**学习重点**（智能混合/到期复习/错题门诊/翻译与写作）、**教学策略**（讲练结合/提问引导/背诵检查），并给出**计划预览**（逐步列表）;配置持久化于 `space.tutor.plan`，确认后才进入导学（[app.js:4840 renderAiConfirm](../app/js/app.js#L4840)、[app.js:4695 aiBuildSteps](../app/js/app.js#L4695)）。
-- **逐步导学**：步骤引擎按配置生成 review（到期/新词）/ clinic（错词讲透）/ study（翻译精读）步骤;每步 AI 讲解按策略变换 prompt（提问引导先抛问题、背诵检查先给中文让用户回忆），讲解按步缓存于 `space.tutor`;**即时检查**内联完成——讲练结合/提问引导为英→中释义选择，背诵检查为中→英选词，答错标红并给出正确答案、错词计入会话;翻译精读步先自译再揭示参考译文;每步附**随步提问**输入（≤8 轮上下文）;答完/揭示后才能下一步，可跳过;会话进度持久化，**重载自动续学**（[app.js:4895 renderAiSession](../app/js/app.js#L4895)、[app.js:4750 aiEnterStep](../app/js/app.js#L4750)、[app.js:4780 aiFetchTeach](../app/js/app.js#L4780)）。
-- **完成后才有日报**：全部步骤完成进入 done 阶段——汇总（步骤数/检查正确率/时长/仍错词），**此时才自动生成当日报告**（当日日志 + 本次导学结果入 prompt），按天缓存于 `space.report`，可重新生成;confirm 阶段列历史报告逐日查看（[app.js:5014 renderAiDone](../app/js/app.js#L5014)、[app.js:5081 aiGenReport](../app/js/app.js#L5081)）。
-- **印象文章（2026-11-20 §8.50）**：confirm 与 done 两阶段提供「印象文章」卡——把本次会话词 ∪ 今日新学/复习（≤12 词，空则到期/新词回退）串成一篇英文短文加深印象;字数三档可选 **短篇 60–100 / 中篇 120–180 / 长篇 250–350 词**（偏好存 `space.article.prefs`）;JSON 模式生成 `{paras:[{en,zh}]}`，衬线英文 + 段下中文译文，目标词（含变形）高亮可点、**嵌套词卡**叠在 AI 空间之上;按 `日期:档位` 缓存于 `space.article`（≤30 条），可重新生成/删除，重载零调用直出缓存，导出导入一并携带（[app.js:5083 范围](../app/js/app.js#L5083)、[app.js:5107 aiArticleCard](../app/js/app.js#L5107)、[app.js:5157 aiGenArticle](../app/js/app.js#L5157)、[store.js:441-448](../app/js/store.js#L441-L448)）。
-- **存储**：`space` 块含 `tutor`（plan/session/讲解缓存）与 `article` 种类;normalize 校验会话形状（steps≤24、picks≤400、revealed≤40、qa≤40 轮）+ 上限 60 条，**淘汰豁免 plan/session**（讲解缓存再新也不挤掉活会话）;article ≤30 条、paras≤4 段;导出导入沿用按 key 取新合并、qa turns 去重合并截 40;详见 DATA.md §5.1/§5.3/§6.2（[store.js:396 normalizeTutorSession](../app/js/store.js#L396)、[store.js:419 normalizeSpace](../app/js/store.js#L419)、[store.js:459-460 豁免](../app/js/store.js#L459-L460)）。
+- **入口与形态**：学习页「AI」按钮改为**入口**（不再占用模式档），点击打开整页 `#ai-space-sheet`（右滑入全屏，返回箭头关闭，学习/测试模式不受影响）;原三标签内联面板已移除（[app.js:4728 openAiSpace](../app/js/app.js#L4728)、[index.html #ai-space-sheet](../app/index.html)）。
+- **先确认再开始**：confirm 阶段展示学习记录摘要（到期复习/错词/今日新学复习/翻译材料数），可选**学习时长**（10/15/20/30 分钟）、**学习重点**（智能混合/到期复习/错题门诊/翻译与写作）、**教学策略**（讲练结合/提问引导/背诵检查），并给出**计划预览**（逐步列表）;配置持久化于 `space.tutor.plan`，确认后才进入导学（[app.js:4838 renderAiConfirm](../app/js/app.js#L4838)、[app.js:4693 aiBuildSteps](../app/js/app.js#L4693)）。
+- **逐步导学**：步骤引擎按配置生成 review（到期/新词）/ clinic（错词讲透）/ study（翻译精读）步骤;每步 AI 讲解按策略变换 prompt（提问引导先抛问题、背诵检查先给中文让用户回忆），讲解按步缓存于 `space.tutor`;**即时检查**内联完成——讲练结合/提问引导为英→中释义选择，背诵检查为中→英选词，答错标红并给出正确答案、错词计入会话;翻译精读步先自译再揭示参考译文;每步附**随步提问**输入（≤8 轮上下文）;答完/揭示后才能下一步，可跳过;会话进度持久化，**重载自动续学**（[app.js:4893 renderAiSession](../app/js/app.js#L4893)、[app.js:4748 aiEnterStep](../app/js/app.js#L4748)、[app.js:4778 aiFetchTeach](../app/js/app.js#L4778)）。
+- **完成后才有日报**：全部步骤完成进入 done 阶段——汇总（步骤数/检查正确率/时长/仍错词），**此时才自动生成当日报告**（当日日志 + 本次导学结果入 prompt），按天缓存于 `space.report`，可重新生成;confirm 阶段列历史报告逐日查看（[app.js:5012 renderAiDone](../app/js/app.js#L5012)、[app.js:5079 aiGenReport](../app/js/app.js#L5079)）。
+- **印象文章（2026-11-20 §8.50）**：confirm 与 done 两阶段提供「印象文章」卡——把本次会话词 ∪ 今日新学/复习（≤12 词，空则到期/新词回退）串成一篇英文短文加深印象;字数三档可选 **短篇 60–100 / 中篇 120–180 / 长篇 250–350 词**（偏好存 `space.article.prefs`）;JSON 模式生成 `{paras:[{en,zh}]}`，衬线英文 + 段下中文译文，目标词（含变形）高亮可点、**嵌套词卡**叠在 AI 空间之上;按 `日期:档位` 缓存于 `space.article`（≤30 条），可重新生成/删除，重载零调用直出缓存，导出导入一并携带（[app.js:5083 范围](../app/js/app.js#L5083)、[app.js:5105 aiArticleCard](../app/js/app.js#L5105)、[app.js:5155 aiGenArticle](../app/js/app.js#L5155)、[store.js:441-448](../app/js/store.js#L441-L448)）。
+- **存储**：`space` 块含 `tutor`（plan/session/讲解缓存）与 `article` 种类;normalize 校验会话形状（steps≤24、picks≤400、revealed≤40、qa≤40 轮）+ 上限 60 条，**淘汰豁免 plan/session**（讲解缓存再新也不挤掉活会话）;article ≤30 条、paras≤4 段;导出导入沿用按 key 取新合并、qa turns 去重合并截 40;详见 DATA.md §5.1/§5.3/§6.2（[store.js:398 normalizeTutorSession](../app/js/store.js#L398)、[store.js:421 normalizeSpace](../app/js/store.js#L421)、[store.js:459-460 豁免](../app/js/store.js#L459-L460)）。
 - 未接入 AI：confirm 显示接入横幅并禁用开始（一键跳设置「词典与 AI」）;会话中未接入仍可自学词表完成检查。全部 AI 调用走 `Platform.llmChat` 三端链路，失败显示可重试错误条，不写缓存;注入文本一律 `esc()`。
 - 验证：`.scratch/ai-space-e2e.cjs` 43/43（全屏入口/确认配置持久化/策略入 prompt/检查判分与锁定/随步问答/重载续学零调用/完成后才生日报/历史报告/印象文章选词·三档·缓存·高亮嵌套词卡·删除/导出导入含 article/70 条讲解缓存不挤掉 session/未接入态/桌面布局/零控制台错误;AI 以 stub 保证确定性）+ 千问 MaaS 真实链路实测含印象文章 JSON 路径（§10.9）。
 
@@ -386,11 +386,12 @@
 - **真题详情参考资料**：每套真题详情列出对齐材料（翻译/写作/C4 写作，含对齐方式徽标），点击直达阅读器对应篇目，关闭返回真题详情（[app.js:4341 renderExamDetail refs](../app/js/app.js#L4476)）。
 - 验证：`.scratch/study-reader-e2e.cjs` 21/21（懒加载/四入口计数/9+77+12+25 列表/背诵隐藏与原位揭示/小节导航/真题参考资料往返/桌面无溢出/零控制台错误）。
 
-### 10.9 千问 MaaS 服务商（DEV-ONLY，2026-11-20）✅
+### 10.9 千问 MaaS 服务商（DEV-ONLY，2026-11-20 接入 / 2026-11-23 移除）✅
 
-- `ai.js` 新增 `QWEN_MAAS_API` 预设（`id:'qwenmaas'`，发布前移除）：Base `https://maas.qianwenaiapi.com/compatible-mode/v1`（OpenAI 兼容），三模型下拉 `qwen3.8-flash`（默认）/ `qwen3.8-omni-flash` / `qwen4-max`，内置开发 Key（前缀 `sk-ws-H…`，完整值仅存 ai.js）;`noThink:true` 经 `resolveConfig → Platform.llmChat / main.js llm-chat / exams.chat / AI 空间`全链透传 `enable_thinking:false`——`qwen4-max` 为推理模型，不关思考会耗尽 token 返回空 content（[ai.js:55-63](../app/js/ai.js#L55-L63)）。
-- **默认服务商切换**：新装默认 `qwenmaas` 且 `enabled:true`;旧存 `devfree/qnafree` 自动迁移到 `qwenmaas`（用户自选其他服务商不受影响）（[store.js:34](../app/js/store.js#L34)）。
-- 实测：三模型 HTTP 200（flash 2167ms / omni-flash 1493ms / max 需 enable_thinking:false）;AI 空间导学真实讲解链路浏览器实测通过。**与 devfree/qnafree 同列发布前删除 + 服务端作废清单**（DEVELOPMENT §9）。
+- 历史：`ai.js` 曾新增 `QWEN_MAAS_API` 预设（`id:'qwenmaas'`，Base `https://maas.qianwenaiapi.com/compatible-mode/v1`，三模型下拉 `qwen3.8-flash` / `qwen3.8-omni-flash` / `qwen4-max`，内置开发 Key）。**该预设与其 Key 已随 §8.52 一并删除**，实测结论（三模型 HTTP 200;`qwen4-max` 为推理模型，不关思考会耗尽 token 返回空 content）作为档案保留。
+- **保留的架构**：`noThink` 仍是服务商的通用开关，经 `resolveConfig`（[ai.js:69-75](../app/js/ai.js#L69-L75)）→ `Platform.llmChat` / `main.js llm-chat` / `exams.chat` / AI 空间全链透传 `enable_thinking:false`，日后为千问系商用端点填 Key 即可直接复用。
+- **默认服务商**：现为 `deepseek` 且 AI 默认关闭;旧存档的 `qwenmaas` / `devfree` / `qnafree` 统一回落 `deepseek` 并清空开发模型名（[store.js:34](../app/js/store.js#L34)、[store.js:153](../app/js/store.js#L153)）。
+- 待办：该开发 Key 已进公开 git 历史，服务端作废仍未执行（DEVELOPMENT §9）。
 
 ### 10.10 加载页品牌动效（glance 荧光白字标，2026-11-20 第二版）✅
 
@@ -533,7 +534,7 @@
 | 测试 | 定制贴合度（覆盖/深度/广度单调饱和公式 + 五档措辞 + 计算依据） | ✅ | quiz.js:340-360 / app.js:807-839 / app.css:1021-1037 |
 | 查词 | 查词/历史/生词本 + 在线查词入口 | ✅ | app.js:1686-1731 / app.js:2040-2154 |
 | 词典 | 4 内置源 + 自定义添加 + 逐源开关 + 并行合并去重 | ✅ | dictionary.js / store.js:367-424 / app.js:1773-1945 / app.js:2830-2932 |
-| AI | 13 商用服务商 + 3 开发预设（DEV-ONLY：devfree/qnafree/qwenmaas）+ 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:3151-3156 |
+| AI | 13 商用服务商（开发期内置 Key 已移除）+ 连通性测试 + 缓存导出 | ✅ | ai.js / app.js:3481-3501 |
 | 发音 | 真人音频优先 + 原生/Web TTS | ✅ | platform.js:53 |
 | 统计 | 日历/掌握/正确率/趋势/接触榜 | ✅ | app.js:2223-2402 |
 | 我的 | 头像昵称 + 四入口设置中心 + AI 解释缓存 | ✅ | app.js:2253-2846 |

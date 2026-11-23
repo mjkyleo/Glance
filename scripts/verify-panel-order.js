@@ -44,7 +44,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
   // 2. legacy stored order migrates: relative order kept, missing blocks appended, key removed
   const legacyOrder = ['etymology', 'examples', 'definitions', 'family', 'synonyms', 'derivatives', 'inflections', 'collocations'];
-  const legacy = makeStore({ cardOrder: legacyOrder, studyPanel: { examples: false }, ai: { provider: 'devfree', autoExplain: true } });
+  const legacy = makeStore({ cardOrder: legacyOrder, studyPanel: { examples: false }, ai: { provider: 'deepseek', autoExplain: true } });
   await legacy.Store.load();
   const d1 = legacy.Store.data;
   ok(!('cardOrder' in d1), 'legacy cardOrder not deleted on load');
@@ -69,7 +69,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   // 5. importing a legacy backup keeps its card order and toggles
   const legacyBackup = {
     app: 'Glance', kind: 'learning-data', schema: 1, words: [],
-    data: { settings: { cardOrder: legacyOrder, studyPanel: { etymology: false }, ai: { enabled: true, provider: 'devfree', autoExplain: true } } }
+    data: { settings: { cardOrder: legacyOrder, studyPanel: { etymology: false }, ai: { enabled: true, provider: 'deepseek', autoExplain: true } } }
   };
   const imp = makeStore({});
   await imp.Store.load();

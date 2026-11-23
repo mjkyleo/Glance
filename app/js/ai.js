@@ -18,51 +18,6 @@
   ];
   function getProvider(id) { return PROVIDERS.find(p => p.id === id) || PROVIDERS[0]; }
 
-  // =====================================================================
-  // DEV-ONLY 免费开发 API —— 正式发布前必须移除（见 DEVELOPMENT.md「开发期免费 AI API」）
-  // 内置一个免费 OpenAI 兼容端点：开发期在「我的 → AI 解释」选「开发免费」服务商、
-  // 开启 AI、Key 留空即可试用。三个模型可选，默认 DeepSeek-V4-Flash（支持 JSON 模式）。
-  // 移除方法：删除本整块（DEV_FREE_API 常量 + 下方 if 注入）即可彻底移除；
-  //           resolveConfig/effectiveKey 与 UI 里的 devKey/models 回退随之自动失效。
-  // 安全提示：此 Key 随客户端代码公开分发，仅作开发便利;发布前务必删除并到服务端作废该 Key
-  //           （一旦推送到公开仓库即进入 git 历史，删代码并不能抹除历史）。
-  const DEV_FREE_API = {
-    id: 'devfree', name: '开发免费（发布前移除）', dev: true,
-    base: 'https://developer.amd.com.cn/radeon/api/v1',
-    model: 'DeepSeek-V4-Flash',
-    models: ['DeepSeek-V4-Flash', 'DeepSeek-V4.1-Flash', 'GLM-5.3-Flash'],
-    devKey: 'rc-366f5c9de7c186e94c563c982128f9d5a2d9693450d62f7c',
-    jsonMode: true
-  };
-  if (DEV_FREE_API) PROVIDERS.unshift(DEV_FREE_API);
-
-  // QNAI 免费端点（同为 DEV-ONLY，发布前与上面一并移除）：两个免费模型，
-  // 默认 qiniu/conatus-free（实测可用，支持 JSON 模式）;nvidia/nemotron-3-ultra-550b-a55b0-free
-  // 接入时上游持续返回 5xx「service temporarily unavailable」，恢复后可从下拉直接切换。
-  const QNAI_FREE_API = {
-    id: 'qnafree', name: 'QNAI Free（发布前移除）', dev: true,
-    base: 'https://api.qnaigc.com/v1',
-    model: 'qiniu/conatus-free',
-    models: ['qiniu/conatus-free', 'nvidia/nemotron-3-ultra-550b-a55b0-free'],
-    devKey: 'sk-91774e6c0482b2260282df537b7f096abd893e3741bb92f85df1f26f50dc5691',
-    jsonMode: true
-  };
-  if (QNAI_FREE_API) PROVIDERS.unshift(QNAI_FREE_API);
-
-  // Qwen MaaS 开发端点（同为 DEV-ONLY，发布前与上面一并移除并作废 Key）：
-  // OpenAI 兼容 /compatible-mode/v1，三模型实测 200;qwen4-max 为推理模型，
-  // 须 enable_thinking:false 才直出 content（noThink 由 llmChat 链透传）。
-  const QWEN_MAAS_API = {
-    id: 'qwenmaas', name: '千问 MaaS（发布前移除）', dev: true,
-    base: 'https://maas.qianwenaiapi.com/compatible-mode/v1',
-    model: 'qwen3.8-flash',
-    models: ['qwen3.8-flash', 'qwen3.8-omni-flash', 'qwen4-max'],
-    devKey: 'sk-ws-H.YXPILXI.uA8n.MEYCIQCp6MXcvqQjpmJ0OWBinwrqKWHeL2nUvLX2ShtkqDVokwIhAL7mqHgt05nzrkgaITdwhqIBR_x-AkNwJdLQW8jn2FJ7',
-    jsonMode: true, noThink: true
-  };
-  if (QWEN_MAAS_API) PROVIDERS.unshift(QWEN_MAAS_API);
-  // =====================================================================
-
   const SYSTEM_PROMPT = [
     '你是一名专业的英语词汇教师，面向中国大学生（四六级/考研/托福/雅思/GRE）讲解单词。',
     '请只输出一个 JSON 对象，不要任何额外文字、解释或 Markdown 代码块。字段如下：',
@@ -115,10 +70,10 @@
     const p = getProvider(cfg.provider);
     const base = p.custom ? (cfg.base || '') : p.base;
     const model = (cfg.model || '').trim() || p.model;
-    const key = (cfg.key || '').trim() || p.devKey || '';
+    const key = (cfg.key || '').trim();
     return { base, model, key, jsonMode: p.jsonMode, anthropic: !!p.anthropic, noThink: !!p.noThink, provider: p };
   }
-  // Effective key = user-entered key, else a provider's built-in dev key (DEV-ONLY).
+  // Key the request will actually send: only what the user entered in settings.
   function effectiveKey(cfg) { return resolveConfig(cfg || {}).key; }
 
   // Generate an explanation. Retries once on parse failure. Returns { ok, data, provider, model } | { ok:false, error }.

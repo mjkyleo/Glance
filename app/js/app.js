@@ -3464,7 +3464,7 @@
     const sel = $('set-ai-provider');
     sel.innerHTML = '';
     AI.PROVIDERS.forEach(p => { const o = el('option', null, p.name); o.value = p.id; sel.appendChild(o); });
-    sel.value = ai.provider || 'qwenmaas';
+    sel.value = ai.provider || 'deepseek';
     $('set-ai-enabled').checked = !!ai.enabled;
     $('set-ai-model').value = ai.model || '';
     $('set-ai-base').value = ai.base || '';
@@ -3498,9 +3498,7 @@
       modelInput.placeholder = p.model || '模型名称';
       hint.textContent = p.model ? '留空使用默认：' + p.model : '请填写模型名称';
     }
-    $('set-ai-key').placeholder = p.devKey ? '内置开发密钥，留空即可' : '仅保存在本机';
-    const devNote = $('set-ai-dev-note');
-    if (devNote) devNote.hidden = !p.dev;
+    $('set-ai-key').placeholder = '仅保存在本机';
     const testOut = $('set-ai-test-result');
     if (testOut) { testOut.textContent = ''; testOut.className = 'ai-test-result'; }
   }

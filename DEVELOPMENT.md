@@ -146,9 +146,9 @@
 
 > 更新（2026-11-13）：P7 已交付 `android-11`；P8–P12（学习页、分类设置、面板排序、8 套主题与主题级 UI/UX）已交付 `android-17`；P13（背景壁纸 + 测试引擎重做）已交付 `android-18`；Releases 排序修复后新 Logo 交付 `android-21`；安装包版本号/签名修复后为 `android-23`；详细讲解页重构（自动查词 / 图标操作 / 紧凑卡片）交付 `android-24`（versionCode 24 / versionName `1.0.6+24`）；设置并入「我的」后交付 `android-25`（versionCode 25 / versionName `1.0.6+25`）；测试流程重做（单一开始入口 + 设置面板 + 答错解析）交付 `android-26`（versionCode 26 / versionName `1.0.6+26`）。「我的」头像与昵称编辑交付 `android-27`（versionCode 27 / versionName `1.0.6+27`）。
 
-- 最新提交：`2d48b53`（`main`，构词合并行 + AI 印象文章 + 学习记录保存加固 + 词根词数降序 §8.50，**按用户要求本批提交并推送**）;此次推送一并带上此前只提交未推送的 §8.40–§8.49 全部本地提交（`ac2b83a`…`4559f90`），触发 CI run **44712984044**（build #52）全步成功 → `android-52`;再前 `2cab4e9`（§8.39，run 44661023421 → `android-51`）、`19be43a`（§8.38）、`bb702f8`（§8.37）。
+- 最新提交：`2d48b53` 仍是最后一次**推送**（构词合并行 + AI 印象文章 + 学习记录保存加固 + 词根词数降序 §8.50），触发 CI run **44712984044**（build #52）全步成功 → `android-52`;其后的 `c15ce32`（§8.51 词缀状态筛选）、`05ca678`（认知对齐）与 §8.52（移除开发期 AI Key + 下拉控件统一）**均按用户要求只提交不推送**，因此线上 APK 仍含 DEV-ONLY 开发预设，本地代码已不含。再前 `2cab4e9`（§8.39，run 44661023421 → `android-51`）、`19be43a`（§8.38）、`bb702f8`（§8.37）。
 - 最新交付：**`android-52`** APK → `https://github.com/mjkyleo/Glance/releases/download/android-52/Glance-android.apk`（**11,140,954 字节**，versionCode 52 / versionName `1.0.6+52`，CI run **44712984044** 全步成功，Verify 步断言包名/版本/证书 `CN=Glance Debug`，Strip 步已执行）。内容 = `android-51` 全部（§8.32–§8.39）+ 随本次推送首次进入安装包的 §8.40–§8.49（README 规范与桌面布局、词根分类/整页化/图标极简、显示层九项与真题 schema2、选词开刷与年份收缩、AI 空间三模块、全屏导学 + 千问 MaaS + study 材料、glance 字标、贴合度、学习页编辑式统一）+ **§8.50（构词合并行、AI 印象文章、学习记录完整保存、词根词数降序 + 隐藏小众）**。**仍含 DEV-ONLY devfree + qnafree + qwenmaas 预设（§8.25/§8.45），非正式发布包**;FSRS 对照旁路（`app/dev` + `app/js/vendor`）已由 Strip 步骤移除。Release 资产 CDN 本机不可达，APK 内容核验依 CI 断言（§9）。
-- 工作区：§8.40/§8.41 批次本地提交未推送（origin/main 停在 `eef2897`）;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库。
+- 工作区：§8.51/§8.52 批次（含认知对齐 `05ca678`）本地提交未推送，origin/main 停在 `2d48b53`;`.scratch/` 为本地调试产物，已忽略;`assets/` 下两张用户提供的 Logo 参考图与词表 PDF 永不提交;`.aoci/` 只跟踪白名单的 `.gitignore`/`baseline.json`/`config.json`，运行时产物与 `.mcp.json` 不入库。
 - 任务清单：P7–P13 功能全部完成，回归与专项验证见 §8.5–§8.35;**不能按编号折算完成度**，以本文实际勾选为准。
 
 ---
@@ -708,7 +708,7 @@
 
 **交付**：`android-35`（target `8f735f5`，CI run 43551989662 成功;CI apksigner 断言 `com.glance.app` / `versionCode 35` / `versionName 1.0.6+35` / 证书 `CN=Glance Debug`，固定签名 SHA-256 `82:F7:…:C9:AF`，APK 13,223,689 字节）。
 
-### 8.25 开发期免费 AI API（DEV-ONLY，正式发布前必须移除）🚧
+### 8.25 开发期免费 AI API（DEV-ONLY，已于 2026-11-23 按 §8.52 移除）✅
 
 **需求**：在开发节点内置一个免费 OpenAI 兼容 API，开发期免填 Key 即可试用 AI 详解;**正式发布前去掉**，并在文件记录。
 
@@ -740,6 +740,8 @@
 - **平台限制**：该端点**不返回 CORS 头**且 OPTIONS 预检 405，故**浏览器直连 fetch 被 CORS 拦截**（对所有服务商一致，非本预设特有）;**Electron 走 IPC `llm-chat`、Android 走 CapacitorHttp，均无 CORS，可正常调用**（已由 Node 实跑证实）。
 
 **发布前移除清单（务必执行）**
+
+**状态（2026-11-23）**：第 1、3、4 步已完成（实现与验证见 §8.52，门禁 grep 已为空，旧存档服务商/模型由 normalize 迁移回落）;**第 2 步「到服务端作废 / 轮换三个 Key」仍未执行，须人工完成**。
 
 1. 删除 [ai.js](app/js/ai.js) 的 `DEV_FREE_API`、`QNAI_FREE_API` 与 `QWEN_MAAS_API` 三个整块（含各自 `if` 注入）;把 [store.js](app/js/store.js) DEFAULTS/normalize 回退与迁移分支、[app.js](app/js/app.js) 回退的默认 `ai.provider` 由 `qwenmaas` 改回 `deepseek`（并删除 devfree/qnafree→qwenmaas 迁移行）;可选清理 `resolveConfig/effectiveKey` 的 `p.devKey` 回退与 UI 的 `p.dev/p.models` 分支（不清理亦无害，模型栏会自动回到文本输入）。
 2. **到服务端作废 / 轮换这三个 Key**（devfree `rc-366f…`、QNAI `sk-9177…`、千问 MaaS `sk-ws-H…`）：Key 一旦推送到公开仓库即进入 git 历史，**删代码并不能抹除历史**，仅删代码不足以保密。
@@ -854,7 +856,7 @@
 - **UAPI 服务商**：[dictionary.js:3-20](app/js/dictionary.js#L3-L20) PROVIDERS 新增 `uapis`;[dictionary.js:232-301 normalizeUapis](app/js/dictionary.js#L232-L301) 解析内嵌词性、按词性归并中英义项、补全 `https://uapis.cn` 音频主机、映射考试标签、折叠双语例句与近义、保留词形变化/词组;[dictionary.js:415-431 buildUrl](app/js/dictionary.js#L415-L431)、[dictionary.js:455-480 attempt 路由](app/js/dictionary.js#L455-L480)、[dictionary.js:627-632 导出](app/js/dictionary.js#L627-L632)。
 - **多源回退**：[dictionary.js:564 RESCUE](app/js/dictionary.js#L564) 免费英文词典→UAPI→有道;命中「未找到该词」即停，省 UAPI 积分;回退来源记于 `record.fallbackFrom`，[app.js:2030](app/js/app.js#L2030) 显示「已从〈源〉回退」。（后续 §8.32 多词典合并上线后，RESCUE 仅在全部已开启源都因网络/跨域失败时兜底。）
 - **查词在线入口**：[app.js:2549-2558](app/js/app.js#L2549-L2558) 无本地精确匹配时置顶「在线查词：〈query〉」行（[app.js:2558](app/js/app.js#L2558)），点击 `openWordSheet(query,true)` 复用既有联网 + 缓存;[app.css:1150](app/css/app.css#L1150) 标题用主题强调色。
-- **词典渲染增强**：[app.js:1992](app/js/app.js#L1992) 词形变化、[:1925](app/js/app.js#L1982) 常见词组（复用既有 dict-* 样式，无新增 CSS）;服务商选择器 [app.js:3520-3523 dictSourceHint](app/js/app.js#L3520-L3523)、[:2818 标记 U](app/js/app.js#L2925)。
+- **词典渲染增强**：[app.js:1992](app/js/app.js#L1992) 词形变化、[:1925](app/js/app.js#L1982) 常见词组（复用既有 dict-* 样式，无新增 CSS）;服务商选择器 [app.js:3518-3521 dictSourceHint](app/js/app.js#L3518-L3521)、[:2818 标记 U](app/js/app.js#L2925)。
 - 缓存沿用 `store.dictCache`，导出/导入已覆盖，**无 schema 改动**;默认服务商仍 `freezh`。
 
 **验证**
@@ -963,7 +965,7 @@
 - **URL 完整性**：工具 URL 必须匹配当前任务目标，严禁替换为 routify 等临时代理；历史调用不代表正确，每次重新核对来源。
 - **推送安全**：仅 SSH（HTTPS 被墙）+ 专用密钥 `id_ed25519_glance`（comment `mjkyleo-glance`），`GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_glance -o IdentitiesOnly=yes"`。**不得触碰/使用** `sczhang0504` 的默认密钥 `~/.ssh/id_ed25519`。
 - **提交隐私**：用 noreply 邮箱，勿暴露私有 `437257976@qq.com`。
-- **开发期免费 AI（发布前移除）**：`ai.js` 内置三个 DEV-ONLY 预设 `DEV_FREE_API`（devfree）、`QNAI_FREE_API`（qnafree）与 `QWEN_MAAS_API`（qwenmaas，千问三模型，§8.45），各带公开开发 Key（见 §8.25/§8.45）。**正式发布前必须删除这三整块并到服务端作废 Key**（Key 已进公开 git 历史，删代码不抹历史）；发布构建前 `grep -rE "DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H" app/` 须为空。**2026-11-19 实测**：`qnafree` 上游返回 HTTP 403「Account is suspended」（免费账号已被停用），`devfree` 在纯浏览器被 CORS 拦截、Electron/Android 原生通道不受限;三者无论可用与否都须在发布前删除并作废;qwenmaas 三模型 2026-11-20 实测可用（qwen4-max 需 enable_thinking:false）。
+- **开发期免费 AI（已于 2026-11-23 移除，服务端作废仍未做）**：`ai.js` 曾内置三个 DEV-ONLY 预设 `DEV_FREE_API`（devfree）、`QNAI_FREE_API`（qnafree）与 `QWEN_MAAS_API`（qwenmaas，§8.45），各带公开开发 Key。**§8.52 已删除三整块及其 `devKey` 回退、提示条与默认服务商**，发布构建前 `grep -rE "DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H" app/` 实测为空（2026-11-23 复核）。**剩余唯一人工动作：到服务端作废 / 轮换 `rc-366f…`、`sk-9177…`、`sk-ws-H…` 三个 Key**——它们已进公开 git 历史，删代码不能抹历史，未作废前不得视为发布就绪。历史实测（`qnafree` 403「Account is suspended」、`devfree` 纯浏览器 CORS 拦截而 Electron/Android 原生通道不受限、qwenmaas 三模型可用且 qwen4-max 需 `enable_thinking:false`）仅作档案保留。
 - **FSRS 对照旁路（dev-only）**：`app/dev/` 与 `app/js/vendor/ts-fsrs.js` 仅供对照验证（§8.26），**不得进入正式包**——Electron 由 `build.files` 排除、Android 由 CI `Strip dev-only FSRS contrast side-path` 步骤删除;**不得据旁路直接替换在用调度器**（迁移需另行评估用户数据兼容性）。改 `srs.js` 公式或 ts-fsrs 版本后须重跑 `npm run contrast:fsrs` 刷新报告。
 - **本地工具链**：无 Android SDK（靠 CI）；WMI 启动 Electron；CDP（端口 9222）截图/smoke；npmmirror；本机无 `gh`，repo 公开（api.github.com 可达）。Release 资产下载 CDN 本机不可达（HEAD 无响应），APK 内容核验依 CI 第 10 步断言 + 第 8 步 Strip。
 - **AOCI 认知层**：`aoci.txt`/`aoci.meta.txt`/`aoci.code.txt` 与 `.aoci/` 白名单资产（`.gitignore`/`baseline.json`/`config.json`）入库，运行时产物（ledger/fingerprints/transactions/governance/drafts）与 `.mcp.json` 不入库;这四类路径已加入 CI `paths-ignore`，认知与文档提交不再触发 APK 构建（**改 `android-build.yml` 本身仍会触发一次**）。受管理对象变化后只在本次任务的最终稳定态调用一次 `aoci_maintain`，按机器签发批次创作并提交，`terminal_proof` 即对齐证明，不重复维护。
@@ -981,7 +983,7 @@
 
 **数据层**：[scripts/migrate-single-source.js](scripts/migrate-single-source.js) 一次性迁移（幂等）——exams 降为 `{groups:[{root, words:[str]}], loose:[str]}`（6 个 `roots.json` 缺失组保留内联元信息且内联优先）;cet6 降为词+分组（保留组级 `origin/etymon` 词源注）;cloze `words` 删除 `zh/cf/tags` 副本;`words.json` 补全 10 词（`a`、`i` + 8 个 cloze 选项词）。体积：exams 7,649,162 → **1,525,580 B（1.45MB，-80%）**、cet6 1,366,586 → 538,799 B、cloze 142,273 → 93,341 B。构建器同步改造保证不复发：scrape 直接产引用 + 源站缺词补全全局 + 保留本地键;cloze 构建把 `EXTRA_GLOSS` 合并进 `words.json` 而非嵌入 cloze。
 
-**代码层**：`enrich(word, rootId, rootZh, rootEn, familySize)` 去掉 meaning 入参，`zh/cefr/phonetic` 一律全局（[library.js:130-156](app/js/library.js#L130-L156)）;`getBook/listBooks` 适配字符串引用与全局 `cf` 过滤;显示点全部同源（[app.js:456](app/js/app.js#L456)、[:484](app/js/app.js#L484)、[:1028](app/js/app.js#L1064)、[:1402](app/js/app.js#L1449)、[:1529](app/js/app.js#L1586)、[:1596](app/js/app.js#L1653)、[:2291](app/js/app.js#L2353)、[quiz.js:66](app/js/quiz.js#L66)、[library.js:110-114](app/js/library.js#L110-L114)、[ai.js:125](app/js/ai.js#L125) 参考释义入参）;`getFamily` 成员释义全局优先（[library.js:501-511](app/js/library.js#L501-L511)）;`clozeEntry` 全局富化保留印刷词形（[library.js:218-227](app/js/library.js#L218-L227)）。**兼容**：`parse` 对全局已收录词在解析期降为引用、未收录词保留用户释义;`fromCet6` 同时接受字符串与 legacy 对象;旧落盘自定义书启动时一次性迁移删副本（[library.js:643-655](app/js/library.js#L643-L655)、[app.js:3778](app/js/app.js#L3778)）;自定义书读取时经 `customBook` 富化（[library.js:623-640](app/js/library.js#L623-L640)）。
+**代码层**：`enrich(word, rootId, rootZh, rootEn, familySize)` 去掉 meaning 入参，`zh/cefr/phonetic` 一律全局（[library.js:130-156](app/js/library.js#L130-L156)）;`getBook/listBooks` 适配字符串引用与全局 `cf` 过滤;显示点全部同源（[app.js:456](app/js/app.js#L456)、[:484](app/js/app.js#L484)、[:1028](app/js/app.js#L1064)、[:1402](app/js/app.js#L1449)、[:1529](app/js/app.js#L1586)、[:1596](app/js/app.js#L1653)、[:2291](app/js/app.js#L2353)、[quiz.js:66](app/js/quiz.js#L66)、[library.js:110-114](app/js/library.js#L110-L114)、[ai.js:46-51](app/js/ai.js#L46-L51) 参考释义入参）;`getFamily` 成员释义全局优先（[library.js:501-511](app/js/library.js#L501-L511)）;`clozeEntry` 全局富化保留印刷词形（[library.js:218-227](app/js/library.js#L218-L227)）。**兼容**：`parse` 对全局已收录词在解析期降为引用、未收录词保留用户释义;`fromCet6` 同时接受字符串与 legacy 对象;旧落盘自定义书启动时一次性迁移删副本（[library.js:643-655](app/js/library.js#L643-L655)、[app.js:3778](app/js/app.js#L3778)）;自定义书读取时经 `customBook` 富化（[library.js:623-640](app/js/library.js#L623-L640)）。
 
 **验收**（[scripts/verify-single-source.js](scripts/verify-single-source.js)，退出码 0）：首行同源 **57,402 词 0 例外**;cloze 牌组 1,166 行、词根家族 21,210 成员 0 偏差;跨四级六级 **3,372 原始共享词 / 2,504 渲染共享词字节级相同**;57,566 条引用全解析、副本残留 0;exams 1.45MB ≤1.8MB;加载耗时中位 四级 22 / 六级 32 / 考研 27 ms（基线 39 / 69 / 43）;各书词数与基线完全一致。兼容门 [scripts/verify-custom-compat.js](scripts/verify-custom-compat.js) 全绿（legacy TSV/cet6 对象/引用 cet6/迁移幂等/自定义渲染）。**浏览器实测**：六级与四级 `grandfather` 卡片首行字节级相同且等于全局（含「[电] 原始资料组」）;词根家族 37 成员、选词填空 369 行、测试选项与提示行均与全局派生值一致;legacy 导入后已知词显示全局、用户自造词显示用户释义;控制台无应用 JS 错误（仅有道词典在纯浏览器下的既有 CORS 限制）。
 
@@ -999,7 +1001,7 @@
 - 唯一块清单 `BLOCK_IDS`（phonetic / morphemes / mnemonic / meaning / definitions / family / synonyms / derivatives / inflections / etymology / examples / collocations / freq / cloze / dict / ai）+ 唯一渲染器 `renderWordBlocks(e, host)`;学习页 `#word-blocks` 与词卡 `.word-blocks` 调同一函数（[app.js:396](app/js/app.js#L396)、[app.js:413-534](app/js/app.js#L413-L534)、[app.js:1768-1770](app/js/app.js#L1768-L1770)、[index.html:39](app/index.html#L39)）。
 - 删除双套系统：`Library.buildCards`、`cardOrder`、`renderCards / orderedCards / cardBody / moveCard / wireDrag`、词卡头部/详情分组、`word-detail-btn` 与 `set-card-reset`、`ai.autoExplain`（设置行 + 自动触发 + 存储字段）。
 - 设置只剩一份 `.panel-order`：16 行，每行拖动柄 + ↑↓ + 开关，底部「恢复默认顺序」（[index.html:588-734](app/index.html#L588-L734)、[app.js:3323 renderPanelOrderUi](app/js/app.js#L3323)、[app.js:3337 savePanelOrder](app/js/app.js#L3337)、[app.js:3343 movePanelRow](app/js/app.js#L3343)、[app.js:3350 wirePanelOrder](app/js/app.js#L3350)、[app.js:3239 开关监听](app/js/app.js#L3353)、[app.js:3336 重置](app/js/app.js#L3450)）。
-- 存储：`studyPanel`（16 布尔，默认全开）+ `studyPanelOrder`（唯一排列）;旧 `cardOrder` 在本机/备份没有新顺序时**整段接管并保留旧相对次序**，否则只补缺失块，随后删键;`ai.autoExplain` 在 normalize 与 import 两处一律删除（[store.js:15-24](app/js/store.js#L15-L24)、[store.js:122-133](app/js/store.js#L122-L133)、[store.js:147](app/js/store.js#L147)、[store.js:616](app/js/store.js#L616)、[store.js:735-740](app/js/store.js#L735-L740)、[store.js:675](app/js/store.js#L675)、[store.js:980 defaultPanelOrder](app/js/store.js#L1004)）。
+- 存储：`studyPanel`（16 布尔，默认全开）+ `studyPanelOrder`（唯一排列）;旧 `cardOrder` 在本机/备份没有新顺序时**整段接管并保留旧相对次序**，否则只补缺失块，随后删键;`ai.autoExplain` 在 normalize 与 import 两处一律删除（[store.js:15-24](app/js/store.js#L15-L24)、[store.js:122-133](app/js/store.js#L122-L133)、[store.js:147](app/js/store.js#L147)、[store.js:616](app/js/store.js#L616)、[store.js:735-740](app/js/store.js#L735-L740)、[store.js:675](app/js/store.js#L675)、[store.js:1006 defaultPanelOrder](app/js/store.js#L1006)）。
 - 联网块缓存优先：词典无缓存 →「查询词典」，AI 无缓存 →「生成 AI 解释」，渲染词卡本身 0 网络请求（[app.js:1929](app/js/app.js#L1929)、[app.js:2030](app/js/app.js#L2030)）;`sig` 与当前词典配置不符的旧缓存标注「本地缓存（按旧词典配置生成）」并给「按当前配置重查」按钮，不再静默自动重查（[app.js:1935-1943](app/js/app.js#L1935-L1943)、[app.js:1995-1998](app/js/app.js#L1995-L1998)）。
 - 设置改动即时同步学习页与已打开的词卡;从「我的」改设置时学习页置脏，切回学习页自动重绘（[app.js:22](app/js/app.js#L22)、[app.js:50](app/js/app.js#L50)、[app.js:370](app/js/app.js#L370)、[app.js:3329-3335 refreshPanelViews](app/js/app.js#L3329-L3335)）。
 - 视觉：整张词卡是一个干净表面，块间发丝线分隔、无嵌套卡片;释义不再 3 行截断;清掉 `.cards / .card* / .pos-group* / .mnemonic-body / .word-detail-btn / .panel-order-group` 等死规则与 `--card-pad / --gap-card` 死 token，入场动画改挂 `.word-blocks > *`（[app.css:639-649](app/css/app.css#L639-L649)、[app.css:1185-1188](app/css/app.css#L1185-L1188)、[app.css:1242-1246](app/css/app.css#L1242-L1246)）。
@@ -1050,7 +1052,7 @@
 - **懒加载**：启动只读 manifest（[platform.js:136-138](app/js/platform.js#L136-L138)、[main.js:342-354](main.js#L342-L354)）；打开某套才按 examId 取分片（[platform.js:142 loadExamShard](app/js/platform.js#L134)、[main.js:357 get-exam-shard](main.js#L356)，examId 正则白名单防路径穿越）；分片内存缓存。**不整卷塞满**：刷题按「一段材料 + 一组题」推进（[exams.js sessions](app/js/exams.js)）。
 - **引擎** [app/js/exams.js](app/js/exams.js)：`Exams.init/list/load/availableTypes/sessions/judge/analyzeQuestion/analyzeWriting/typeStats/wrongQuestions`；加载顺序 quiz→exams→app（[index.html:901](app/index.html#L901)）。三级判分：`answers[no]` 存在→自动判；否则 AI 可用（`ai.enabled` + effectiveKey）→「AI 分析/批改」按钮（复用 `Platform.llmChat`，结果标注「AI 推断，仅供参考」并缓存）；再否则自评「答对/答错」。AI 缓存键 `examId:no`（写译 `examId:w/t`）。
 - **UI**（[app.js:3501 起](app/js/app.js#L3615)、[index.html:173 view-exams](app/index.html#L175)）：专项视图顶部「真题刷题」入口 → 年份分组列表（题量/题型/残缺徽标/已练数）→ 套详情（残缺 banner 如实提示 + 题型卡 + 听力/选词暂不开刷说明 + 错题重练）→ 刷题会话（阅读 passage 滚动框 + 单题选项；匹配 15 段落 ↔ 字母芯片；写译写作区 + 字符计数）→ 结果页（正确率/答对/答错/未判 + 错题列表 + 重练）。返回栈：会话→详情→列表→专项（[app.js handleBack](app/js/app.js#L77)）。全部渲染走 `esc()`，样式全走主题 token（[app.css:1359 起](app/css/app.css#L1393)），触控 ≥44px、字号 ≥11.5px、aria-live 播报。
-- **持久化**（[store.js:20](app/js/store.js#L20)、[store.js:455 normalizeExams](app/js/store.js#L477)、[store.js:494 examAnswer](app/js/store.js#L516)）：`exams:{progress,wrong,aiCache}`；每套每题 `{p,ok,m,t}`（ok 1/0/-1，m auto/self/ai），错题本上限 300、AI 缓存上限 300（LRU 按时间）；写译用伪题号 56/57（Store 题号守卫扩至 57）。导出导入纳入 exams 块（replace 重置、merge 按 ts 取新、错题去重），密钥剔除规则不变。
+- **持久化**（[store.js:20](app/js/store.js#L20)、[store.js:479 normalizeExams](app/js/store.js#L479)、[store.js:518 examAnswer](app/js/store.js#L518)）：`exams:{progress,wrong,aiCache}`；每套每题 `{p,ok,m,t}`（ok 1/0/-1，m auto/self/ai），错题本上限 300、AI 缓存上限 300（LRU 按时间）；写译用伪题号 56/57（Store 题号守卫扩至 57）。导出导入纳入 exams 块（replace 重置、merge 按 ts 取新、错题去重），密钥剔除规则不变。
 
 **验证**：
 - 解析器严格校验 0 错误 + 幂等 0 差异；`node --check` 全部通过；三门回归（single-source / panel-order / custom-compat）复跑全绿。
@@ -1170,8 +1172,8 @@
 **需求**（用户原话要点）：AI 学习空间是**全屏**空间，开启后**先和人确认**，再根据已有学习记录/学习目标按一定**教学策略**讲解，**完成学习后才会有每日报告**（替代 §8.44 的三标签内联面板）;先接入千问 MaaS 三模型（qwen3.8-flash / qwen3.8-omni-flash / qwen4-max，OpenAI 兼容 `https://maas.qianwenaiapi.com/compatible-mode/v1`）实测 AI 功能;「翻译与写作」已转结构化 study.json（翻译 9 / 六级写作 77 / 四级写作 12 / 小节 526 / 对齐 78 覆盖 57 套），需接入并优化（单源、不重复存储）。
 
 **实现**：
-- **千问 MaaS（DEV-ONLY）**：`ai.js` 追加 `QWEN_MAAS_API`（[ai.js:55-63](app/js/ai.js#L55-L63)，`id:'qwenmaas'`、三模型下拉、内置开发 Key 前缀 `sk-ws-H…`、`jsonMode:true`、`noThink:true`）;`noThink` 经 `resolveConfig`（[ai.js:114](app/js/ai.js#L114)）→ `Platform.llmChat` / `main.js llm-chat` / `exams.chat` / AI 空间全链透传 `enable_thinking:false`——qwen4-max 是推理模型，不关思考会耗尽 token 返回空 content。**默认服务商**：store.js DEFAULTS 与 normalize 回退、app.js 设置回退由 `devfree` 改 `qwenmaas`（新装 `enabled:true`）;旧存 devfree/qnafree 自动迁移 qwenmaas，用户自选其他服务商不动（[store.js:34](app/js/store.js#L34)）。实测三模型 HTTP 200（flash 2167ms / omni 1493ms / max 关思考后直出）。**发布前与 devfree/qnafree 一并删除 + 作废**（§9 清单已更新）。
-- **全屏导学**：`#mode-ai` 改入口按钮（`aria-haspopup="dialog"`，不再占模式档）→ 整页 `#ai-space-sheet`;删除内联 `#ai-space`/三标签/旧 renderAiReport/Clinic/Qa 与 setMode('ai')/handleBack ai 分支。状态机 confirm→session→done（+report 查看）：**confirm** 学习记录摘要 tiles + 时长/重点/策略 chips + 计划预览（`aiBuildSteps` 按分钟配额生成 review/clinic/study 步，[app.js:4686](app/js/app.js#L4686)），配置存 `space.tutor.plan`;**session** 每步 AI 讲解（策略变换 prompt，按步缓存 `teach:<date>:<idx>:…`）+ 词表/错词卡 + 内联即时检查（teach/guide 英→中、recite 中→英，4 选项判分标色锁定、错词入会话）+ 翻译精读揭示译文 + 随步提问（≤8 轮）;答完/揭示才解锁下一步，可跳过;会话存 `space.tutor.session`，**重载续学**（[app.js:4730 openAiSpace](app/js/app.js#L4730)、[app.js:4895 renderAiSession](app/js/app.js#L4895)）;**done** 汇总 tiles + 仍错词 chips，**此时才自动 `aiGenReport`**（当日日志 + 导学结果入 prompt）写 `space.report[today]`，可重新生成;confirm 列历史报告（[app.js:5005](app/js/app.js#L5005)、[app.js:5072](app/js/app.js#L5072)）。未接入 AI：confirm 横幅 + 禁用开始;会话中可自学完成检查。
+- **千问 MaaS（DEV-ONLY，已随 §8.52 移除）**：当时 `ai.js` 追加 `QWEN_MAAS_API`（`id:'qwenmaas'`、三模型下拉、内置开发 Key 前缀 `sk-ws-H…`、`jsonMode:true`、`noThink:true`），2026-11-23 已整块删除;`noThink` 作为通用服务商标记保留，经 `resolveConfig`（[ai.js:69-75](app/js/ai.js#L69-L75)，字段透出在 [:74](app/js/ai.js#L74)）→ `Platform.llmChat` / `main.js llm-chat` / `exams.chat` / AI 空间全链透传 `enable_thinking:false`——推理模型不关思考会耗尽 token 返回空 content。**默认服务商**：当年由 `devfree` 改 `qwenmaas`，随 §8.52 一并回落为 `deepseek`（[store.js:34](app/js/store.js#L34)），旧存 devfree/qnafree/qwenmaas 的迁移与清模型名见 §8.52。当时实测三模型 HTTP 200（flash 2167ms / omni 1493ms / max 关思考后直出）。**服务端 Key 作废仍未执行**（§9 清单）。
+- **全屏导学**：`#mode-ai` 改入口按钮（`aria-haspopup="dialog"`，不再占模式档）→ 整页 `#ai-space-sheet`;删除内联 `#ai-space`/三标签/旧 renderAiReport/Clinic/Qa 与 setMode('ai')/handleBack ai 分支。状态机 confirm→session→done（+report 查看）：**confirm** 学习记录摘要 tiles + 时长/重点/策略 chips + 计划预览（`aiBuildSteps` 按分钟配额生成 review/clinic/study 步，[app.js:4686](app/js/app.js#L4686)），配置存 `space.tutor.plan`;**session** 每步 AI 讲解（策略变换 prompt，按步缓存 `teach:<date>:<idx>:…`）+ 词表/错词卡 + 内联即时检查（teach/guide 英→中、recite 中→英，4 选项判分标色锁定、错词入会话）+ 翻译精读揭示译文 + 随步提问（≤8 轮）;答完/揭示才解锁下一步，可跳过;会话存 `space.tutor.session`，**重载续学**（[app.js:4728 openAiSpace](app/js/app.js#L4728)、[app.js:4893 renderAiSession](app/js/app.js#L4893)）;**done** 汇总 tiles + 仍错词 chips，**此时才自动 `aiGenReport`**（当日日志 + 导学结果入 prompt）写 `space.report[today]`，可重新生成;confirm 列历史报告（[app.js:5005](app/js/app.js#L5005)、[app.js:5072](app/js/app.js#L5072)）。未接入 AI：confirm 横幅 + 禁用开始;会话中可自学完成检查。
 - **存储**：`SPACE_KINDS` 增 `tutor`（cap 60），`normalizeTutorSession` 校验会话形状（steps≤12、kind 白名单、picks/revealed/qa≤8/wrong/correct/total/done），plan 校验 minutes/focus/strategy 枚举;导出导入沿用 space 按 key 取新合并（[store.js:390-464](app/js/store.js#L390-L464)）。
 - **study.json 接入**：拷入 `app/data/study.json`（854,222 字节）;`Platform.loadStudy`（[platform.js:141](app/js/platform.js#L141)）+ Electron `get-study`（[main.js:363](main.js#L363)）懒加载，**不进启动 names**;`Library.studyInit/studyReady/studyCounts/studyItem/studyList/studyForExam/studyMisc`（[library.js:229-264](app/js/library.js#L229-L264)）建 id/examId 索引，init 清缓存。专项考试组新增四行材料入口（[app.js:1716 studyMaterialEntries](app/js/app.js#L1716)，注意与既有会话助手 `studyEntries(b)` 不同名）;整页 `#study-sheet` 阅读器：列表统计 + 类别 chips + 篇目行（对齐徽标 原文对齐/卷标对齐/仅卷标）→ 详情小节导航 + pre-wrap 正文 + **背诵模式**（翻译隐藏参考译文与迁移练习答案、写作隐藏英文原文与润色版，逐块原位揭示不重置滚动）+ 积累 25 块按 3 文件分组展开;真题详情「参考资料」卡列 `studyForExam` 篇目（含 C4 写作共 3 篇对 2026-06-01），点击直达阅读器、关闭回详情（[app.js:4273](app/js/app.js#L4273)）。**links 是唯一对齐源，62 真题分片字节不变**。
 - CSS：删 ai-head/ai-tabs/ai-clinic-* 旧块，新增 ai-cfg/ai-plan/ai-check-*/ai-opt(right/wrong)/ai-thinking/study-text/study-reveal 等;`.exam-badge` 基础色与 .gray 变体;全部 token 化、触控 ≥44px。
@@ -1237,9 +1239,9 @@
 - 释义三级回退 [app.js:720 morphGlossOf](app/js/app.js#L720)：chip 自带 → 词根家族 zh → 词缀表 zh/en → 词根表 zh;源头 [library.js:64 rootGloss](app/js/library.js#L64) 补 `rootFamily.rootZh` 缺失时的家族释义（AI prompt 同步受益）。
 - AI 详解构词块改同组件单行（[app.js:2359](app/js/app.js#L2359)），旧 `.ai-morph*` 六条 CSS 与 `buildMorphemes` 删除;resize 时全页 refit。
 
-**AI 印象文章**（confirm 与 done 两阶段卡片，[app.js:5107 aiArticleCard](app/js/app.js#L5107)）：
+**AI 印象文章**（confirm 与 done 两阶段卡片，[app.js:5105 aiArticleCard](app/js/app.js#L5105)）：
 - 选词：本次会话步骤词 ∪ 今日日志新学/复习，空则到期/新词回退，≤12 词;字数三档 `s/m/l = 60–100 / 120–180 / 250–350`（[app.js:5083](app/js/app.js#L5083)），选择持久化 `space.article.prefs`。
-- 生成 [app.js:5157 aiGenArticle](app/js/app.js#L5157)：`aiSpaceChat` 增加 opts（jsonMode/temperature，[app.js:4661](app/js/app.js#L4661)），JSON `{paras:[{en,zh}]}` ≤4 段、剥 fence 后解析校验，失败显示可重试错误不写缓存;缓存键 `space.article[日期:档位]`（≤30 条），记录 `{paras, words, range, t, provider, model}`。
+- 生成 [app.js:5155 aiGenArticle](app/js/app.js#L5155)：`aiSpaceChat` 增加 opts（jsonMode/temperature，[app.js:4661](app/js/app.js#L4661)），JSON `{paras:[{en,zh}]}` ≤4 段、剥 fence 后解析校验，失败显示可重试错误不写缓存;缓存键 `space.article[日期:档位]`（≤30 条），记录 `{paras, words, range, t, provider, model}`。
 - 渲染：衬线英文段落 + 左竖线 + 段下中文译文;目标词（含 s/es/ed/ing/d 变形）高亮为可点按钮，**嵌套弹层**打开词卡（AI 空间保持在下层，[app.js:2298 openWordSheet nested](app/js/app.js#L2298)、[app.js:5236](app/js/app.js#L5236)）;通用 `[data-close]` 改为只关所在嵌套层（[app.js:3659](app/js/app.js#L3659)）;有缓存时芯片行展示文章自身词表;可重新生成 / 删除本篇（`spaceDel` [store.js:470](app/js/store.js#L470)）。
 
 **学习记录完整保存**（store 层修补）：
@@ -1272,10 +1274,41 @@
 
 **验证**：`pages-roots-e2e` **54/54**（词缀 tab 三行/轨的可见性改判 `getComputedStyle(...).display`，不再只看 `.hidden` 属性——旧断言正是这样漏掉了本 bug;`未学/学习中/接近学完 = 3064/33/3` 与页面独立重算一致且三类之和等于总数;`学习中` 33/33 且保留种子部分学习词缀、剔除接近学完词缀;`接近学完` 命中种子词缀;前缀/后缀副筛选结果是状态子集;重置后 3,100 条全部懒加载可达;切回词根 tab 芯片计数是词根而非词缀（未学 3729 vs 3064））;回归九套 38/43/21/16/35/49/40/65/39 全绿;797 条引用 0 失效（127 条因本批 app.js 行号平移自动重锚）。**按用户要求只提交不推送**。
 
+### 8.52 移除开发期内置 AI Key + 下拉控件与字段外观统一 ✅
+
+**需求**（用户原话）：「把用于开发的 apikey 去掉」「那个切换模型用的选项框优化一下，跟别的选项框不一样」。
+
+**移除（§8.25 清单第 1 步执行完毕）**
+
+- 删除 `ai.js` 整个 DEV-ONLY 区域（`DEV_FREE_API` / `QNAI_FREE_API` / `QWEN_MAAS_API` 三常量与各自 `unshift` 注入，原 [ai.js:21-64](app/js/ai.js#L21-L64)），服务商回到 13 项纯商用预设（[ai.js:4](app/js/ai.js#L4)）。
+- `resolveConfig` 去掉 `|| p.devKey` 回退（[ai.js:73](app/js/ai.js#L73)），Key 只取用户填写值;`effectiveKey` 的注释随之改为「只发送设置里填的 Key」（[ai.js:77](app/js/ai.js#L77)）。
+- 设置面板删除开发提示条 `#set-ai-dev-note`（原 [index.html:928](app/index.html#L928)）与 `.dev-note` 样式;Key 占位符恒为「仅保存在本机」（[app.js:3501](app/js/app.js#L3501)）。
+- 默认服务商由 `qwenmaas` 改回 `deepseek` 且 `enabled:false`（[store.js:34](app/js/store.js#L34)、[app.js:3467](app/js/app.js#L3467)）;旧存档里残留的 `devfree/qnafree/qwenmaas` 在 normalize 时回落 `deepseek` **并清空 `ai.model`**，避免把开发模型名发给商用端点（[store.js:153](app/js/store.js#L153)）。
+- 测试夹具同步：`scripts/verify-panel-order.js` 两处 `provider:'devfree'` → `'deepseek'`。
+- **仍需人工执行**：三个 Key（`rc-366f…`、`sk-9177…`、`sk-ws-H…`）已进公开 git 历史，须到服务端作废/轮换——删代码不能抹历史（§9）。
+
+**下拉控件统一**
+
+- 根因：`.field select` 沿用 UA `appearance: auto`，Windows 原生箭头方块与白色弹层不属于设计系统，和同一面板里的文本框（模型、API Key）明显不一致。
+- 新增 token `--field-arrow`：浅色 [app.css:95](app/css/app.css#L95)（尖角 `%236e6e73`），OS 深色变体 [app.css:402](app/css/app.css#L402)（`%23a9a9ae`），值为内联 SVG data URI。
+- [app.css:924-926](app/css/app.css#L924-L926)：`appearance:none` + 尖角作 `background-image`（右 13px、12px、`padding-right:36px` 让长模型名不与尖角相撞）+ `:hover` 用 `--fill-2` 给反馈 + `option` 用 `--elevated`/`--text` 上色使弹层随主题;焦点环沿用全局 `:focus-visible`（[app.css:542](app/css/app.css#L542)）。
+- 覆盖面板内全部 `.field` 下拉（AI 服务商、朗读语言、考纲对比两处、专项主题、词典返回格式与鉴权方式）。
+- 移除开发预设后没有任何服务商声明 `models`，「模型」栏恒为自由文本;`models` → 下拉的机制保留（[app.js:3481-3493](app/js/app.js#L3481-L3493)），日后给某服务商补上模型清单即可直接复用，无需再改 UI。
+
+**验证**
+
+- 新增 `ai-select-e2e` **16/16**：13 项服务商且无 `dev/devKey/models`;空 Key 解析为空;`qwenmaas`/`devfree` 存档经 `Store.flush() → Store.load()` 真实落盘路径回落 `deepseek` 且模型清空;提示条元素不存在;占位符与提示文案为商用措辞;`appearance:none`、尖角 data URI、盒高/圆角/底色与文本框一致、`padding-right:36px`。
+- 深色模式实测（`Emulation.setEmulatedMedia` 模拟 OS 深色）：`--field-arrow` 取 `%23a9a9ae`、`option` 底色 `rgb(36, 36, 38)`。
+- 发布门禁 `grep -rE "DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H" app/` 已为空;`grep -rn "devKey|p.dev|dev-note" app/` 亦为空。
+- 回归：`pages-roots` 54/54、`study-style` 38/38、`ai-space` 43/43、`dict-regress` 48/48、`cloze` 67/67、`cloze-year` 39/39、`quiz-personal` 63/63、`study-reader` 21/21、`display-opt` 35/35、`ui-opt` 40/40、`loading` 16/16、`ai-select` 16/16。
+- 两处如实说明：`dict-e2e` 的「在线合并查词」步骤依赖 dictionaryapi.dev，本机 `curl` 实测 **403**（上游拦截），该步超时与本次改动无关，离线词典行为由 `dict-regress` 覆盖;`cloze-e2e` 原「exam group order」断言取 `.theme-group[0]`，而 §8.36 起「我的分组」恒为第一个区块，属断言过时，已改为「内置分组里第一个是考试专项」，非产品缺陷。
+- 按用户要求只提交不推送。
+
 ## 10. 变更日志（Git）
 
 | 提交 | 内容 |
 |---|---|
+| 本地（§8.52） | 移除开发期内置 AI Key + 下拉控件与字段外观统一：删除 ai.js DEV-ONLY 区（`DEV_FREE_API`/`QNAI_FREE_API`/`QWEN_MAAS_API` 三块常量与 `PROVIDERS.unshift`，净 −45 行，只剩 13 个商用预设），`resolveConfig`/`effectiveKey` 只取用户在设置里填的 Key（ai.js:73/77）;store.js:153 新增旧存档迁移 `devfree|qnafree|qwenmaas → deepseek` 且清空 `ai.model`，normalize 回退同改（149/150）;设置页删「开发期免费」提示链（index.html `set-ai-dev-note`、app.css `.dev-note`、app.js `devNote` 逻辑），Key 占位改「仅保存在本机」（app.js:3501）;`.field select` 由 UA 原生控件改为与 `.field input` 同盒（`appearance:none` + 主题化 chevron token `--field-arrow` 95/402、hover `--fill-2`、`option` 取 `--elevated/--text`，app.css:923-926）。发布前门禁 `grep -rE "DEV_FREE_API|QNAI_FREE_API|QWEN_MAAS_API|rc-366f|sk-91774e|sk-ws-H" app/` 为空;ai-select-e2e 16/16（含真实 `Store.flush → load` 迁移、盒尺寸/圆角与文本框一致）+ dark 实测 + 回归十一套 54/38/43/48/67/39/63/21/35/40/16 全绿;dict-e2e 卡在 dictionaryapi.dev 上游 403（外部，离线由 dict-regress 48/48 覆盖）;cloze-e2e 一条过期断言（考试组首位 vs 现行「我的分组」恒首，app.js:1672）已按现行为修正。**服务端三块 Key 的作废/轮换仍未执行，需人工**（§8.25 步骤 2）;按用户要求只提交不推送 |
 | 本地（§8.51） | 修复词缀页状态筛选不生效：`.chip-row[hidden]` / `.letter-rail[hidden]` 显式守卫（author 的 `display:flex` 压过 UA `[hidden]`，`hidden` 属性生效而视觉不生效，旧 e2e 只断言属性故漏）;状态芯片行改为两 tab 共用 `buildCatChips`，词缀按 `affixWordsMap` ∩ `learnProgress` 计算自身词集进度并共用 `catOf` 三档，新增 `affixCat`、点击按 `rootsTab` 路由，与副筛选/搜索叠加，`affixBatch.infos` 复用免重算;词缀 tab 隐藏排序芯片与字母轨;pages-roots 54/54 + 回归九套 38/43/21/16/35/49/40/65/39;按用户要求只提交不推送 |
 | `2d48b53` | 构词合并行（单词下方单行大字 + 前缀/词根/后缀三色 + 释义列下对齐，学习页/词卡/AI 详解同组件，释义三级回退）;AI 空间印象文章（会话词∪今日日志 ≤12 词、三档字数 60–100/120–180/250–350、JSON 生成、高亮嵌套词卡、按天:档缓存、可删可再生）;学习记录完整保存（session 上限 24/400/40/40、tutor 淘汰豁免 plan/session、qa 40、space.article 全链）;词根默认词数降序 + 隐藏 <3 词家族（8,331→3,934）+ 三芯片切换 + 搜索豁免;修重渲染滚动复位与字母轨跳转落短;study-style 38/38 + ai-space 43/43 + pages-roots 44/44 + 真实千问印象文章 + 回归七套 21/16/35/50/40/65/39;775 引用 0 失效;**按用户要求本批提交并推送**，并一并带上 §8.40–§8.49 本地提交 → CI 44712984044 → `android-52` |
 | 本地（§8.49，随 2d48b53 推送） | 学习页 / 词卡与 AI 详解统一编辑式视觉语言：`--font-en` 衬线英文释义与例句（左竖线 + 中文译文）、蓝色 12px 块标题 + AI 来源小标、14px 留白取代发丝线、构词行（mono 词素按钮 + 类型徽标）取代单行 bar 并删 fitMorphemes、中点 plain 可点击词表取代 chips、巧记 / 词源纯段落、词库缺例句 / 搭配回退 AI 缓存并标来源;16 块顺序 / 开关不变;study-style-e2e 31/31 + 回归九套 30/21/16/35/36/48/40/64/39 全绿;README 学习页截图同步;按用户要求只提交不推送 |

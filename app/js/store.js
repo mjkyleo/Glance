@@ -31,7 +31,7 @@
     ttsRate: 1,
     ttsLang: '',
     fsrs: { w: null, seqs: {}, count: 0, lastOpt: 0 },
-    ai: { provider: 'qwenmaas', key: '', model: '', base: '', enabled: true },
+    ai: { provider: 'deepseek', key: '', model: '', base: '', enabled: false },
     aiCache: {},
     space: { report: {}, clinic: {}, qa: {}, tutor: {}, article: {} },
     rootsView: { sort: 'size', hideSmall: true },
@@ -146,9 +146,11 @@
     if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
-    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'devfree', key: '', model: '', base: '', enabled: false };
-    else d.ai = Object.assign({ provider: 'devfree', key: '', model: '', base: '', enabled: false }, d.ai);
+    if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
+    else d.ai = Object.assign({ provider: 'deepseek', key: '', model: '', base: '', enabled: false }, d.ai);
     delete d.ai.autoExplain;
+    // 开发期内置免费服务商已随其 Key 一起移除：旧存档回落默认服务商，并清掉残留的开发模型名。
+    if (['devfree', 'qnafree', 'qwenmaas'].indexOf(d.ai.provider) >= 0) { d.ai.provider = 'deepseek'; d.ai.model = ''; }
     if (!d.aiCache || typeof d.aiCache !== 'object') d.aiCache = {};
     d.space = normalizeSpace(d.space);
     if (!d.rootsView || typeof d.rootsView !== 'object' || Array.isArray(d.rootsView)) d.rootsView = { sort: 'size', hideSmall: true };

@@ -318,10 +318,10 @@
 | `fsrs` | `{w, seqs: {word: [{t, g}]}, count, lastOpt}` | 个性化权重与复习序列 |
 | `customBooks` | `{name: {entries[]}}` | 自定义词书（§4） |
 | `customThemes` | `[{id, name≤20, words[], ts}]` | 自定义专项词组；id 为 `ct_` 前缀，词去重保序 |
-| `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史;`config` 含 `explore`(0–40，默认 20)/`confusion`/`curated`;`history[word]` 含 `mix{伙伴词: 误选次数}`（每词 ≤8，[store.js:643 cleanMix](../app/js/store.js#L665)、[store.js:655 recordQuizResult](../app/js/store.js#L677)） |
+| `quiz` | `{config, ability, answered, correct, streak, history}` | 测试配置/能力/按词历史;`config` 含 `explore`(0–40，默认 20)/`confusion`/`curated`;`history[word]` 含 `mix{伙伴词: 误选次数}`（每词 ≤8，[store.js:667 cleanMix](../app/js/store.js#L667)、[store.js:679 recordQuizResult](../app/js/store.js#L679)） |
 | `quizExamples` | `{word: {examples[≤6], provider, ts}}` | 例句填空缓存 |
 | `aiCache` / `dictCache` | `{word: record}` | AI 解释 / 外部词典按词缓存 |
-| `space` | `{report: {date: rec}, clinic: {word: rec}, qa: {word: {turns[≤40], t, provider, model}}, tutor: {plan, session, teach:*}, article: {prefs, <date>:<range>: rec}}` | AI 空间缓存：日报按天、门诊讲解按词、问答按词多轮;rec 为 `{text≤4000, t, provider, model}`;**tutor**：`plan{minutes∈10/15/20/30, focus∈auto/due/errors/study, strategy∈teach/guide/recite}`、`session{date, steps[≤24], idx, picks[≤400], revealed[≤40], qa[≤40], wrong, correct, total, startedAt, done}`（[store.js:396 normalizeTutorSession](../app/js/store.js#L396)）、`teach:<date>:<idx>:…` 按步讲解缓存;**article**：`prefs{range∈s/m/l}` + 按 `日期:档位` 的 `{paras[≤4]{en,zh}, words[≤12], range, t, provider, model}`（[store.js:441-448](../app/js/store.js#L441-L448)）;上限 report 14 / clinic 300 / qa 100 / tutor 60 / article 30，**tutor 淘汰豁免 plan/session**（[store.js:419 normalizeSpace](../app/js/store.js#L419)、[store.js:459-460](../app/js/store.js#L459-L460)） |
+| `space` | `{report: {date: rec}, clinic: {word: rec}, qa: {word: {turns[≤40], t, provider, model}}, tutor: {plan, session, teach:*}, article: {prefs, <date>:<range>: rec}}` | AI 空间缓存：日报按天、门诊讲解按词、问答按词多轮;rec 为 `{text≤4000, t, provider, model}`;**tutor**：`plan{minutes∈10/15/20/30, focus∈auto/due/errors/study, strategy∈teach/guide/recite}`、`session{date, steps[≤24], idx, picks[≤400], revealed[≤40], qa[≤40], wrong, correct, total, startedAt, done}`（[store.js:398 normalizeTutorSession](../app/js/store.js#L398)）、`teach:<date>:<idx>:…` 按步讲解缓存;**article**：`prefs{range∈s/m/l}` + 按 `日期:档位` 的 `{paras[≤4]{en,zh}, words[≤12], range, t, provider, model}`（[store.js:441-448](../app/js/store.js#L441-L448)）;上限 report 14 / clinic 300 / qa 100 / tutor 60 / article 30，**tutor 淘汰豁免 plan/session**（[store.js:421 normalizeSpace](../app/js/store.js#L421)、[store.js:459-460](../app/js/store.js#L459-L460)） |
 | 偏好 | `plan, activeBook, profile, theme, studyPanel, studyPanelOrder, bookFilter, progressBars, autoSpeak, preferAudio, ttsRate, ttsLang, background, ai, dict` | 本机设置 |
 
 **`dict` 块（多词典）**（[store.js:34](../app/js/store.js#L34)、[store.js:65-110 normalizeDict](../app/js/store.js#L66-L111)）：
@@ -426,7 +426,7 @@
 - **Android / 浏览器**：Key 仅存应用私有 `localStorage`，不上传;共享镜像与导出均剔除 Key。
 - **备份剔除**：`exportData` 显式 `delete ai.key/keyEnc`、`delete dict.key/keyEnc/keys/keysEnc`，并逐个清洗 `dict.custom[].key`（[store.js:592-597](../app/js/store.js#L592-L597)）;`importData` replace 时**保留本机整个 Key 映射**，导入的自定义词典若与本机同 id 则沿用本机 Key（[store.js:739-746](../app/js/store.js#L739-L746)）。
 - 推论：卸载重装后共享镜像可恢复学习进度，但 **Key 需重新填写**（Key 不在镜像里）。
-- **开发期免费 Key（DEV-ONLY，例外说明）**：`ai.js` 的 `DEV_FREE_API.devKey` 与 `QNAI_FREE_API.devKey` 是内置在**代码**里的公开开发密钥（非用户私密 Key），供开发期免配置试用 AI；它们不属于 `data.ai.key`，故没入备份/镜像（备份只剔除用户 Key）。**正式发布前必须删除这两整块代码并到服务端作废 Key**（Key 已进公开 git 历史），详见 [DEVELOPMENT.md §8.25](../DEVELOPMENT.md)。本节加密保护的是**用户自填 Key**，与公开开发 Key 是两回事。
+- **开发期免费 Key（已于 2026-11-23 移除）**：`ai.js` 曾内置 `DEV_FREE_API` / `QNAI_FREE_API` / `QWEN_MAAS_API` 三个开发用公开密钥，它们写在**代码**里、不属于 `data.ai.key`，因此从未进入备份/镜像（备份只剔除用户 Key）。**现在代码里已不存在任何内置密钥，`resolveConfig` 只取用户填写值**（[ai.js:73](../app/js/ai.js#L73)）;遗留动作是到服务端作废这三个 Key（已进公开 git 历史），见 [DEVELOPMENT.md §8.52](../DEVELOPMENT.md)。本节加密保护的始终是**用户自填 Key**。
 
 ## 6. 备份导出 / 导入规范
 
