@@ -6,9 +6,22 @@
   <meta name="theme-color" content="#f5f7fa" />
   <meta name="theme-color" content="#131418" media="(prefers-color-scheme: dark)" />
   <title>Glance · 词根背单词</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="glance-mark" viewBox="0 0 1024 1024">
+      <g fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 640.6 259.8 A 200 200 0 1 0 653.4 554.4"/>
+        <path d="M 512 413 L 712 413"/>
+        <path d="M 712 413 L 712 566 Q 712 634 644 662 Q 586 686 512 680"/>
+        <path d="M 512 688 Q 484 712 454 746 Q 428 776 404 798"/>
+        <path d="M 512 688 Q 540 712 570 746 Q 596 776 620 798"/>
+        <g fill="currentColor" stroke="none"><circle cx="512" cy="680" r="26"/><circle cx="404" cy="798" r="22"/><circle cx="620" cy="798" r="22"/></g>
+      </g>
+    </symbol>
+  </svg>
   <div class="app-bg" id="app-bg" aria-hidden="true"></div>
   <div class="app">
     <main class="view" id="view-study">
@@ -207,9 +220,9 @@
     <main class="view" id="view-themes" hidden>
       <div class="scroll" id="themes-scroll">
         <button class="exam-entry" id="exams-entry" type="button">
-          <span class="exam-entry-icon"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M6 2h9l5 5v15H6V2Zm8 1.5V8h4.5L14 3.5ZM8 11h8v1.5H8V11Zm0 4h8v1.5H8V15Zm0 4h5v1.5H8V19Z"/></svg></span>
-          <span class="exam-entry-main"><span class="exam-entry-title">真题刷题</span><span class="exam-entry-sub" id="exams-entry-sub">六级真题 · 阅读 / 选词 / 匹配 / 写译</span></span>
-          <span class="row-arrow">›</span>
+          <span class="exam-entry-icon"><svg viewBox="0 0 1024 1024" width="30" height="30"><use href="#glance-mark"/></svg></span>
+          <span class="exam-entry-main"><span class="exam-entry-kicker">CET-6 · 真题实战</span><span class="exam-entry-title">真题刷题</span><span class="exam-entry-sub" id="exams-entry-sub">六级真题 · 阅读 / 选词 / 匹配 / 写译</span></span>
+          <span class="exam-entry-cta">开始 ›</span>
         </button>
         <p class="field-hint themes-intro">按主题集中攻克一类词；四六级翻译与作文常考话题也已整理成专题。</p>
         <div id="themes-groups"></div>
@@ -464,7 +477,7 @@
     <nav class="tabbar" id="tabbar">
       <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
       <div class="side-brand" aria-hidden="true">
-        <span class="side-brand-mark">G</span>
+        <span class="side-brand-mark"><svg viewBox="0 0 1024 1024"><use href="#glance-mark"/></svg></span>
         <span class="side-brand-text"><b>Glance</b><small>词根背单词</small></span>
       </div>
       <button class="tab active" data-view="study" type="button" aria-label="学习">
@@ -1002,14 +1015,8 @@
     <div class="load-aurora" aria-hidden="true"><i class="la1"></i><i class="la2"></i><i class="la3"></i></div>
     <div class="load-grain" aria-hidden="true"></div>
     <div class="load-core" id="load-core">
-      <svg class="load-mark" viewBox="-8 8 378 120" aria-hidden="true" focusable="false">
-        <g class="gm1"><circle cx="22" cy="62" r="22"/><path d="M44 40 V98 Q44 116 26 116 H18"/></g>
-        <g class="gm2"><path d="M74 18 V76 Q74 84 82 84"/></g>
-        <g class="gm3"><circle cx="126" cy="62" r="22"/><path d="M148 40 V84"/></g>
-        <g class="gm4"><path d="M178 84 V40"/><path d="M178 62 Q178 40 200 40 Q222 40 222 62 V84"/></g>
-        <g class="gm5"><path d="M288.9 47.9 A22 22 0 1 0 288.9 76.1"/></g>
-        <g class="gm6"><path d="M362 62 H318 A22 22 0 1 1 355.6 77.6"/></g>
-      </svg>
+      <svg class="load-mark" viewBox="0 0 1024 1024" aria-hidden="true" focusable="false"><use href="#glance-mark"/></svg>
+      <p class="load-brand">Glance<small>词根背单词</small></p>
     </div>
     <div class="load-fail" id="load-fail" hidden>
       <p>词库加载失败。请确认 app/data 数据文件存在，或重试。</p>

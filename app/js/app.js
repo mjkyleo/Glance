@@ -4722,6 +4722,14 @@
     return h;
   }
 
+  function applyExamFont() {
+    const pane = $('exams-session-pane');
+    if (!pane) return;
+    const ef = Store.data.examFont || { size: 1, bold: false };
+    pane.style.setProperty('--exam-font-size', ef.size);
+    pane.classList.toggle('exam-bold', ef.bold === true);
+  }
+
   function renderExamSession() {
     const s = examCurSession();
     const pane = $('exams-session-pane');
@@ -4730,7 +4738,8 @@
     const q = examCurQuestion();
     const total = s.questions ? s.questions.length : 1;
     const idx = s.questions ? examQIdx : 0;
-    let h = '<div class="exam-session-head"><span>' + esc(EXAM_TYPE_NAME[s.type] || '') + (examRetryMode ? ' · 错题重练' : '') + ' · 第' + (examSIdx + 1) + '/' + examSessions.length + '组</span><span>' + (idx + 1) + ' / ' + total + '</span><button class="exam-lookup-btn" type="button" data-lookup="1" title="查词（不离开本题）">查词</button></div>';
+    const ef = Store.data.examFont || { size: 1, bold: false };
+    let h = '<div class="exam-session-head"><span>' + esc(EXAM_TYPE_NAME[s.type] || '') + (examRetryMode ? ' · 错题重练' : '') + ' · 第' + (examSIdx + 1) + '/' + examSessions.length + '组</span><span>' + (idx + 1) + ' / ' + total + '</span><span class="exam-head-tools"><button class="exam-font-btn" type="button" data-font="minus" title="缩小题目字号" aria-label="缩小题目字号">−</button><span class="exam-font-val">' + Math.round(ef.size * 100) + '%</span><button class="exam-font-btn" type="button" data-font="plus" title="放大题目字号" aria-label="放大题目字号">+</button><button class="exam-font-btn' + (ef.bold ? ' active' : '') + '" type="button" data-font="bold" title="题目加粗" aria-label="题目加粗" aria-pressed="' + (ef.bold ? 'true' : 'false') + '"><b>B</b></button><button class="exam-lookup-btn" type="button" data-lookup="1" title="查词（不离开本题）">查词</button></span></div>';
     h += '<div class="exam-progress"><i style="width:' + Math.round(((idx + (examPick ? 1 : 0)) / total) * 100) + '%"></i></div>';
     if (s.directions) h += '<p class="exam-directions">' + linkWords(s.directions) + '</p>';
     if (s.type === 'reading') {
@@ -4758,6 +4767,7 @@
       h += '<div class="exam-nav"><button class="btn-primary" type="button" data-next="1">' + (examSIdx >= examSessions.length - 1 ? '完成练习' : '下一组 ›') + '</button></div>';
     }
     pane.innerHTML = h;
+    applyExamFont();
     const ta = $('exam-writing-input');
     if (ta) ta.addEventListener('input', () => { examDraft = ta.value; $('exam-count').textContent = examDraft.length + ' 字符'; });
     const cached = q && Store.examAi(s.type === 'writing' || s.type === 'translation' ? Exams.writingCacheKey(examCur.examId, s.type) : Exams.questionCacheKey(examCur.examId, q.no));
@@ -4937,8 +4947,21 @@
   }
 
   function examClick(e) {
-    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list],[data-study],[data-lookup]');
+    const t = e.target.closest('[data-exam],[data-start],[data-retry],[data-back-list],[data-opt],[data-blank],[data-mark],[data-ai],[data-next],[data-prev],[data-detail],[data-list],[data-study],[data-lookup],[data-font]');
     if (!t) return;
+    if (t.dataset.font) {
+      const f = Store.data.examFont;
+      if (t.dataset.font === 'minus') f.size = Math.max(0.8, Math.round((f.size - 0.1) * 10) / 10);
+      else if (t.dataset.font === 'plus') f.size = Math.min(1.6, Math.round((f.size + 0.1) * 10) / 10);
+      else if (t.dataset.font === 'bold') f.bold = !f.bold;
+      Store.save();
+      applyExamFont();
+      const val = $('exams-session-pane').querySelector('.exam-font-val');
+      if (val) val.textContent = Math.round(f.size * 100) + '%';
+      const boldBtn = $('exams-session-pane').querySelector('[data-font="bold"]');
+      if (boldBtn) { boldBtn.classList.toggle('active', f.bold); boldBtn.setAttribute('aria-pressed', String(f.bold)); }
+      return;
+    }
     if (t.dataset.lookup) { openLookupSheet(); return; }
     if (t.dataset.study) { openStudySheet(null, t.dataset.study); return; }
     if (t.dataset.exam) { openExam(t.dataset.exam); return; }

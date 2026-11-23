@@ -46,6 +46,7 @@
     },
     quizExamples: {},
     exams: { progress: {}, wrong: [], aiCache: {} },
+    examFont: { size: 1, bold: false },
     background: { image: '', veil: 38, blur: 0 }
   };
 
@@ -159,6 +160,9 @@
     if (!d.dictCache || typeof d.dictCache !== 'object') d.dictCache = {};
     if (!d.quizExamples || typeof d.quizExamples !== 'object') d.quizExamples = {};
     d.exams = normalizeExams(d.exams);
+    if (!d.examFont || typeof d.examFont !== 'object' || Array.isArray(d.examFont)) d.examFont = {};
+    d.examFont.size = Math.min(1.6, Math.max(0.8, Math.round((+d.examFont.size || 1) * 10) / 10));
+    d.examFont.bold = d.examFont.bold === true;
     if (!d.quiz || typeof d.quiz !== 'object') d.quiz = {};
     const QSCOPES = ['book', 'theme', 'favorites', 'errors', 'due', 'mixed'];
     const QTYPES = ['en2zh', 'zh2en', 'cloze', 'audio2word'];
@@ -770,6 +774,7 @@
         customThemes: clone(data.customThemes || []),
         quiz: clone(data.quiz || {}), quizExamples: clone(data.quizExamples || {}),
         exams: clone(data.exams || { progress: {}, wrong: [], aiCache: {} }),
+        examFont: clone(data.examFont || { size: 1, bold: false }),
         settings: {
           plan: clone(data.plan), activeBook: data.activeBook,
           studyPanel: clone(data.studyPanel || {}), studyPanelOrder: (data.studyPanelOrder || []).slice(), theme: data.theme || 'gray',
@@ -932,6 +937,10 @@
           const v = ex.aiCache[k];
           if (!data.exams.aiCache[k] || v.t >= data.exams.aiCache[k].t) data.exams.aiCache[k] = v;
         }
+      }
+      if (isObj(src.examFont)) {
+        data.examFont.size = Math.min(1.6, Math.max(0.8, Math.round((+src.examFont.size || data.examFont.size) * 10) / 10));
+        data.examFont.bold = src.examFont.bold === true;
       }
       if (isObj(src.quizExamples)) {
         for (const w of Object.keys(src.quizExamples)) {
