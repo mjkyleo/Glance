@@ -428,7 +428,8 @@
       if (lower.size) { entries = entries.filter(e => !lower.has(e.word)); steps.push('低阶重复'); }
     }
     if (f.excludeBooks && f.excludeBooks.length) {
-      const ex = Library.excludeWordSet(f.excludeBooks);
+      const tags = f.excludeBooks.filter(t => t && t !== b.tag);
+      const ex = Library.excludeWordSet(tags);
       if (ex.size) { entries = entries.filter(e => !ex.has(e.word)); steps.push('其它词书'); }
     }
     if (f.skipKnown) {
@@ -446,7 +447,9 @@
     const now = Date.now();
     const prog = Store.planProgress();
     const newLeft = bonusNew ? 10 : prog.newLeft;
-    const q = SRS.buildQueue(studyEntries(book), Store.data.srs, { newLeft, reviewCap: Store.data.plan.reviewCap }, now);
+    let pool = studyEntries(book);
+    if (!pool.length && book.entries.length) pool = book.entries;
+    const q = SRS.buildQueue(pool, Store.data.srs, { newLeft, reviewCap: Store.data.plan.reviewCap }, now);
     session = SRS.session(q.reviews, q.news);
     sessionMeta = q;
     sessionIdx = 0;
@@ -744,8 +747,10 @@
 
   function continueStudy() {
     const p = Store.planProgress();
-    const due = SRS.buildQueue(activeBook().entries, Store.data.srs, { newLeft: 0, reviewCap: 0 }, Date.now()).dueTotal;
+    const b = activeBook();
+    const due = SRS.buildQueue(studyEntries(b).length ? studyEntries(b) : b.entries, Store.data.srs, { newLeft: 0, reviewCap: 0 }, Date.now()).dueTotal;
     buildSession(p.newLeft === 0 && due === 0);
+    if (!currentItem()) buildSession(true);
     setMode('study');
     renderStudy();
   }
