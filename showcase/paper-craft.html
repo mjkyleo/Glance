@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Glance · 纸艺手作风格示例</title>
+<style>
+  :root {
+    --paper: #fdf6ee;
+    --paper-2: #fffdf8;
+    --red: #e85d75;
+    --red-dark: #d14a62;
+    --teal: #5cb8a5;
+    --yellow: #f5c040;
+    --blue: #6b7fb5;
+    --ink: #2d2d2d;
+    --muted: #666666;
+    --faint: #b0a898;
+    --line: #e0d8cc;
+    --shadow-sm: 2px 2px 0 rgba(45,45,45,.08);
+    --shadow-md: 4px 4px 0 rgba(45,45,45,.10);
+    --shadow-lg: 6px 6px 0 rgba(45,45,45,.12);
+    --radius-btn: 14px;
+    --radius-card: 22px;
+    --ease: .2s ease-out;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 22px 70px; }
+
+  /* ---------- paper primitives ---------- */
+  .paper-card {
+    position: relative;
+    background: var(--paper-2);
+    border: 2px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-md);
+  }
+  .paper-fold { position: relative; overflow: hidden; }
+  .paper-fold::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(105deg, rgba(255,255,255,.34) 0 49.6%, rgba(0,0,0,.035) 50% 50.4%, rgba(255,255,255,0) 51%);
+  }
+  .tape {
+    position: absolute; top: -11px; left: 50%; transform: translateX(-50%) rotate(-2deg);
+    width: 84px; height: 22px; background: rgba(245,192,64,.7);
+    border: 1px solid rgba(200,160,50,.45); border-radius: 2px;
+    box-shadow: 1px 1px 0 rgba(0,0,0,.06);
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    padding: 12px 18px; margin-bottom: 34px;
+    background: var(--paper-2); border: 2px solid var(--line); border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: .5px; }
+  .brand-mark {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    background: var(--red); color: #fff; border-radius: 11px;
+    border: 2px solid var(--red-dark); box-shadow: 2px 2px 0 rgba(209,74,98,.35);
+    transform: rotate(-4deg); font-size: 17px;
+  }
+  .nav-links { display: flex; gap: 6px; flex: 1; }
+  .nav-links a {
+    padding: 7px 13px; border-radius: 10px; color: var(--muted); text-decoration: none;
+    font-size: 14px; font-weight: 600; transition: all var(--ease);
+  }
+  .nav-links a:hover { background: #f7ead9; color: var(--ink); transform: translateY(-1px); }
+  .nav-links a.on { background: var(--red); color: #fff; box-shadow: 2px 2px 0 rgba(209,74,98,.35); }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 11px 20px; font: inherit; font-weight: 700; font-size: 14px;
+    border-radius: var(--radius-btn); border: 2px solid transparent; cursor: pointer;
+    transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+    box-shadow: var(--shadow-md); text-decoration: none; color: var(--ink);
+  }
+  .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 rgba(45,45,45,.14); }
+  .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(45,45,45,.2); }
+  .btn-red { background: var(--red); color: #fff; border-color: var(--red-dark); box-shadow: 4px 4px 0 rgba(209,74,98,.32); transform: rotate(-1deg); }
+  .btn-red:hover { box-shadow: 6px 6px 0 rgba(209,74,98,.38); transform: rotate(0) translate(-2px,-2px); }
+  .btn-teal { background: var(--teal); color: #fff; border-color: #489b8a; box-shadow: 4px 4px 0 rgba(72,155,138,.3); }
+  .btn-outline { background: var(--paper-2); border-color: var(--ink); }
+  .btn-yellow { background: var(--yellow); border-color: #d9a52f; box-shadow: 4px 4px 0 rgba(217,165,47,.3); }
+  .btn-sm { padding: 7px 13px; font-size: 12.5px; border-radius: 10px; box-shadow: var(--shadow-sm); }
+  .btn-icon { width: 38px; height: 38px; padding: 0; border-radius: 12px; }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 34px; align-items: center; margin-bottom: 46px; }
+  .hero h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.22; margin: 0 0 12px; letter-spacing: -.5px; }
+  .hero h1 em { font-style: normal; color: var(--red); position: relative; white-space: nowrap; }
+  .hero h1 em::after {
+    content: ""; position: absolute; left: -2px; right: -2px; bottom: 2px; height: 9px;
+    background: rgba(245,192,64,.5); z-index: -1; transform: rotate(-1deg); border-radius: 3px;
+  }
+  .hero p { color: var(--muted); font-size: 15px; margin: 0 0 22px; max-width: 430px; }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-note { margin-top: 16px; font-size: 12px; color: var(--faint); }
+
+  /* layered sticky-note card */
+  .stack { position: relative; padding: 16px 10px 22px; }
+  .stack .sheet-back {
+    position: absolute; inset: 16px 26px 22px 4px; background: var(--yellow);
+    border: 2px solid #d9a52f; border-radius: var(--radius-card); transform: rotate(3deg);
+    box-shadow: var(--shadow-sm); transition: transform var(--ease);
+  }
+  .stack .sheet-mid {
+    position: absolute; inset: 14px 2px 20px 26px; background: var(--teal);
+    border: 2px solid #489b8a; border-radius: var(--radius-card); transform: rotate(-2deg);
+    box-shadow: var(--shadow-sm); transition: transform var(--ease);
+  }
+  .stack:hover .sheet-back { transform: rotate(7deg) translate(-5px,3px); }
+  .stack:hover .sheet-mid { transform: rotate(-5deg) translate(5px,2px); }
+  .wordcard {
+    position: relative; z-index: 2; padding: 26px 26px 22px; background: #fff;
+    border: 2px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-lg);
+    transition: transform var(--ease), box-shadow var(--ease);
+  }
+  .stack:hover .wordcard { transform: translateY(-4px); box-shadow: 8px 8px 0 rgba(45,45,45,.14); }
+  .wordcard .wc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .tag { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1.5px solid; }
+  .tag-red { color: var(--red-dark); background: #fdeef1; border-color: #f3c4cd; }
+  .tag-teal { color: #3c8d7c; background: #e9f6f2; border-color: #bfe4da; }
+  .tag-yellow { color: #9a7416; background: #fdf5df; border-color: #eed89c; }
+  .wordcard h2 { font-size: 38px; margin: 0; letter-spacing: -.5px; }
+  .phonetic { color: var(--faint); font-family: ui-monospace, monospace; font-size: 14px; margin: 2px 0 16px; }
+  .sense { border-top: 1.5px dashed var(--line); padding-top: 12px; margin-top: 10px; font-size: 14px; }
+  .sense b { color: var(--red); margin-right: 8px; }
+  .wc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 12px; color: var(--faint); }
+
+  /* ---------- section ---------- */
+  .section { margin-bottom: 44px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+  .sec-head h2 { font-size: 23px; margin: 0; }
+  .sec-head span { color: var(--faint); font-size: 13px; }
+
+  /* stat cards */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stat { padding: 20px 18px; text-align: center; transition: transform var(--ease), box-shadow var(--ease); }
+  .stat:hover { transform: translateY(-3px) rotate(-.6deg); box-shadow: var(--shadow-lg); }
+  .stat .num { font-size: 32px; font-weight: 800; line-height: 1.1; }
+  .stat .lab { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+  .stat.red .num { color: var(--red); }
+  .stat.teal .num { color: var(--teal); }
+  .stat.yellow .num { color: #c79422; }
+  .stat.blue .num { color: var(--blue); }
+
+  /* book list */
+  .books { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .book {
+    display: flex; align-items: center; gap: 14px; padding: 15px 17px;
+    background: var(--paper-2); border: 2px solid var(--line); border-radius: 16px;
+    box-shadow: var(--shadow-sm); transition: transform var(--ease), box-shadow var(--ease);
+    cursor: pointer;
+  }
+  .book:hover { transform: translate(-2px,-2px); box-shadow: var(--shadow-md); }
+  .book.active { border-color: var(--red); box-shadow: 4px 4px 0 rgba(232,93,117,.2); }
+  .book-icon {
+    flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center;
+    border-radius: 13px; border: 2px solid; font-size: 20px; transform: rotate(-3deg);
+  }
+  .book-icon.r { background: #fdeef1; border-color: #f3c4cd; color: var(--red-dark); }
+  .book-icon.t { background: #e9f6f2; border-color: #bfe4da; color: #3c8d7c; }
+  .book-icon.y { background: #fdf5df; border-color: #eed89c; color: #9a7416; }
+  .book-icon.b { background: #edf0f8; border-color: #c9d3ec; color: var(--blue); }
+  .book-main { flex: 1; min-width: 0; }
+  .book-main b { display: block; font-size: 15px; }
+  .book-main small { color: var(--faint); font-size: 12px; }
+  .progress { height: 7px; margin-top: 8px; background: #efe7db; border-radius: 999px; overflow: hidden; }
+  .progress i { display: block; height: 100%; border-radius: 999px; background: var(--teal); }
+  .book.active .progress i { background: var(--red); }
+
+  /* inputs + component row */
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .demo-box { padding: 22px; }
+  .demo-box h3 { margin: 0 0 16px; font-size: 16px; }
+  label.field { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 600; }
+  label.field span { display: block; margin-bottom: 6px; color: var(--muted); }
+  input[type=text], input[type=search] {
+    width: 100%; padding: 12px 14px; font: inherit; font-size: 14px; color: var(--ink);
+    background: #fff; border: 2px solid var(--line); border-radius: var(--radius-btn);
+    box-shadow: inset 2px 2px 4px rgba(0,0,0,.045); outline: none; transition: all var(--ease);
+  }
+  input::placeholder { color: var(--faint); }
+  input:focus { border-color: var(--red); box-shadow: inset 3px 3px 6px rgba(0,0,0,.06), 0 0 0 3px rgba(232,93,117,.16); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  footer { text-align: center; color: var(--faint); font-size: 12px; margin-top: 50px; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .books, .demo-grid { grid-template-columns: 1fr; }
+    .nav-links { order: 3; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- nav -->
+  <nav>
+    <div class="brand"><span class="brand-mark">G</span> Glance</div>
+    <div class="nav-links">
+      <a href="#" class="on">学习</a>
+      <a href="#">词书与计划</a>
+      <a href="#">真题刷题</a>
+      <a href="#">查词</a>
+    </div>
+    <button class="btn btn-outline btn-sm">设置</button>
+  </nav>
+
+  <!-- hero -->
+  <header class="hero">
+    <div>
+      <h1>今天也来<em>学几个新词</em>吧</h1>
+      <p>像做手作一样，把每一个单词剪贴进你的记忆里。纸艺手作风格的词汇学习界面示例 —— 暖纸底色、硬边投影、轻微旋转的层叠纸片。</p>
+      <div class="hero-actions">
+        <button class="btn btn-red">开始今日学习</button>
+        <button class="btn btn-outline">继续上次的练习</button>
+      </div>
+      <div class="hero-note">提示：把鼠标移到右侧词卡上，看看纸片散开的效果</div>
+    </div>
+    <div class="stack" aria-label="层叠纸片词卡">
+      <div class="sheet-back"></div>
+      <div class="sheet-mid"></div>
+      <div class="wordcard paper-fold">
+        <span class="tape"></span>
+        <div class="wc-top">
+          <span class="tag tag-red">六级</span>
+          <button class="btn btn-icon btn-teal" title="朗读">♪</button>
+        </div>
+        <h2>serendipity</h2>
+        <div class="phonetic">/ˌserənˈdɪpəti/</div>
+        <div class="sense"><b>n.</b> 意外发现美好事物的运气；机缘巧合</div>
+        <div class="sense"><b>例</b> Finding this little café was pure serendipity.</div>
+        <div class="wc-foot"><span>已看 3 次</span><span class="tag tag-teal">SRS · 学习中</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- stats -->
+  <section class="section">
+    <div class="sec-head"><h2>学习概览</h2><span>今天是 2026 年 11 月 23 日</span></div>
+    <div class="stats">
+      <div class="stat paper-card red"><div class="num">20</div><div class="lab">今日新词</div></div>
+      <div class="stat paper-card teal"><div class="num">128</div><div class="lab">已掌握</div></div>
+      <div class="stat paper-card yellow"><div class="num">12</div><div class="lab">连续天数</div></div>
+      <div class="stat paper-card blue"><div class="num">86%</div><div class="lab">正确率</div></div>
+    </div>
+  </section>
+
+  <!-- books -->
+  <section class="section">
+    <div class="sec-head"><h2>我的词书</h2><span>点击进入学习</span></div>
+    <div class="books">
+      <div class="book active">
+        <div class="book-icon r">六</div>
+        <div class="book-main"><b>六级词库</b><small>4327 词 · 已掌握 128</small><div class="progress"><i style="width:38%"></i></div></div>
+        <span class="tag tag-red">当前</span>
+      </div>
+      <div class="book">
+        <div class="book-icon t">真</div>
+        <div class="book-main"><b>真题高频词</b><small>861 词 · 已掌握 210</small><div class="progress"><i style="width:62%"></i></div></div>
+        <span class="tag tag-teal">62%</span>
+      </div>
+      <div class="book">
+        <div class="book-icon y">自</div>
+        <div class="book-main"><b>我的生词本</b><small>1521 词 · 已掌握 96</small><div class="progress"><i style="width:24%"></i></div></div>
+        <span class="tag tag-yellow">自定义</span>
+      </div>
+      <div class="book">
+        <div class="book-icon b">词</div>
+        <div class="book-main"><b>词根词缀</b><small>316 组 · 学习中</small><div class="progress"><i style="width:51%"></i></div></div>
+        <span class="tag tag-teal">51%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- components -->
+  <section class="section">
+    <div class="sec-head"><h2>组件示例</h2><span>按钮 · 输入框</span></div>
+    <div class="demo-grid">
+      <div class="demo-box paper-card">
+        <h3>纸片按钮</h3>
+        <div class="btn-row">
+          <button class="btn btn-red">主要操作</button>
+          <button class="btn btn-teal">次操作</button>
+          <button class="btn btn-yellow">收藏</button>
+          <button class="btn btn-outline">描边</button>
+          <button class="btn btn-outline btn-sm">小按钮</button>
+        </div>
+      </div>
+      <div class="demo-box paper-card">
+        <h3>裁切输入框</h3>
+        <label class="field"><span>查单词 / 词根 / 词缀</span><input type="search" placeholder="例如 serendipity" /></label>
+        <label class="field"><span>新词书名称</span><input type="text" placeholder="输入名称…" /></label>
+      </div>
+    </div>
+  </section>
+
+  <footer>Paper Craft UI · Glance 词汇应用风格示例 · 单文件可直接打开</footer>
+</div>
+</body>
+</html>

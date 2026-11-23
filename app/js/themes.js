@@ -260,5 +260,30 @@
   function themesOf(word) { return (wordThemes[word] || []).slice(); }
   function isReady() { return ready; }
 
+  // ---------- visual theme tokens (design system) ----------
+  // The 9th visual theme. `meta` feeds the app.js theme-color tags; `tokens` are
+  // the canonical Paper Craft design tokens mirrored in app.css under
+  // html[data-theme="paper-craft"] so every existing view picks up the look.
+  const VISUAL_THEME_TOKENS = {
+    'paper-craft': {
+      id: 'paper-craft',
+      name: '纸艺手作',
+      meta: { light: '#fdf6ee', dark: '#241f1a' },
+      tokens: {
+        '--paper': '#fdf6ee',
+        '--paper-2': '#fffdf8',
+        '--red': '#e85d75',
+        '--red-dark': '#d14a62',
+        '--teal': '#5cb8a5',
+        '--yellow': '#f5c040',
+        '--blue': '#6b7fb5',
+        '--ink': '#2d2d2d',
+        '--muted': '#666666',
+        '--line': '#e0d8cc'
+      }
+    }
+  };
+  window.VisualThemeTokens = VISUAL_THEME_TOKENS;
+
   window.Themes = { init, setCustom, list, groups, get, wordsOf, themesOf, isReady, GROUPS };
 })();

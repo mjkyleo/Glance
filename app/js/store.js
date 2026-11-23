@@ -143,7 +143,7 @@
       skipBasic: d.bookFilter.skipBasic !== false,
       excludeBooks: Array.isArray(d.bookFilter.excludeBooks) ? d.bookFilter.excludeBooks.filter(t => typeof t === 'string' && t) : []
     };
-    if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(d.theme)) d.theme = 'blue';
+    if (!['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet', 'paper-craft'].includes(d.theme)) d.theme = 'blue';
     if (!d.fsrs || typeof d.fsrs !== 'object') d.fsrs = { w: null, seqs: {}, count: 0, lastOpt: 0 };
     if (!d.fsrs.seqs || typeof d.fsrs.seqs !== 'object') d.fsrs.seqs = {};
     if (!d.ai || typeof d.ai !== 'object') d.ai = { provider: 'deepseek', key: '', model: '', base: '', enabled: false };
@@ -952,7 +952,7 @@
           const legacy = s.cardOrder.filter((id, i) => DEFAULTS.studyPanelOrder.includes(id) && s.cardOrder.indexOf(id) === i);
           data.studyPanelOrder = legacy.concat(DEFAULTS.studyPanelOrder.filter(id => !legacy.includes(id)));
         }
-        if (['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet'].includes(s.theme)) data.theme = s.theme;
+        if (['blue', 'green', 'yellow', 'gray', 'black', 'paper', 'sakura', 'violet', 'paper-craft'].includes(s.theme)) data.theme = s.theme;
         if (isObj(s.rootsView)) data.rootsView = { sort: s.rootsView.sort === 'alpha' ? 'alpha' : 'size', hideSmall: s.rootsView.hideSmall !== false };
         ['autoSpeak', 'preferAudio'].forEach(k => { if (typeof s[k] === 'boolean') data[k] = s[k]; });
         if (typeof s.ttsRate === 'number') data.ttsRate = s.ttsRate;

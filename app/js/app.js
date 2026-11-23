@@ -138,6 +138,12 @@
     sakura: ['#faf7f7', '#1b1517'],
     violet: ['#f4f4fb', '#15141c'],
   };
+  if (window.VisualThemeTokens) {
+    Object.keys(window.VisualThemeTokens).forEach(k => {
+      const m = window.VisualThemeTokens[k].meta;
+      if (m && m.light && m.dark) THEME_META[k] = [m.light, m.dark];
+    });
+  }
   function applyTheme(theme) {
     const t = THEME_META[theme] ? theme : 'blue';
     document.documentElement.dataset.theme = t;

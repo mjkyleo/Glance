@@ -386,6 +386,52 @@ html[data-theme="violet"] {
   --hover-lift: -2px; --press-scale: .96;
   --dur-ui: .2s; --ease-ui: cubic-bezier(.22, .61, .36, 1);
 }
+/* Paper Craft — layered cut paper, hard shadows, washi tape */
+html[data-theme="paper-craft"] {
+  --bg: #fdf6ee; --card: #fffdf8; --elevated: #fffdf8;
+  --text: #2d2d2d; --text-2: #666666; --text-3: #8a8175;
+  --accent: #e85d75; --accent-2: #5cb8a5; --accent-fg: #ffffff;
+  --green: #5cb8a5; --green-fg: #3c8d7c;
+  --purple: #6b7fb5; --orange: #f5c040; --orange-fg: #9a7416;
+  --red: #e85d75; --red-fg: #d14a62;
+  --morph-prefix: #e85d75; --morph-root: #f5c040; --morph-suffix: #5cb8a5;
+  --root-bg: rgba(245, 192, 64, 0.28); --root-fg: #9a7416;
+  --prefix-bg: rgba(232, 93, 117, 0.14); --prefix-fg: #c04a61;
+  --suffix-bg: rgba(92, 184, 165, 0.16); --suffix-fg: #3c8d7c;
+  --hairline: rgba(45, 45, 45, 0.1);
+  --line: #e0d8cc;
+  --paper-shadow: rgba(45, 45, 45, 0.12);
+
+  --font-ui: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-ui); --font-head: var(--font-ui);
+  --font-en: "Trebuchet MS", "Segoe UI", "PingFang SC", sans-serif;
+  --fw-display: 800; --fw-head: 700; --fw-body: 400; --fw-label: 700; --fw-button: 700;
+  --lh-body: 1.6; --track-display: -0.01em; --track-head: 0em;
+  --track-label: 0.04em; --track-body: 0em; --label-transform: none;
+  --card-border: 2px solid var(--line);
+  --bg-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+  --bg-size: 100px 100px;
+  --word-pad: 24px; --panel-pad: 18px; --row-pad: 14px 16px;
+  --tile-pad: 14px 16px; --stat-pad: 16px; --hero-pad: 20px 22px;
+  --gap-ui: 14px;
+  --r-sheet: 22px; --r-lg: 22px; --r: 16px; --r-sm: 12px;
+  --r-btn: 14px; --r-btn-lg: 16px; --r-chip: 999px; --r-field: 12px;
+  --r-icon: 12px; --r-tile: 14px; --r-avatar: 12px; --r-progress: 999px;
+  --mark-size: 40px; --icon-size: 40px;
+  --field-bg: var(--card); --field-border: 2px solid var(--line);
+  --option-border: 2px solid var(--line);
+  --word-size: clamp(34px, 9vw, 50px); --word-weight: 800; --word-track: -0.01em;
+  --brand-size: 20px; --brand-weight: 800; --brand-track: 0.02em; --head-size: 16px;
+  --tab-fw: 700; --tab-track: 0.01em;
+  --tab-active-bg: var(--root-bg); --r-tab-active: 12px;
+  --progress-fill: linear-gradient(90deg, var(--accent-2), var(--accent)); --progress-h: 8px;
+  --book-gradient: linear-gradient(135deg, var(--accent), var(--red-dark));
+  --grade-h: 66px; --grade-r: 14px;
+  --shadow-card: 4px 4px 0 var(--paper-shadow);
+  --shadow-pop: 7px 7px 0 var(--paper-shadow);
+  --press-scale: .96; --hover-lift: -2px;
+  --dur-ui: .2s; --dur-slow: .26s; --ease-ui: cubic-bezier(.2, .8, .3, 1);
+}
 
 @media (prefers-color-scheme: dark) {
   /* Apple — default dark */
@@ -483,8 +529,32 @@ html[data-theme="violet"] {
     --hairline: rgba(255, 255, 255, 0.06);
   }
 
+  /* Paper Craft — warm kraft night */
+  html[data-theme="paper-craft"] {
+    --bg: #241f1a; --card: #2e2720; --elevated: #3a3128;
+    --text: #f7efe3; --text-2: #d8c9b6; --text-3: #b8a894;
+    --accent: #f0788d; --accent-2: #6ccdb8; --accent-fg: #24150f;
+    --green: #6ccdb8; --green-fg: #8fe0cc;
+    --purple: #93a6d6; --orange: #f5c040; --orange-fg: #f5c040;
+    --red: #f0788d; --red-fg: #f5a3b1;
+    --morph-prefix: #f0788d; --morph-root: #f5c040; --morph-suffix: #6ccdb8;
+    --root-bg: rgba(245, 192, 64, 0.2); --root-fg: #f5c040;
+    --prefix-bg: rgba(240, 120, 141, 0.18); --prefix-fg: #f5a3b1;
+    --suffix-bg: rgba(108, 205, 184, 0.18); --suffix-fg: #8fe0cc;
+    --hairline: rgba(255, 255, 255, 0.08);
+    --line: #5a4a3a;
+    --paper-shadow: rgba(0, 0, 0, 0.4);
+    --card-border: 2px solid var(--line);
+    --field-border: 2px solid var(--line);
+    --option-border: 2px solid var(--line);
+    --shadow-card: 4px 4px 0 var(--paper-shadow);
+    --shadow-pop: 7px 7px 0 var(--paper-shadow);
+    --bg-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
   /* UI/UX tokens that need a dark counterpart */
   html[data-theme] { --line: rgba(255, 255, 255, 0.1); }
+  html[data-theme="paper-craft"] { --line: #5a4a3a; --card-border: 2px solid var(--line); --field-border: 2px solid var(--line); --option-border: 2px solid var(--line); }
   html[data-theme="green"] {
     --bg-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 220px);
   }
@@ -521,6 +591,23 @@ html[data-theme="violet"] {
      contrast of tertiary text, so the deck wash is dialled back after dark. */
   .theme-card.cloze::before { opacity: 0.25; }
 }
+
+/* ---------- Paper Craft: structural paper look ---------- */
+html[data-theme="paper-craft"] .btn-primary,
+html[data-theme="paper-craft"] .btn-ghost,
+html[data-theme="paper-craft"] .chip,
+html[data-theme="paper-craft"] .grade-btn {
+  border: 2px solid var(--line);
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+html[data-theme="paper-craft"] .btn-primary { border-color: var(--red-dark); box-shadow: 4px 4px 0 rgba(209, 74, 98, 0.3); }
+html[data-theme="paper-craft"] .btn-primary:hover { filter: brightness(1.04); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 rgba(209, 74, 98, 0.34); }
+html[data-theme="paper-craft"] .btn-primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(209, 74, 98, 0.3); }
+html[data-theme="paper-craft"] .btn-ghost:hover,
+html[data-theme="paper-craft"] .chip:hover,
+html[data-theme="paper-craft"] .grade-btn:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--paper-shadow); }
+html[data-theme="paper-craft"] .sheet-head { border-bottom: 2px solid var(--line); }
+html[data-theme="paper-craft"] .sheet-foot { border-top: 2px solid var(--line); }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; }
@@ -1436,7 +1523,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .settings-pane { display: flex; flex-direction: column; gap: 16px; }
 .settings-pane[hidden] { display: none; }
 
-.theme-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.theme-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .theme-swatch { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 2px; border: none; border-radius: var(--r-sm); background: var(--fill); color: var(--text-2); font-size: 12.5px; font-weight: var(--fw-button); cursor: pointer; transition: box-shadow var(--dur-ui) var(--ease-ui), background var(--dur-ui) var(--ease-ui), transform var(--dur-ui) var(--ease-ui); }
 .theme-swatch:hover { background: var(--fill-2); }
 .theme-swatch:active { transform: scale(0.97); }
@@ -1450,6 +1537,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .dot-paper { background: linear-gradient(135deg, #f1f0ec, #0f7b6c); }
 .dot-sakura { background: linear-gradient(135deg, #f7e6e8, #ad6673); }
 .dot-violet { background: linear-gradient(135deg, #e7e4fb, #6c63c9); }
+.dot-paper-craft { background: linear-gradient(135deg, #fff0d6 0 45%, #e85d75 45% 72%, #5cb8a5 72%); border-radius: 8px; box-shadow: 2px 2px 0 rgba(45, 45, 45, 0.14); }
 
 /* ---------- me ---------- */
 .me-hero { flex: 0 0 auto; display: flex; align-items: center; gap: 14px; background: var(--card); border: var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: var(--hero-pad); }
