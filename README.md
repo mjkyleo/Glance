@@ -45,6 +45,18 @@ npx serve app          #或：python -m http.server 8080 -d app
 
 打开 http://localhost:8080 。数据保存在站点 localStorage，请定期导出备份。
 
+本地开发也可用 `npm run web`：它在静态托管 `app/` 的同时提供同源词典代理，让浏览器里也能取到有道中文释义（默认 8080，可用 `PORT=8081` 覆盖）。
+
+### 静态网页部署
+
+`app/` 本身就是完整的静态站点，可直接部署到任意静态托管（GitHub Pages / Netlify / 对象存储），无需构建步骤：
+
+- 把 `app/` 目录内容上传到站点根目录，确保所有资源路径保持相对（不要改 `index.html` 的 `css/`、`js/`、`data/` 引用）。
+- 首次打开会自动加载 `data/*.json`（约 18MB），需等待词库初始化完成。
+- 词书、词根/词缀、学习计划、主题切换、真题等全部离线可用；中文释义来自内置 `words.json`，已收录词无需联网。
+- 在线查词：免费英文词典（dictionaryapi.dev，支持 CORS）在纯静态下可用；有道/UAPI 因目标站不返回 `Access-Control-Allow-Origin` 会被浏览器拦截，此时自动回退到其它免费词典并在结果中标注来源。若需要纯静态下也能显示有道中文释义，请在静态托管处配置 `/api/dict` 反向代理（参见 `scripts/web-proxy.js`），或用 Electron/Android 客户端。
+- 部署后建议用浏览器控制台确认无 404；数据保存在各访问者的 localStorage，与客户端不互通，需自行导出/导入备份。
+
 ### Windows
 
 从 [Releases](https://github.com/mjkyleo/Glance/releases/latest) 下载 `glance-setup-*.exe` 安装。未做代码签名，SmartScreen 提示时选「更多信息 → 仍要运行」。
